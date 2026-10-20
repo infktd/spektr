@@ -98,6 +98,10 @@ impl Ctx {
             }
             engine.load_exec_modules(&self.paths.modules_dir());
         }
+        // Web capture is a service, available whenever the network is.
+        if let Ok(net) = self.net() {
+            engine.set_capture(spektr_modules::Capture::new(net, Some(&self.paths.data)));
+        }
         Ok(engine.start())
     }
 

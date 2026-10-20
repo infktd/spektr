@@ -53,6 +53,17 @@ impl Paths {
     }
 }
 
+/// `~/…` for paths under the home directory.
+pub fn tilde(p: &Path) -> String {
+    match std::env::var_os("HOME").map(PathBuf::from) {
+        Some(home) if p.starts_with(&home) => match p.strip_prefix(&home) {
+            Ok(rest) => format!("~/{}", rest.display()),
+            Err(_) => p.display().to_string(),
+        },
+        _ => p.display().to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
