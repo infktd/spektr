@@ -1,0 +1,2 @@
+// Fictional Bluesky AppView responses for the tutor handle.
+{"kind":"http","method":"GET","url":"https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=jmarlow.wav.bsky.social","status":200,"headers":{"content-type":"application/json"},"body":{"did":"did:plc:tutorjmarlow0000000001","handle":"jmarlow.wav.bsky.social","displayName":"Jordan Marlow","description":"field recordings, synth noodles, long trails","avatar":"https://cdn.bsky.example/img/avatar/jmarlow.png","createdAt":"2023-04-11T19:02:44Z","followersCount":212}}

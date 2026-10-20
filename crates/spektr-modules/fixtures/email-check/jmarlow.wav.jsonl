@@ -1,0 +1,3 @@
+// Fictional MX answers for the tutor addresses' domains.
+{"kind":"dns","name":"mail.example","rtype":"MX","answers":["10 mx1.mail.example","20 mx2.mail.example"]}
+{"kind":"dns","name":"jmarlow.example","rtype":"MX","answers":["10 mx.mailhost.example"]}
