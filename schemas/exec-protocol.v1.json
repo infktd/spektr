@@ -1,0 +1,647 @@
+{
+  "$defs": {
+    "AttrValue": {
+      "description": "Attribute values, as in DATA_MODEL §2.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "int": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "int"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "bool": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "bool"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "RFC 3339.",
+          "properties": {
+            "time": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "time"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "`YYYY-MM-DD`.",
+          "properties": {
+            "date": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "geo": {
+              "properties": {
+                "lat": {
+                  "format": "double",
+                  "type": "number"
+                },
+                "lon": {
+                  "format": "double",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "lat",
+                "lon"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "geo"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "EntitySpec": {
+      "additionalProperties": false,
+      "description": "An entity a module found.",
+      "properties": {
+        "blob": {
+          "description": "Image entities: the observation id holding the bytes.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dedup_id": {
+          "description": "Person/organization: a stable source id, so repeated runs update one\nentity (DATA_MODEL §1.3).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "key": {
+          "description": "Certificate: `sha256:<DER fingerprint>` or `crtsh:<id>`, when the\nvalue is a display label.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "type": "object"
+    },
+    "ErrorCode": {
+      "description": "Only `rate_limited` and `upstream` are retried automatically.",
+      "enum": [
+        "rate_limited",
+        "not_found",
+        "auth",
+        "upstream",
+        "parse",
+        "timeout",
+        "internal"
+      ],
+      "type": "string"
+    },
+    "HostMessage": {
+      "description": "Host → module.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "protocol": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "spektr": {
+              "type": "string"
+            },
+            "type": {
+              "const": "hello",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "protocol",
+            "spektr"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "config": true,
+            "deadline": {
+              "description": "RFC 3339.",
+              "type": "string"
+            },
+            "input": {
+              "$ref": "#/$defs/InputEntity"
+            },
+            "job": {
+              "type": "string"
+            },
+            "secrets": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Only the secrets the manifest declares (required, plus optional\nones that are set).",
+              "type": "object"
+            },
+            "type": {
+              "const": "run",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "job",
+            "input",
+            "config",
+            "secrets",
+            "deadline"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "job": {
+              "type": "string"
+            },
+            "type": {
+              "const": "cancel",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "job"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "shutdown",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "InputEntity": {
+      "additionalProperties": false,
+      "description": "The job's input entity.",
+      "properties": {
+        "attrs": {
+          "default": null
+        },
+        "blob_b64": {
+          "description": "When the input is an `image`: its bytes, base64 (at most 25 MB).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "key": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "key",
+        "value"
+      ],
+      "type": "object"
+    },
+    "LogLevel": {
+      "enum": [
+        "trace",
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "type": "string"
+    },
+    "ModuleMessage": {
+      "description": "Module → host.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Serve mode: the module is ready for `run` messages.",
+          "properties": {
+            "type": {
+              "const": "ready",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Raw evidence. `raw` is UTF-8 text; use `raw_b64` for binary content.",
+          "properties": {
+            "content_type": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "description": "Local id, cited by later messages' `evidence`.",
+              "type": "string"
+            },
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "raw": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "raw_b64": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "source_url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "summary": {
+              "description": "Small structured facts about this observation (counts, status)."
+            },
+            "type": {
+              "const": "observation",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "entity": {
+              "$ref": "#/$defs/EntitySpec"
+            },
+            "evidence": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "ref": {
+              "description": "Local name for this entity, used by later `edge` / `attr`\nmessages. `$input` is the job's input.",
+              "type": "string"
+            },
+            "type": {
+              "const": "entity",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "ref",
+            "entity",
+            "evidence"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "event": {
+              "description": "True: the value appears on the timeline.",
+              "type": "boolean"
+            },
+            "evidence": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "target": {
+              "description": "An entity `ref` or `$input`.",
+              "type": "string"
+            },
+            "type": {
+              "const": "attr",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/AttrValue"
+            }
+          },
+          "required": [
+            "type",
+            "target",
+            "name",
+            "value",
+            "evidence"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "attrs": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "dst": {
+              "type": "string"
+            },
+            "evidence": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "predicate": {
+              "type": "string"
+            },
+            "src": {
+              "type": "string"
+            },
+            "type": {
+              "const": "edge",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "src",
+            "predicate",
+            "dst",
+            "evidence"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "evidence": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "description": "`sweep_unsure` or `same_person`.",
+              "type": "string"
+            },
+            "payload": true,
+            "type": {
+              "const": "review",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "kind",
+            "payload",
+            "evidence"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "pct": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "progress",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "pct"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "level": {
+              "$ref": "#/$defs/LogLevel"
+            },
+            "msg": {
+              "type": "string"
+            },
+            "type": {
+              "const": "log",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "level",
+            "msg"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "done",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/ErrorCode"
+            },
+            "job": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "retry_after": {
+              "description": "e.g. `32s`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "retryable": {
+              "default": false,
+              "type": "boolean"
+            },
+            "type": {
+              "const": "error",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/HostMessage"
+    },
+    {
+      "$ref": "#/$defs/ModuleMessage"
+    }
+  ],
+  "description": "One JSON object per line over a module's stdin (host → module: hello, run, cancel, shutdown) and stdout (module → host). See docs/MODULES.md §3.",
+  "title": "spektr exec protocol v1"
+}

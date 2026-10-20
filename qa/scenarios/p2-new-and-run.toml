@@ -1,0 +1,17 @@
+name = "Headless: new case, run a username seed (J6, Phase 2)"
+size = [120, 36]
+checklist = [
+  "`new` prints the case path and one summary line (rules, depth, region, subject with the ◎ glyph)",
+  "Activity lines follow the rail format: HH:MM:SS, status glyph, module padded to 15, summary",
+  "The sweep line reads `307 sites · 7 found · 5 unsure · 295 none` and points at `~ jmarlow.wav`",
+  "The summary block's labels line up in one column; counts are plausible (7 accounts, 5 review items)",
+  "Nothing wraps or overflows at 120 columns; no stray escape sequences",
+]
+
+[[step]]
+run = ["new", "tl-ctf-1101", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+frame = "new"
+
+[[step]]
+run = ["run", "tl-ctf-1101.spektr", "--seed", "username:jmarlow.wav", "--depth", "2"]
+frame = "run"

@@ -1,0 +1,22 @@
+name = "Headless: verify and doctor"
+size = [120, 36]
+checklist = [
+  "`verify` reports ✓ with row, blob and observation counts on one line",
+  "`doctor` lists one check per line: glyph (✓ ! ✕), a padded name, then the detail",
+  "Doctor shows the resolver, the test-mode transport warning (!), chrome/python3 and the terminal line",
+  "No secret values appear anywhere (only names, set/not set)",
+]
+
+[[step]]
+run = ["new", "v"]
+
+[[step]]
+run = ["run", "v.spektr", "--seed", "username:jmarlow.wav", "--module", "username-sweep"]
+
+[[step]]
+run = ["verify", "v.spektr"]
+frame = "verify"
+
+[[step]]
+run = ["doctor"]
+frame = "doctor"

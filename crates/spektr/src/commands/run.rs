@@ -108,6 +108,7 @@ pub async fn run(ctx: &Ctx, a: RunArgs) -> Result<()> {
         );
     } else {
         let state = |st: JobState| by_state.get(st.as_str()).copied().unwrap_or(0);
+        eprintln!();
         println!(
             "spektr run · {} · rules {} · depth {}",
             s.name, s.profile, s.depth
