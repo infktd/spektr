@@ -355,6 +355,12 @@ impl Term {
         }
     }
 
+    /// Wait until the screen (text or attributes) differs from `before`.
+    pub fn wait_changed(&self, before: &Screen, timeout: Duration) -> Result<Screen> {
+        self.wait_for(timeout, |s| s.formatted != before.formatted)
+            .context("waiting for the screen to change")
+    }
+
     /// Wait until the screen hasn't changed for `quiet`.
     pub fn settle(&self, quiet: Duration, timeout: Duration) -> Result<Screen> {
         let start = Instant::now();
