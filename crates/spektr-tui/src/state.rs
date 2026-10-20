@@ -680,6 +680,8 @@ pub enum MenuAct {
     RunModule(String),
     RunAll,
     RunPlaybook(String),
+    /// Open this URL (the entity's own, profile or source).
+    Url(String),
     /// A launcher, optionally for a checklist item.
     Launch {
         launcher: String,

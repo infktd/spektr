@@ -36,6 +36,9 @@ pub struct Info<'a> {
     pub launchers: Option<&'a [LauncherView]>,
     pub playbooks: &'a [PlaybookInfo],
     pub observations: usize,
+    /// The URL `O` opens: a url's own, an account's profile, an image's
+    /// source.
+    pub url: Option<&'a str>,
 }
 
 /// Playbooks whose seed takes the target's type.
@@ -78,11 +81,11 @@ pub fn build(km: &Keymap, target: &EntitySummary, c: &Info<'_>) -> Vec<MenuItem>
     let mut url = item(
         km,
         Action::OpenUrl,
-        (!has_url(target) && launchers == 0).then_some("no URL or launcher"),
+        (c.url.is_none() && launchers == 0).then_some("no URL or launcher"),
         false,
     );
     url.label = "Open in browser".into();
-    if has_url(target) || launchers > 0 {
+    if c.url.is_some() || launchers > 0 {
         url.submenu = true;
         url.right = format!("{} ▸", url.right);
     }
@@ -154,17 +157,25 @@ pub fn playbook_submenu(target: &EntitySummary, all: &[PlaybookInfo], profile: &
 pub fn launcher_submenu(
     km: &Keymap,
     target: &EntitySummary,
+    url: Option<&str>,
     launchers: &[LauncherView],
 ) -> Submenu {
     let mut items = Vec::new();
-    if has_url(target) {
+    if let Some(u) = url {
+        let label = if has_url(target) {
+            "This URL"
+        } else if target.ty.is(spektr_model::CoreType::Account) {
+            "Profile page"
+        } else {
+            "Source page"
+        };
         let (key, _) = km
             .hint_for(Action::OpenUrl, KCtx::Entity)
             .unwrap_or_default();
         items.push(MenuItem {
-            label: "This URL".into(),
+            label: label.into(),
             right: key,
-            act: MenuAct::Key(Action::OpenUrl),
+            act: MenuAct::Url(u.to_string()),
             disabled: None,
             submenu: false,
             rule: false,
@@ -180,7 +191,7 @@ pub fn launcher_submenu(
             },
             disabled: l.disabled.clone(),
             submenu: false,
-            rule: i == 0 && has_url(target),
+            rule: i == 0 && url.is_some(),
         });
     }
     Submenu {

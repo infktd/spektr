@@ -60,6 +60,7 @@ pub fn timeline(buf: &mut Buffer, inner: Rect, s: &AppState, w: &Workspace, hits
     let after = |e: &spektr_engine::TimelineEvent| {
         last_seen.is_some_and(|ls| e.at.to_zoned(jiff::tz::TimeZone::UTC).date() > ls)
     };
+    let late = |e: &spektr_engine::TimelineEvent| after(e) && crate::tabs::marks_activity(&e.attr);
     // rows, with the last-seen divider before the first event after it
     enum Row<'a> {
         Ev(usize, &'a spektr_engine::TimelineEvent),
@@ -122,7 +123,7 @@ pub fn timeline(buf: &mut Buffer, inner: Rect, s: &AppState, w: &Workspace, hits
                 } else if s.hover == Some(Hit::TimeRow(*i)) {
                     draw::bg(buf, row, t.hover_row());
                 }
-                let late = after(e);
+                let late = late(e);
                 let who = format!("{} {}", g.entity(&e.entity.ty), display_value(&e.entity, g));
                 draw::put(
                     buf,

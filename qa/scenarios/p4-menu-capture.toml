@@ -1,0 +1,47 @@
+name = "Context menu Phase 4 entries; capture; launcher doctor"
+size = [170, 48]
+compare = "docs/design/ContextMenu.dc.html"
+checklist = [
+  "Menu: `Run playbook  p ▸` enabled for a username, `Open in browser  O ▸` for an account (launchers), `Open raw response  o`",
+  "Run playbook ▸ submenu: `Playbooks for ~ username` with steps counts; profile-gated ones disabled with `needs <profile>`",
+  "Open in browser ▸ submenu: the account's launchers (e.g. Google · Bing · DuckDuckGo)",
+  "Capture dialog (c on a url): url prefilled, `Saved as evidence for …`; after ↵ the evidence list gains a capture row",
+  "Launcher doctor panel shows `images halfblocks`",
+]
+
+[[step]]
+run = ["new", "demo", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "demo.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = []
+do = [
+  "wait Doctor",
+  "settle 500",
+  "frame launcher-doctor-images",
+  "keys q",
+]
+
+[[step]]
+run = ["open", "demo.spektr"]
+do = [
+  "wait has_account",
+  "settle 300",
+  "keys h space",
+  "frame menu-username",
+  "keys p",
+  "frame submenu-playbooks",
+  "keys esc l j j space",
+  "frame menu-account",
+  "keys O",
+  "frame submenu-launchers",
+  "keys esc / text:https://jmarlow ↵ c",
+  "frame capture-dialog",
+  "keys ↵",
+  "wait captured",
+  "settle 500",
+  "frame captured",
+  "keys esc q",
+]

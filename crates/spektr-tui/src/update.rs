@@ -552,12 +552,11 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
                 toast(s, "copied", Token::Ok);
             }
         }
-        Action::OpenUrl => match w.cursor_entity() {
-            Some(e) if menu::has_url(e) => {
-                let u = e.value.clone();
-                fx.push(Effect::OpenUrl(u));
-            }
-            _ => toast(s, "no URL to open", Token::FgMuted),
+        Action::OpenUrl => match w.cursor_entity().map(|e| capture_url(w, e)) {
+            Some(Some(u)) => fx.push(Effect::OpenUrl(u)),
+            // Otherwise its launchers.
+            Some(None) => open_menu(s, None, Some(Action::OpenUrl)),
+            None => toast(s, "no URL to open", Token::FgMuted),
         },
         Action::Confirm | Action::Unconfirm | Action::Reject => edge_act(s, a, fx),
         Action::Note | Action::Merge | Action::ScopeAdd | Action::ScopeExclude
@@ -1327,6 +1326,7 @@ pub fn open_menu(s: &mut AppState, at: Option<(u16, u16)>, sub: Option<Action>) 
         .detail
         .as_ref()
         .filter(|d| d.entity.summary.id == target.id);
+    let url = capture_url(w, &target);
     let items = menu::build(
         &s.keymap,
         &target,
@@ -1336,6 +1336,7 @@ pub fn open_menu(s: &mut AppState, at: Option<(u16, u16)>, sub: Option<Action>) 
             launchers: detail.map(|d| d.launchers.as_slice()),
             playbooks: &w.checklist.playbooks,
             observations: obs.unwrap_or(0),
+            url: url.as_deref(),
         },
     );
     let anchor = at.unwrap_or_else(|| row_anchor(w, &s.hits, size));
@@ -1415,7 +1416,10 @@ fn open_sub(w: &Workspace, km: &crate::keymap::Keymap, m: &mut Menu) {
         Some(MenuAct::Key(Action::RunPlaybook)) => {
             menu::playbook_submenu(&target, &w.checklist.playbooks, w.profile())
         }
-        Some(MenuAct::Key(Action::OpenUrl)) => menu::launcher_submenu(km, &target, &launchers),
+        Some(MenuAct::Key(Action::OpenUrl)) => {
+            let url = capture_url(w, &target);
+            menu::launcher_submenu(km, &target, url.as_deref(), &launchers)
+        }
         _ => menu::run_submenu(km, &target, &w.modules, &last_run),
     });
 }
@@ -1464,8 +1468,19 @@ fn menu_act(s: &mut AppState, mut m: Menu, a: Action, fx: &mut Vec<Effect>) {
             }
         }
         other => {
-            // Entity hotkeys and global keys work while the menu is open.
-            return act(s, other, fx);
+            // A submenu item's hotkey opens that submenu.
+            if let Some(i) = m
+                .items
+                .iter()
+                .position(|it| it.act == MenuAct::Key(other) && it.submenu)
+                && let Some(w) = s.workspace()
+            {
+                m.sel = i;
+                open_sub(w, &s.keymap, &mut m);
+            } else {
+                // Entity hotkeys and global keys work while the menu is open.
+                return act(s, other, fx);
+            }
         }
     }
     s.overlay = Some(Overlay::Menu(m));
@@ -1487,6 +1502,7 @@ fn run_menu_act(s: &mut AppState, m: &Menu, a: MenuAct, fx: &mut Vec<Effect>) {
                 entity: m.target.id,
             },
         }),
+        MenuAct::Url(u) => fx.push(Effect::OpenUrl(u)),
         MenuAct::RunPlaybook(name) => fx.push(Effect::Act {
             what: format!("playbook {name}"),
             action: EngineAction::StartPlaybook {
@@ -2439,7 +2455,23 @@ fn query_result(s: &mut AppState, tag: Tag, r: Result<QueryResult, String>, fx: 
             if w.focus != Some(focus) || w.ego_gen != generation {
                 return;
             }
+            // Keep the cursor on the same row (group and entity) when rows
+            // re-sort, e.g. a confirmed edge moving to the top.
+            let keep = w
+                .ego
+                .as_ref()
+                .zip(w.ego_item())
+                .and_then(|(e, it)| ego::row(e, it))
+                .map(|(g, r)| (g.key.clone(), r.entity.id));
             w.ego = Some(view);
+            if let (Some((key, id)), Some(e)) = (keep, &w.ego) {
+                let at = ego::column_items(e, w.ego_col).into_iter().position(|it| {
+                    ego::row(e, it).is_some_and(|(g, r)| g.key == key && r.entity.id == id)
+                });
+                if let Some(i) = at {
+                    w.ego_idx = i;
+                }
+            }
             fix_ego_cursor(w);
             sync_inspect(w, fx);
         }
@@ -2659,7 +2691,7 @@ fn acted(s: &mut AppState, what: &str, r: Result<ActionOutcome, String>, fx: &mu
                     }
                 }
                 ActionOutcome::Decided { added } => match added {
-                    Some(a) => format!("accepted · {} added", a.value),
+                    Some(a) => format!("accepted · {} added", display_value(a, s.glyphs)),
                     None => format!("{what} ✓"),
                 },
                 ActionOutcome::Done => format!("{what} ✓"),

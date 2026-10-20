@@ -597,21 +597,24 @@ fn items_pane(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace, hits: &mut
                     "skipped" => (g.m(Marker::Skipped), Token::FgMuted),
                     _ => (g.m(Marker::Pending), Token::FgMuted),
                 };
-                // An item without an entity (a step with no `on`) shows its
-                // run's seed.
-                let who = it
-                    .entity
-                    .as_ref()
-                    .or_else(|| {
-                        c.runs
-                            .iter()
-                            .find(|r| r.id == it.run)
-                            .and_then(|r| r.seed.as_ref())
-                    })
-                    .map_or_else(
-                        || "—".into(),
-                        |e| format!("{} {}", g.entity(&e.ty), display_value(e, g)),
-                    );
+                // An avatar reads by its account; an item without an entity
+                // (a step with no `on`) shows its run's seed.
+                let who = match (&it.label, &it.entity) {
+                    (Some(l), Some(e)) => format!("{} {l}", g.entity(&e.ty)),
+                    _ => it
+                        .entity
+                        .as_ref()
+                        .or_else(|| {
+                            c.runs
+                                .iter()
+                                .find(|r| r.id == it.run)
+                                .and_then(|r| r.seed.as_ref())
+                        })
+                        .map_or_else(
+                            || "—".into(),
+                            |e| format!("{} {}", g.entity(&e.ty), display_value(e, g)),
+                        ),
+                };
                 let (rt, rtok) = item_right(it, g);
                 draw::put(
                     buf,

@@ -1,0 +1,40 @@
+name = "Inspector: image preview, edge comparison, confirm (J2 step 5)"
+size = [170, 48]
+compare = "docs/design/Identity.dc.html"
+checklist = [
+  "The username's ego shows `≈ same_avatar ↔ 3` (accent) with the three accounts",
+  "Cursor on a ≈ row: the inspector compares the edge — `≈ same_avatar`, both entities, the two avatars side by side (halfblocks in the harness), `dHash distance N/64`",
+  "Strength section with the bar, label and source count; Evidence N; footer `v confirm  x reject`",
+  "After `v`: `▰▰▰ confirmed`, `confirmed by the analyst <time>` (ok)",
+  "An image entity: the preview at the top (≤ 40% of the height), then the header",
+  "An account with an avatar: its avatar previewed at the top of the inspector",
+  "The Checklist section lists open items with their playbook",
+]
+
+[[step]]
+run = ["new", "demo", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "demo.spektr", "--seed", "username:jmarlow.wav", "--playbook", "person-from-username"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+do = [
+  "wait same_avatar",
+  "settle 500",
+  "frame ego-with-correlation",
+  "keys h h j j",
+  "settle 500",
+  "frame edge-compare",
+  "keys v",
+  "wait confirmed by the analyst",
+  "settle 300",
+  "frame edge-confirmed",
+  "keys / text:jmarlow.png ↵",
+  "settle 500",
+  "frame image-preview",
+  "keys esc / text:jmarlow-wav ↵",
+  "settle 500",
+  "frame account-avatar",
+  "keys esc q",
+]
