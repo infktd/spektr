@@ -473,6 +473,11 @@ impl Term {
 
     pub fn resize(&mut self, cols: u16, rows: u16) -> Result<()> {
         self.size = Size { cols, rows };
+        // Resize the parser first and hold its lock across the PTY resize:
+        // otherwise the app's redraw at the new size can reach the parser
+        // while it still has the old size, and scroll off the top rows.
+        let mut parser = self.parser.lock().unwrap_or_else(|e| e.into_inner());
+        parser.set_size(nz(rows), nz(cols));
         self.master
             .resize(PtySize {
                 rows,
@@ -481,10 +486,7 @@ impl Term {
                 pixel_height: 0,
             })
             .map_err(|e| anyhow!("resize: {e}"))?;
-        self.parser
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .set_size(nz(rows), nz(cols));
+        drop(parser);
         Ok(())
     }
 
