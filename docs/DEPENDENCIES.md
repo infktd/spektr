@@ -78,7 +78,7 @@ governor     = "0.10.4"           # per-host rate limiting
 # spektr-modules (net · media · capture · built-ins)
 reqwest      = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "json", "gzip", "brotli", "charset", "http2", "system-proxy"] }
 rustls       = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12", "logging"] }
-hickory-resolver = "0.26.3"
+hickory-proto = "0.26.3"            # DNS wire format only; the stub resolver lives in spektr-modules::net
 scraper      = "0.27.0"           # HTML title, links, analytics ids
 which        = "8.0.6"            # capture: find chrome/chromium
 nom-exif     = "3.8.0"
@@ -120,6 +120,7 @@ vt100        = "0.18.1"           # e2e: parse the screen into cells with colors
 | `nom-exif` | Actively maintained (Sept 2026), supports HEIC/HEIF and video metadata | `kamadak-exif` (last release Nov 2024) |
 | `ratatui-textarea` | Maintained and targets the ratatui 0.30 split crates | `tui-textarea` (last release Oct 2024) |
 | `BoxFuture` from `futures` | Object-safe async trait methods with no proc macro | `async-trait` |
+| `hickory-proto` plus spektr's own stub resolver in `spektr-modules::net` | `hickory-resolver` 0.26 depends on `hickory-net`, which requires `async-trait` (banned graph-wide). spektr needs only A/AAAA/MX/PTR/TXT lookups on FQDNs with no search domains or caching, so a small UDP + TCP-fallback resolver is enough. Decided by Jay in Phase 0 | `hickory-resolver` |
 | favicon mmh3 implemented in `spektr-modules::media` | It's about 40 lines; the `murmur3` crate's last release was in 2022 | `murmur3` |
 | `crossterm` `osc52` | Clipboard copy that works over SSH, with no X11 or Wayland dependencies | `arboard` |
 
