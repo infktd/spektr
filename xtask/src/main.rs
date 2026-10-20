@@ -1,5 +1,6 @@
 //! Development tasks for spektr. Run with `cargo xtask <task>`.
 
+mod demos;
 mod deps_check;
 mod qa;
 mod record;
@@ -18,8 +19,7 @@ tasks:
   qa [--live]              run the QA scenarios and save frames to qa/out/ (--live: approved targets only)
   qa --real-terminal       screenshot the TUI in Ghostty on the fixture case (macOS; QA.md §5)
   qa-shots                 render qa/out frames and docs/design artboards to PNG with headless Chrome
-
-`demos` arrives with the demo suite (Phase 5).";
+  demos                    render demos/*.tape with VHS into demos/out/ (fixture case, replayed network)";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -32,6 +32,7 @@ fn main() -> ExitCode {
         Some("qa") if rest.contains(&"--real-terminal") => qa::real_terminal(&root),
         Some("qa") => qa::run(&root, rest.contains(&"--live")),
         Some("qa-shots") => qa::shots(&root),
+        Some("demos") => demos::run(&root),
         Some("-h" | "--help" | "help") => {
             println!("{USAGE}");
             return ExitCode::SUCCESS;
