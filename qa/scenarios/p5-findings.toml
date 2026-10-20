@@ -1,0 +1,72 @@
+name = "Findings: empty, new, the editor, checks, ready, export (artboard 09)"
+size = [170, 48]
+compare = "docs/design/Findings.dc.html"
+checklist = [
+  "Empty: `Findings` pane shows `No findings yet` and how to make one (`f` on an entity); the filter tabs read `[all 0]`",
+  "New finding dialog: category picker `‹ … ›` with points, the claim field, the about line naming the entity",
+  "List (left): categories in profile order with findings first, points right-aligned; rows `F-1 title` with a status tag; cursor ▌",
+  "Detail (right): title bold, category · points, status; Claim, Relevance, Supporting entities, Evidence with the capture image; Checks with ✓ ok / ✕ fail / ! warn",
+  "Editor: INSERT pill; title, claim and relevance fields; the focused field has the accent border",
+  "After the relevance: every check ✓ (the approval check stays a ! warning); `r` makes it `ready` (ok color)",
+  "Export menu: Submission text, Markdown, JSON; tracelabs copies with a toast",
+  "Status line: FINDINGS pill; hints `n new  e edit  r ready  x export`",
+]
+
+[[step]]
+run = ["new", "tl-ctf-1101", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "tl-ctf-1101.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = ["open", "tl-ctf-1101.spektr"]
+do = [
+  "wait has_account",
+  "keys F",
+  "wait FINDINGS",
+  "frame findings-empty",
+  "keys esc",
+  "wait NORMAL",
+  "keys 1 / text:jmarlow-wav ↵",
+  "wait 2 match",
+  "settle",
+  "keys c",
+  "wait Capture",
+  "keys ↵",
+  "wait captured",
+  "keys f",
+  "wait New finding",
+  "keys → → → → → → →",
+  "wait ‹ Advancing the Timeline ›",
+  "keys ↓ text:Subject's space text:GitHub space text:account space text:was space text:active space text:on space text:2026-10-16.",
+  "frame finding-new-dialog",
+  "keys ↵",
+  "wait F-1 created",
+  "wait Supporting entities",
+  "frame findings-detail-failing",
+  "keys e",
+  "wait INSERT",
+  "keys ↓ text:Same space text:avatar space text:as space text:Bluesky; space text:after space text:2026-09-28.",
+  "frame finding-editor",
+  "keys ↵",
+  "wait ✓ claim and relevance written",
+  "frame findings-detail-passing",
+  "keys r",
+  "wait F-1 ready",
+  "frame findings-ready",
+  "keys x",
+  "wait Submission text",
+  "frame findings-export-menu",
+  "keys ↵",
+  "wait copied 1 submission",
+  "frame findings-exported",
+  "keys esc",
+  "wait NORMAL",
+  "keys : text:export space text:md ↵",
+  "wait Export",
+  "frame palette-export-md",
+  "keys ↵",
+  "settle",
+  "frame palette-export-written",
+  "keys q",
+]

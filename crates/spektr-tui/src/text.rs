@@ -37,6 +37,26 @@ pub fn fit(s: &str, w: usize) -> String {
     t
 }
 
+/// The end of `s` in at most `w` cells, with a leading `…` when cut (an
+/// input being typed into: the caret end stays visible).
+pub fn tail(s: &str, w: usize) -> String {
+    if width(s) <= w {
+        return s.to_string();
+    }
+    let mut out: Vec<char> = Vec::new();
+    let mut used = 1;
+    for c in s.chars().rev() {
+        let cw = width(c.encode_utf8(&mut [0; 4]));
+        if used + cw > w {
+            break;
+        }
+        used += cw;
+        out.push(c);
+    }
+    out.push('…');
+    out.into_iter().rev().collect()
+}
+
 /// Right-align in `w` cells (truncating on the left side's terms).
 pub fn right(s: &str, w: usize) -> String {
     let t = truncate(s, w);
@@ -73,6 +93,13 @@ pub fn bytes(n: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tails() {
+        assert_eq!(tail("on 2026-10-16.", 20), "on 2026-10-16.");
+        assert_eq!(tail("active on 2026-10-16.", 12), "…2026-10-16.");
+        assert_eq!(width(&tail("◎ Jordan Marlow", 6)), 6);
+    }
 
     #[test]
     fn widths() {

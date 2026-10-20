@@ -36,6 +36,10 @@ pub const FIXTURES: &[(&str, &str)] = &[
         include_str!("../fixtures/github/jmarlow-wav.jsonl"),
     ),
     (
+        "github/rl-demo.jsonl",
+        include_str!("../fixtures/github/rl-demo.jsonl"),
+    ),
+    (
         "gitlab/jmarlow.wav.jsonl",
         include_str!("../fixtures/gitlab/jmarlow.wav.jsonl"),
     ),

@@ -1,0 +1,28 @@
+name = "Empty states: a new case with no entities"
+size = [170, 48]
+compare = "docs/design/Main.dc.html"
+checklist = [
+  "Entities pane: an empty-case hint pointing at `:seed` (no blank pane)",
+  "Graph: no focus; a muted hint to seed something",
+  "Inspector: empty, no stray borders",
+  "Top bar: case name, rules, `findings 0`; no review/checklist badges",
+  "Review queue empty: `nothing pending`",
+  "Checklist with no playbook: a hint to run one",
+]
+
+[[step]]
+run = ["new", "blank", "--profile", "tracelabs"]
+
+[[step]]
+run = ["open", "blank.spektr"]
+do = [
+  "wait NORMAL",
+  "frame empty-case",
+  "keys R",
+  "wait REVIEW",
+  "frame empty-review",
+  "keys esc C",
+  "wait CHECKLIST",
+  "frame empty-checklist",
+  "keys esc q",
+]

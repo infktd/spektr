@@ -58,11 +58,7 @@ pub const COMMANDS: &[(&str, &str, bool)] = &[
         "Open a pivot launcher on the cursor entity: open <launcher>",
         true,
     ),
-    (
-        "export ",
-        "Export the case: export json|md|tracelabs",
-        false,
-    ),
+    ("export ", "Export the case: export json|md|tracelabs", true),
     ("verify", "Re-hash the audit chain and blobs", true),
     (
         "playbook ",
@@ -135,6 +131,7 @@ pub enum Cmd {
     Reload,
     Images(crate::images::Mode),
     FindingNew,
+    Export(spektr_engine::export::Format),
     /// `tutor` (false) or `tutor reset` (true).
     Tutor(bool),
 }
@@ -203,6 +200,9 @@ pub fn parse(line: &str) -> Result<Cmd, String> {
         "playbook" => Cmd::Playbook(need("a playbook name")?),
         "checklist" => Cmd::Checklist,
         "finding" if rest == "new" => Cmd::FindingNew,
+        "export" => Cmd::Export(
+            spektr_engine::export::Format::parse(rest).ok_or("export json|md|tracelabs")?,
+        ),
         "tutor" if rest.is_empty() => Cmd::Tutor(false),
         "tutor" if rest == "reset" => Cmd::Tutor(true),
         "reload" => Cmd::Reload,
@@ -410,6 +410,11 @@ mod tests {
         ));
         assert_eq!(parse("tutor"), Ok(Cmd::Tutor(false)));
         assert_eq!(parse("tutor reset"), Ok(Cmd::Tutor(true)));
+        assert_eq!(
+            parse("export md"),
+            Ok(Cmd::Export(spektr_engine::export::Format::Md))
+        );
+        assert!(parse("export pdf").is_err());
         assert_eq!(parse("bogus"), Err("unknown command `bogus`".into()));
         assert_eq!(parse("region gb"), Ok(Cmd::Region("GB".into())));
     }

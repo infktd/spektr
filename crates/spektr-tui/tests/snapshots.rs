@@ -246,7 +246,10 @@ fn tutor_coach_strip() {
     });
     snap("tutor_done", |size| {
         let mut s = ws(size);
-        s.tutor = Some(spektr_tui::tutor::Tutor { lesson: 10, step: 0 });
+        s.tutor = Some(spektr_tui::tutor::Tutor {
+            lesson: 10,
+            step: 0,
+        });
         s
     });
 }

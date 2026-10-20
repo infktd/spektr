@@ -1,0 +1,2 @@
+// Fictional: GitHub answering 429 for a QA handle (the rate-limit error state).
+{"kind": "http", "method": "GET", "url": "https://api.github.com/users/rl-demo", "status": 429, "headers": {"content-type": "application/json; charset=utf-8", "retry-after": "3", "x-ratelimit-remaining": "0"}, "body_b64": "eyJtZXNzYWdlIjoiQVBJIHJhdGUgbGltaXQgZXhjZWVkZWQgKGZpY3Rpb25hbCBmaXh0dXJlIGZvciBRQSkifQ=="}

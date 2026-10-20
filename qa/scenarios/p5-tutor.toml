@@ -1,0 +1,38 @@
+name = "The tutor: the coach strip, a lesson's progress, completion"
+size = [170, 48]
+compare = "docs/design/Main.dc.html"
+checklist = [
+  "TUTOR pill (accent) in the status line; the coach strip is two rows directly above it",
+  "Strip row 1: `Lesson N/10 · title` bold with `step i/n` muted; row 2: the goal, one line, truncated with … if needed",
+  "The panes shrink by two rows; nothing overlaps the strip",
+  "After a step completes the strip advances without a keystroke of its own",
+  "Lesson 3 starts a real playbook on bundled fixtures: the rail shows it (offline)",
+  "Launcher hint on the launcher screen: `New to spektr?  spektr tutor …`",
+]
+
+[[step]]
+run = []
+do = ["wait Recent cases", "frame launcher-tutor-hint", "keys q"]
+
+[[step]]
+run = ["tutor"]
+do = [
+  "wait Lesson 1/10",
+  "frame tutor-lesson-1",
+  "keys tab",
+  "wait step 2/2",
+  "frame tutor-step-advanced",
+  "keys ?",
+  "sleep 400",
+  "keys esc",
+  "wait Lesson 2/10",
+  "keys : text:seed space text:username:jmarlow.wav ↵",
+  "wait Lesson 3/10",
+  "frame tutor-lesson-3",
+  "keys / text:jmarlow.wav ↵",
+  "sleep 600",
+  "keys p ↵",
+  "wait step 2/2",
+  "frame tutor-playbook-running",
+  "keys q",
+]
