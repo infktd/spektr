@@ -4020,6 +4020,7 @@ dependencies = [
  "futures",
  "image",
  "insta",
+ "jiff",
  "nucleo-matcher",
  "open",
  "ratatui",
@@ -4029,6 +4030,7 @@ dependencies = [
  "spektr-model",
  "tokio",
  "tracing",
+ "unicode-width",
 ]
 
 [[package]]

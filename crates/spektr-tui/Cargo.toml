@@ -23,6 +23,8 @@ crossterm.workspace = true
 ratatui-image.workspace = true
 ratatui-textarea.workspace = true
 nucleo-matcher.workspace = true
+unicode-width.workspace = true
+jiff.workspace = true
 image.workspace = true
 open.workspace = true
 
