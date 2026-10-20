@@ -79,7 +79,7 @@ Write your own in any language: a module is a program that speaks a small JSON-l
 
 ```
 spektr module new lemmy --lang python     # also rust or shell
-spektr module test ./lemmy --input username:<handle>
+spektr module test ./lemmy --input username:example --fixture lemmy/fixtures/username_example.jsonl
 spektr module check ./lemmy
 spektr module install ./lemmy             # shows its hosts and secrets, asks first
 ```
