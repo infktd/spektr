@@ -43,6 +43,8 @@ enum Internal {
     Engine(PathBuf, EngineHandle),
     /// Show a file in the pager: the loop hands it the terminal.
     Pager(PathBuf),
+    /// Edit a finding's text in `$EDITOR`, likewise.
+    Edit(i64, PathBuf),
 }
 
 /// Type a test-mode key script (`Settings::script`) into the loop.
@@ -173,18 +175,19 @@ async fn sleep_until(at: Option<tokio::time::Instant>) {
 }
 
 /// Give the terminal to a pager, then take it back.
-/// `Ok(Err(e))`: the pager failed; `Ok(Ok(Some(t)))`: test mode recorded it.
-fn with_pager(
+/// Hand the terminal to a pager or an editor. `Ok(Err(e))`: it failed;
+/// `Ok(Ok(Some(t)))`: test mode recorded it.
+fn with_terminal(
     term: &mut Terminal<CrosstermBackend<Stdout>>,
     host: &Arc<dyn Host>,
-    path: PathBuf,
+    what: External,
     mouse: bool,
 ) -> io::Result<Result<Option<String>, String>> {
     if !host.pager_takes_terminal() {
-        return Ok(host.external(&External::Pager(path)));
+        return Ok(host.external(&what));
     }
     restore();
-    let r = host.external(&External::Pager(path));
+    let r = host.external(&what);
     enable_raw_mode()?;
     let mut out = io::stdout();
     execute!(
@@ -307,8 +310,21 @@ async fn run_loop(
                     }
                     Some(Msg::Opened(path, Ok(())))
                 }
+                Internal::Edit(id, path) => {
+                    let before = std::fs::read_to_string(&path).unwrap_or_default();
+                    let r = with_terminal(&mut term, &host, External::Editor(path.clone()), s.mouse)?;
+                    s.dirty = true;
+                    let after = std::fs::read_to_string(&path).unwrap_or_default();
+                    let _ = std::fs::remove_file(&path);
+                    match r {
+                        Ok(Some(t)) => Some(Msg::WouldOpen(t)),
+                        Ok(None) if after != before => Some(Msg::Edited(id, after)),
+                        Ok(None) => None,
+                        Err(e) => Some(Msg::Acted { what: "editor".into(), result: Err(e) }),
+                    }
+                }
                 Internal::Pager(path) => {
-                    let r = with_pager(&mut term, &host, path, s.mouse)?;
+                    let r = with_terminal(&mut term, &host, External::Pager(path), s.mouse)?;
                     s.dirty = true;
                     match r {
                         Ok(Some(t)) => Some(Msg::WouldOpen(t)),
@@ -522,6 +538,27 @@ fn run_effects(
                             result,
                         });
                     });
+                }
+            }
+            Effect::WriteFile(path, text) => {
+                tokio::task::spawn_blocking(move || {
+                    let r = std::fs::write(&path, text)
+                        .map(|()| path.clone())
+                        .map_err(|e| format!("{}: {e}", path.display()));
+                    send(Msg::Wrote(r));
+                });
+            }
+            Effect::EditExternal(id, text) => {
+                let dir = std::env::temp_dir().join("spektr-edit");
+                let path = dir.join(format!("finding-{id}.md"));
+                match std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&path, text)) {
+                    Ok(()) => {
+                        let _ = tx.send(Internal::Edit(id, path));
+                    }
+                    Err(e) => send(Msg::Acted {
+                        what: "editor".into(),
+                        result: Err(e.to_string()),
+                    }),
                 }
             }
             Effect::SetImages(mode) => {

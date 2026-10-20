@@ -52,8 +52,8 @@ fn launcher(setup: &'static str, ready: &'static str) -> Plan {
     }
 }
 
-/// Screens that arrive in Phase 5 (Findings).
-const NOT_BUILT: [Ctx; 1] = [Ctx::Findings];
+/// Every screen is built.
+const NOT_BUILT: [Ctx; 0] = [];
 
 fn plan(b: &Binding) -> Option<Plan> {
     if NOT_BUILT.contains(&b.ctx) {
@@ -99,6 +99,16 @@ fn plan(b: &Binding) -> Option<Plan> {
         "item-done" | "item-skip" | "item-note" | "item-open" | "item-finding" | "item-go" => {
             pb("C tab", "Reverse image search")
         }
+        // findings: the screen, then one finding
+        "finding-new" => ws("F", "FINDINGS"),
+        "finding-edit"
+        | "finding-edit-external"
+        | "finding-attach"
+        | "finding-ready"
+        | "finding-sent"
+        | "finding-export"
+        | "finding-go"
+        | "finding-delete" => ws("F n ↓ text:a-claim ↵", "F-1 created"),
         // review
         "review-accept" | "review-reject" | "review-later" | "review-open" => {
             pb("R", "[pending 5]")
@@ -230,7 +240,7 @@ fn every_registry_action_changes_the_screen() {
     });
     let f = failures.into_inner().unwrap();
     println!(
-        "{} bindings exercised, {} skipped (Findings is Phase 5: {skipped:?})",
+        "{} bindings exercised, {} skipped ({skipped:?})",
         work.len(),
         skipped.len()
     );

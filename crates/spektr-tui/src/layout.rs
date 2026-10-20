@@ -116,3 +116,20 @@ pub fn review(w: u16, h: u16) -> (Rect, Rect) {
         Rect::new(lw + 1, 1, w.saturating_sub(lw + 1), main_h),
     )
 }
+
+/// The Findings screen: the list on the left (≈ 40%), the detail right.
+pub fn findings(w: u16, h: u16) -> (Rect, Rect) {
+    let main_h = h.saturating_sub(2);
+    let lw = (w * 40 / 100).clamp(56, 80).min(w);
+    (
+        Rect::new(0, 1, lw, main_h),
+        Rect::new(lw + 1, 1, w.saturating_sub(lw + 1), main_h),
+    )
+}
+
+/// The inline finding editor: ≈ 96 wide, centered.
+pub fn editor(w: u16, h: u16) -> Rect {
+    let ew = 96.min(w.saturating_sub(4));
+    let eh = 20.min(h.saturating_sub(4));
+    centered(Rect::new(0, 0, w, h), ew, eh)
+}

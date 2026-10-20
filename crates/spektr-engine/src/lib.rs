@@ -13,6 +13,8 @@ mod error;
 pub mod events;
 mod evidence;
 pub mod exec;
+pub mod export;
+pub mod findings;
 mod handle;
 mod ingest;
 pub mod launcher;
@@ -48,9 +50,9 @@ pub use spektr_protocol::{CostClass, LogLevel, Runtime, Technique};
 // View-ready types the TUI and CLI use, re-exported so they never depend on
 // the store crate directly (ARCHITECTURE §2, rule 2).
 pub use spektr_store::{
-    CaseInit, Degree, Direction, EgoGroup, EgoParams, EgoRow, EgoView, EntitySummary, GroupKey,
-    ItemState, JobState, OpenOptions, PathStep, PathView, ReviewKind, ReviewState, RunState,
-    StepState, TimelineEvent, Trigger,
+    CaseInit, Degree, Direction, EgoGroup, EgoParams, EgoRow, EgoView, EntitySummary,
+    FindingStatus, GroupKey, ItemState, JobState, OpenOptions, PathStep, PathView, ReviewKind,
+    ReviewState, RunState, StepState, TimelineEvent, Trigger,
 };
 
 /// Name of this crate, for diagnostics.

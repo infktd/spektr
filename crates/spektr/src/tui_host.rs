@@ -159,6 +159,7 @@ impl Host for TuiHost {
             External::Open(p) => ("open", p.display().to_string()),
             External::Reveal(p) => ("reveal", p.display().to_string()),
             External::Pager(p) => ("pager", p.display().to_string()),
+            External::Editor(p) => ("editor", p.display().to_string()),
         };
         // Test mode (ARCHITECTURE §8): nothing reaches the OS; the request
         // is recorded for the E2E tests.
@@ -171,6 +172,7 @@ impl Host for TuiHost {
             External::Open(p) => open::that_detached(p),
             External::Reveal(p) => reveal(p),
             External::Pager(p) => pager(p),
+            External::Editor(p) => editor(p),
         };
         r.map(|()| None)
             .map_err(|e| format!("opening {target}: {e}"))
@@ -211,6 +213,25 @@ fn reveal(p: &Path) -> std::io::Result<()> {
             .map(|_| ())
     } else {
         open::that_detached(p.parent().unwrap_or(p))
+    }
+}
+
+/// `$VISUAL`, then `$EDITOR` (default `vi`), waiting for it to exit.
+fn editor(p: &Path) -> std::io::Result<()> {
+    let cmd = ["VISUAL", "EDITOR"]
+        .iter()
+        .find_map(|v| std::env::var(v).ok().filter(|v| !v.trim().is_empty()))
+        .unwrap_or_else(|| "vi".into());
+    let mut parts = cmd.split_whitespace();
+    let prog = parts.next().unwrap_or("vi");
+    let st = std::process::Command::new(prog)
+        .args(parts)
+        .arg(p)
+        .status()?;
+    if st.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::other(format!("{prog} exited with {st}")))
     }
 }
 

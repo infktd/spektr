@@ -101,6 +101,12 @@ pub enum Hit {
     ReviewFilterTab(ReviewFilter),
     /// Timeline tab row.
     TimeRow(usize),
+    /// Findings screen: a list row, a filter tab, a detail row.
+    FindingRow(usize),
+    FindingFilterTab(FindingFilter),
+    FindingDetailRow(usize),
+    /// The editor's fields.
+    EditorField(usize),
 }
 
 /// What fills the workspace: the panes, or a full screen (TUI_SPEC §5).
@@ -110,6 +116,162 @@ pub enum View {
     Main,
     Checklist,
     Review,
+    Findings,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum FindingFilter {
+    #[default]
+    All,
+    Draft,
+    Ready,
+    Sent,
+}
+
+impl FindingFilter {
+    pub const ALL: [FindingFilter; 4] = [
+        FindingFilter::All,
+        FindingFilter::Draft,
+        FindingFilter::Ready,
+        FindingFilter::Sent,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            FindingFilter::All => "all",
+            FindingFilter::Draft => "draft",
+            FindingFilter::Ready => "ready",
+            FindingFilter::Sent => "sent",
+        }
+    }
+
+    pub fn accepts(self, status: &str) -> bool {
+        self == FindingFilter::All || self.label() == status
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FindingsPane {
+    #[default]
+    List,
+    /// The supporting entities and evidence of the selected finding.
+    Detail,
+}
+
+/// One row of the findings list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FindingRowItem {
+    Category { id: String, open: bool },
+    Finding(i64),
+}
+
+/// The Findings screen (artboard 09).
+#[derive(Debug, Clone, Default)]
+pub struct FindingsScreen {
+    pub view: Option<spektr_engine::findings::FindingsView>,
+    pub detail: Option<spektr_engine::findings::FindingDetail>,
+    pub filter: FindingFilter,
+    pub pane: FindingsPane,
+    /// Index into the selectable rows.
+    pub sel: usize,
+    /// Index into the detail's entities, then evidence.
+    pub dsel: usize,
+    /// Categories the user toggled: `true` open.
+    pub open: BTreeMap<String, bool>,
+    /// Select this finding once the list arrives.
+    pub want: Option<i64>,
+    /// The finding `a` (attach) adds to: the last one selected.
+    pub current: Option<i64>,
+}
+
+impl FindingsScreen {
+    /// The list's rows: each category (with findings or not), then its
+    /// findings when open. Empty categories start closed.
+    pub fn rows(&self) -> Vec<FindingRowItem> {
+        let Some(v) = &self.view else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        let mut cats: Vec<String> = v.categories.iter().map(|c| c.id.clone()).collect();
+        for f in &v.findings {
+            if !cats.contains(&f.category) {
+                cats.push(f.category.clone());
+            }
+        }
+        // Categories with findings first, then by points, highest first
+        // (artboard 09); ties keep the profile's order.
+        let has = |c: &str| {
+            v.findings
+                .iter()
+                .any(|f| f.category == c && self.filter.accepts(&f.status))
+        };
+        let pts = |c: &str| {
+            v.categories
+                .iter()
+                .find(|x| x.id == c)
+                .and_then(|x| x.points)
+                .unwrap_or(0)
+        };
+        cats.sort_by_key(|c| (!has(c), std::cmp::Reverse(pts(c))));
+        for c in cats {
+            let mine: Vec<i64> = v
+                .findings
+                .iter()
+                .filter(|f| f.category == c && self.filter.accepts(&f.status))
+                .map(|f| f.id)
+                .collect();
+            let open = self.open.get(&c).copied().unwrap_or(!mine.is_empty());
+            out.push(FindingRowItem::Category { id: c, open });
+            if open {
+                out.extend(mine.into_iter().map(FindingRowItem::Finding));
+            }
+        }
+        out
+    }
+
+    pub fn selected_row(&self) -> Option<FindingRowItem> {
+        self.rows().get(self.sel).cloned()
+    }
+
+    pub fn selected_finding(&self) -> Option<i64> {
+        match self.selected_row()? {
+            FindingRowItem::Finding(id) => Some(id),
+            FindingRowItem::Category { .. } => None,
+        }
+    }
+}
+
+/// The inline finding editor (`e`, mode INSERT).
+pub struct Editor {
+    pub id: i64,
+    /// Title, claim, relevance.
+    pub fields: Vec<ratatui_textarea::TextArea<'static>>,
+    pub focus: usize,
+}
+
+impl Editor {
+    pub const LABELS: [&'static str; 3] = ["title", "claim", "relevance"];
+
+    pub fn new(id: i64, title: &str, claim: &str, relevance: &str) -> Self {
+        let field = |t: &str| {
+            let mut a = ratatui_textarea::TextArea::new(vec![t.replace('\n', " ")]);
+            a.set_wrap_mode(ratatui_textarea::WrapMode::Word);
+            a.move_cursor(ratatui_textarea::CursorMove::End);
+            a
+        };
+        Self {
+            id,
+            fields: vec![field(title), field(claim), field(relevance)],
+            focus: 1,
+        }
+    }
+
+    pub fn value(&self, i: usize) -> String {
+        self.fields
+            .get(i)
+            .map(|f| f.lines().join(" ").trim().to_string())
+            .unwrap_or_default()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -461,6 +623,7 @@ pub struct Workspace {
     pub view: View,
     pub checklist: ChecklistScreen,
     pub review: ReviewScreen,
+    pub findings: FindingsScreen,
     pub timeline: TimelineState,
     pub path_tab: PathState,
 
@@ -516,6 +679,7 @@ impl Workspace {
             view: View::Main,
             checklist: ChecklistScreen::default(),
             review: ReviewScreen::default(),
+            findings: FindingsScreen::default(),
             timeline: TimelineState::default(),
             path_tab: PathState::default(),
             activity: VecDeque::new(),
@@ -629,6 +793,7 @@ pub enum Overlay {
     Menu(Menu),
     Help(Help),
     Dialog(Dialog),
+    Editor(Box<Editor>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -680,6 +845,12 @@ pub enum MenuAct {
     RunModule(String),
     RunAll,
     RunPlaybook(String),
+    /// Export the findings in a format (`tracelabs` copies to the
+    /// clipboard; `md` and `json` ask for a path).
+    Export {
+        format: spektr_engine::export::Format,
+        findings: Vec<i64>,
+    },
     /// Open this URL (the entity's own, profile or source).
     Url(String),
     /// A launcher, optionally for a checklist item.
@@ -784,6 +955,23 @@ pub enum Purpose {
     Capture(Option<EntityId>),
     /// `:attach` / `a`: a local path.
     Attach(Option<EntityId>),
+    /// A new finding: category (a choice) and claim. From an entity, a
+    /// checklist item (its note becomes the relevance) or the Findings
+    /// screen.
+    NewFinding {
+        entities: Vec<EntityId>,
+        relevance: String,
+    },
+    /// Attach an entity to a finding chosen in the dialog.
+    AttachTo(EntityId),
+    /// Attach evidence (an observation chosen in the dialog) to a finding.
+    AttachEvidence(i64, Vec<spektr_model::ObservationId>),
+    DeleteFinding(i64),
+    /// Export to a file (md, json): the path is the field.
+    ExportTo {
+        format: spektr_engine::export::Format,
+        findings: Vec<i64>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -875,6 +1063,7 @@ impl AppState {
     pub fn mode(&self) -> Mode {
         match &self.overlay {
             Some(Overlay::Palette(_)) => return Mode::Command,
+            Some(Overlay::Editor(_)) => return Mode::Insert,
             Some(Overlay::Dialog(d)) if d.has_text_focus() => return Mode::Command,
             _ => {}
         }
@@ -885,6 +1074,7 @@ impl AppState {
             match w.view {
                 View::Checklist => return Mode::Checklist,
                 View::Review => return Mode::Review,
+                View::Findings => return Mode::Findings,
                 View::Main => {}
             }
         }
@@ -912,11 +1102,14 @@ impl AppState {
                 // A dialog captures everything except force-quit.
                 return c;
             }
+            // The editor is a dialog over text areas.
+            Some(Overlay::Editor(_)) => return vec![Ctx::Text, Ctx::Dialog],
             None => match &self.screen {
                 Screen::Launcher(_) | Screen::Opening(_) => c.extend([Ctx::Launcher, Ctx::Nav]),
                 Screen::Workspace(w) => match w.view {
                     View::Checklist => c.extend([Ctx::Checklist, Ctx::Nav]),
                     View::Review => c.extend([Ctx::Review, Ctx::Nav]),
+                    View::Findings => c.extend([Ctx::Findings, Ctx::Nav]),
                     View::Main => {
                         if w.filter.as_ref().is_some_and(|f| f.editing) {
                             c.extend([Ctx::Text, Ctx::Filter]);

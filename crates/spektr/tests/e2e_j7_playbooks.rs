@@ -1,5 +1,4 @@
-//! e2e_j7_playbooks (QA.md §2, PRD J7 steps 1–4, 6 and 7; step 5's done
-//! with a note too, while "finding from an item" waits for Phase 5).
+//! e2e_j7_playbooks (QA.md §2, PRD J7 steps 1–7).
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -114,7 +113,7 @@ fn j7_playbooks() {
     let s = t.wait_for_text("TinEye", T).unwrap();
     assert!(s.contains("Yandex Images"));
     t.keys("↵").unwrap();
-    t.wait_for_text("lens: opened in the browser", T).unwrap();
+    t.wait_for_text("would open https://lens.google.com", T).unwrap();
     assert!(h.opened().contains("\"kind\":\"url\""), "{}", h.opened());
     assert!(h.opened().contains("lens.google.com"), "{}", h.opened());
 
@@ -126,6 +125,27 @@ fn j7_playbooks() {
     t.keys("]").unwrap(); // the done tab
     t.wait_for_text("[done]", T).unwrap();
     t.wait_for_text("· note", T).unwrap();
+    // …and `f` turns the item into a finding: its entity is attached, its
+    // note is the draft relevance.
+    t.keys("f").unwrap();
+    t.wait_for_text("New finding", T).unwrap();
+    t.keys("↓ text:Avatar space text:found space text:elsewhere ↵")
+        .unwrap();
+    t.wait_for_text("F-1 created", T).unwrap();
+    let s = t.wait_for_text("Supporting entities", T).unwrap();
+    assert!(s.contains("FINDINGS"), "{}", s.contents);
+    assert!(
+        s.contains("same-photo-on-a-forum"),
+        "the note is the relevance:\n{}",
+        s.contents
+    );
+    assert!(
+        s.contains("▨ "),
+        "the avatar is a supporting entity:\n{}",
+        s.contents
+    );
+    t.keys("esc C").unwrap();
+    t.wait_for_text("CHECKLIST", T).unwrap();
 
     // 6. A user playbook appears in the context menu after :reload.
     let dir = h.config_dir().join("playbooks");

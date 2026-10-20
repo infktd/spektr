@@ -23,7 +23,7 @@ pub fn queries(w: &Workspace) -> Vec<Effect> {
             Effect::Query(Tag::Checklist, Query::Checklist(None)),
         ],
         View::Review => vec![Effect::Query(Tag::Review, Query::Review(None))],
-        View::Main => Vec::new(),
+        View::Main | View::Findings => Vec::new(),
     }
 }
 
@@ -65,6 +65,7 @@ pub fn act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) -> bool {
     match w.view {
         View::Checklist => checklist_act(s, a, fx),
         View::Review => review_act(s, a, fx),
+        View::Findings => crate::findings::act(s, a, fx),
         View::Main => false,
     }
 }
@@ -262,7 +263,19 @@ fn checklist_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) -> bool {
                 }
             }
         }
-        Action::ItemFinding => toast(s, &format!("finding from item: {NOT_YET}"), Token::FgMuted),
+        Action::ItemFinding => match c.selected_item().cloned() {
+            Some(item) => {
+                let entities: Vec<EntityId> = item.entity.iter().map(|e| e.id).collect();
+                let about = Some(format!("“{}”", item.step_title));
+                crate::findings::new_dialog(
+                    s,
+                    entities,
+                    item.note.clone().unwrap_or_default(),
+                    about,
+                );
+            }
+            None => toast(s, "no item selected", Token::FgMuted),
+        },
         Action::PlaybookOnSeed => {
             let Some(seed) = c.selected_run().and_then(|r| r.seed.clone()) else {
                 toast(

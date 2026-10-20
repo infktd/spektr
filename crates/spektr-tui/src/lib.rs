@@ -6,6 +6,7 @@
 
 pub mod ego;
 pub mod entities;
+pub mod findings;
 pub mod glyph;
 pub mod host;
 pub mod images;

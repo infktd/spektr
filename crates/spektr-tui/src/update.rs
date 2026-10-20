@@ -129,6 +129,7 @@ fn handle(s: &mut AppState, msg: Msg) -> Vec<Effect> {
                 Effect::Query(Tag::Status, Query::Status),
                 Effect::Query(Tag::Modules, Query::Modules),
                 Effect::Query(Tag::Playbooks, Query::Playbooks),
+                Effect::Query(Tag::Findings, Query::Findings),
                 Effect::Query(Tag::Entities, Query::Entities),
                 Effect::Query(
                     Tag::Jobs,
@@ -163,7 +164,25 @@ fn handle(s: &mut AppState, msg: Msg) -> Vec<Effect> {
         }
         Msg::Query(tag, r) => query_result(s, tag, r, &mut fx),
         Msg::Acted { what, result } => acted(s, &what, result, &mut fx),
+        Msg::Wrote(r) => match r {
+            Ok(p) => {
+                let t = format!(
+                    "wrote {}",
+                    crate::text::tilde(&p, s.settings.home.as_deref())
+                );
+                toast(s, &t, Token::Ok);
+            }
+            Err(e) => toast(s, &e, Token::Hostile),
+        },
+        Msg::Edited(id, text) => {
+            let edit = crate::findings::parse_external(&text);
+            fx.push(Effect::Act {
+                what: format!("F-{id} saved"),
+                action: EngineAction::EditFinding { id, edit },
+            });
+        }
         Msg::WouldOpen(target) => {
+            toast(s, &format!("would open {target}"), Token::FgMuted);
             let now = s.now;
             if let Some(w) = s.workspace_mut() {
                 push_row(
@@ -264,6 +283,7 @@ fn type_char(s: &mut AppState, c: char, fx: &mut Vec<Effect>) {
             }
             refilter_picks(s);
         }
+        Some(Overlay::Editor(e)) => crate::findings::editor_char(e, c),
         Some(_) => {}
         None => {
             if let Some(w) = s.workspace_mut()
@@ -295,6 +315,7 @@ fn backspace(s: &mut AppState, fx: &mut Vec<Effect>) {
             }
             refilter_picks(s);
         }
+        Some(Overlay::Editor(e)) => crate::findings::editor_backspace(e),
         Some(_) => {}
         None => {
             if let Some(w) = s.workspace_mut()
@@ -317,6 +338,7 @@ pub fn act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
         Some(Overlay::Menu(m)) => menu_act(s, m, a, fx),
         Some(Overlay::Help(h)) => help_act(s, h, a, fx),
         Some(Overlay::Dialog(d)) => dialog_act(s, d, a, fx),
+        Some(Overlay::Editor(e)) => crate::findings::editor_act(s, e, a, fx),
         None => match &s.screen {
             Screen::Launcher(_) | Screen::Opening(_) => launcher_act(s, a, fx),
             Screen::Workspace(_) => workspace_act(s, a, fx),
@@ -508,7 +530,7 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
             w.view = View::Main;
             return tabs::open_path(s, fx);
         }
-        Action::Findings => toast(s, &format!("findings: {NOT_YET}"), Token::FgMuted),
+        Action::Findings => crate::findings::open(w, None, fx),
         Action::Review => screens::open_review(w, None, fx),
         Action::Checklist => screens::open_checklist(w, None, fx),
         Action::ReviewUnsure => {
@@ -604,7 +626,22 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
                 s.dirty = false;
             }
         }
-        Action::Unmerge | Action::NewFinding | Action::Attach => {
+        Action::NewFinding => match w.cursor_entity().cloned() {
+            Some(e) => {
+                let about = Some(format!(
+                    "{} {}",
+                    glyphs.entity(&e.ty),
+                    display_value(&e, glyphs)
+                ));
+                crate::findings::new_dialog(s, vec![e.id], String::new(), about);
+            }
+            None => toast(s, "no entity under the cursor", Token::FgMuted),
+        },
+        Action::Attach => match w.cursor_entity().cloned() {
+            Some(e) => crate::findings::attach_entity(s, &e, fx),
+            None => toast(s, "no entity under the cursor", Token::FgMuted),
+        },
+        Action::Unmerge => {
             let name = a.name();
             toast(s, &format!("{name}: {NOT_YET}"), Token::FgMuted);
         }
@@ -1287,6 +1324,13 @@ fn run_cmd(s: &mut AppState, cmd: Cmd, target: Option<&EntitySummary>, fx: &mut 
             what: "reload".into(),
             action: EngineAction::Reload,
         }),
+        Cmd::FindingNew => match target {
+            Some(t) => {
+                let about = Some(display_value(t, s.glyphs));
+                crate::findings::new_dialog(s, vec![t.id], String::new(), about);
+            }
+            None => crate::findings::new_dialog(s, Vec::new(), String::new(), None),
+        },
         Cmd::Images(m) => {
             fx.push(Effect::SetImages(m));
             toast(s, &format!("images {}", m.as_str()), Token::FgMuted);
@@ -1503,6 +1547,7 @@ fn run_menu_act(s: &mut AppState, m: &Menu, a: MenuAct, fx: &mut Vec<Effect>) {
             },
         }),
         MenuAct::Url(u) => fx.push(Effect::OpenUrl(u)),
+        MenuAct::Export { format, findings } => crate::findings::export(s, format, findings, fx),
         MenuAct::RunPlaybook(name) => fx.push(Effect::Act {
             what: format!("playbook {name}"),
             action: EngineAction::StartPlaybook {
@@ -1581,6 +1626,15 @@ fn dialog_act(s: &mut AppState, mut d: Dialog, a: Action, fx: &mut Vec<Effect>) 
 }
 
 fn dialog_ok(s: &mut AppState, mut d: Dialog, fx: &mut Vec<Effect>) {
+    match crate::findings::dialog_ok(s, &d, fx) {
+        Ok(true) => return,
+        Ok(false) => {}
+        Err(e) => {
+            d.error = Some(e);
+            s.overlay = Some(Overlay::Dialog(d));
+            return;
+        }
+    }
     let val = |i: usize| {
         d.fields
             .get(i)
@@ -1717,10 +1771,11 @@ fn dialog_ok(s: &mut AppState, mut d: Dialog, fx: &mut Vec<Effect>) {
                 what: "merge".into(),
             });
         }
+        _ => {}
     }
 }
 
-fn expand_home(p: &str, home: Option<&std::path::Path>) -> std::path::PathBuf {
+pub fn expand_home(p: &str, home: Option<&std::path::Path>) -> std::path::PathBuf {
     match (p.strip_prefix("~/"), home) {
         (Some(rest), Some(h)) => h.join(rest),
         _ => std::path::PathBuf::from(p),
@@ -1882,6 +1937,12 @@ fn click(s: &mut AppState, h: Hit, double: bool, fx: &mut Vec<Effect>) {
             act(s, Action::Select, fx);
             return;
         }
+        Hit::EditorField(i) => {
+            if let Some(Overlay::Editor(e)) = &mut s.overlay {
+                e.focus = i;
+            }
+            return;
+        }
         Hit::DialogItem(i) => {
             if let Some(Overlay::Dialog(d)) = &mut s.overlay {
                 if d.picks.is_empty() {
@@ -1970,6 +2031,29 @@ fn click(s: &mut AppState, h: Hit, double: bool, fx: &mut Vec<Effect>) {
             w.review.sel = 0;
             screens::compare(w, fx);
         }
+        Hit::FindingRow(i) => {
+            w.findings.pane = crate::state::FindingsPane::List;
+            w.findings.sel = i;
+            w.findings.dsel = 0;
+            if let Some(id) = w.findings.selected_finding() {
+                w.findings.current = Some(id);
+                fx.push(Effect::Query(Tag::Finding(id), Query::Finding(id)));
+            }
+            if double {
+                return act(s, Action::Activate, fx);
+            }
+        }
+        Hit::FindingFilterTab(f) => {
+            w.findings.filter = f;
+            w.findings.sel = 0;
+        }
+        Hit::FindingDetailRow(i) => {
+            w.findings.pane = crate::state::FindingsPane::Detail;
+            w.findings.dsel = i;
+            if double {
+                return act(s, Action::Activate, fx);
+            }
+        }
         Hit::TimeRow(i) => {
             w.pane = Pane::Graph;
             match w.tab {
@@ -2030,6 +2114,7 @@ fn refresh(s: &mut AppState, fx: &mut Vec<Effect>) {
     }
     if st.screen {
         fx.extend(screens::queries(w));
+        fx.extend(crate::findings::queries(w));
         if w.view == View::Main {
             fx.extend(tabs::queries(w));
         }
@@ -2384,6 +2469,12 @@ fn query_result(s: &mut AppState, tag: Tag, r: Result<QueryResult, String>, fx: 
             }
             return;
         }
+        Tag::Findings | Tag::Finding(_) | Tag::Candidates(_) | Tag::Export(_) => {
+            if !crate::findings::result(s, &tag, r, fx) {
+                s.dirty = false;
+            }
+            return;
+        }
         Tag::Timeline | Tag::Path(..) => {
             if !tabs::result(w, &tag, r, fx) {
                 s.dirty = false;
@@ -2694,6 +2785,14 @@ fn acted(s: &mut AppState, what: &str, r: Result<ActionOutcome, String>, fx: &mu
                     Some(a) => format!("accepted · {} added", display_value(a, s.glyphs)),
                     None => format!("{what} ✓"),
                 },
+                ActionOutcome::FindingCreated { id } => {
+                    let id = *id;
+                    if let Some(w) = s.workspace_mut() {
+                        crate::findings::open(w, Some(id), fx);
+                        w.findings.current = Some(id);
+                    }
+                    format!("F-{id} created · e edits it")
+                }
                 ActionOutcome::Done => format!("{what} ✓"),
             };
             toast(s, &msg, Token::Fg);

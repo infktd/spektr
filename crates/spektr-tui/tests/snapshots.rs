@@ -211,3 +211,28 @@ fn inspector_edge_comparison() {
         s
     });
 }
+
+fn fnd(size: (u16, u16)) -> AppState {
+    let mut s = ws(size);
+    support::findings_screen(&mut s);
+    s
+}
+
+#[test]
+fn findings_screen_and_editor() {
+    snap("findings", |size| {
+        let mut s = fnd(size);
+        keys(&mut s, "F");
+        s
+    });
+    snap("findings_editor", |size| {
+        let mut s = fnd(size);
+        keys(&mut s, "F e");
+        s
+    });
+    snap("findings_new_dialog", |size| {
+        let mut s = fnd(size);
+        keys(&mut s, "F n");
+        s
+    });
+}

@@ -88,6 +88,17 @@ impl<'a> Reader<'a> {
         count(self.conn, "SELECT count(*) FROM observation")
     }
 
+    /// The audit row that recorded an observation (`observation.add`).
+    pub fn observation_audit_seq(&self, id: ObservationId) -> StoreResult<Option<i64>> {
+        Ok(self
+            .conn
+            .prepare_cached(
+                "SELECT seq FROM audit WHERE action = 'observation.add' AND json_extract(payload, '$.id') = ?1",
+            )?
+            .query_row([id.to_string()], |r| r.get(0))
+            .optional()?)
+    }
+
     pub fn audit_count(&self) -> StoreResult<u64> {
         count(self.conn, "SELECT count(*) FROM audit")
     }

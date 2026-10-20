@@ -50,7 +50,7 @@ pub const COMMANDS: &[(&str, &str, bool)] = &[
         "Add a note to the cursor entity: note <text>",
         true,
     ),
-    ("finding new", "New finding from the cursor entity", false),
+    ("finding new", "New finding from the cursor entity", true),
     ("capture ", "Capture a page: capture <url>", true),
     ("attach ", "Attach a file: attach <path>", true),
     (
@@ -134,6 +134,7 @@ pub enum Cmd {
     Checklist,
     Reload,
     Images(crate::images::Mode),
+    FindingNew,
 }
 
 pub fn parse(line: &str) -> Result<Cmd, String> {
@@ -199,6 +200,7 @@ pub fn parse(line: &str) -> Result<Cmd, String> {
         "playbook" if rest == "stop" => Cmd::PlaybookStop,
         "playbook" => Cmd::Playbook(need("a playbook name")?),
         "checklist" => Cmd::Checklist,
+        "finding" if rest == "new" => Cmd::FindingNew,
         "reload" => Cmd::Reload,
         "images" => Cmd::Images(
             crate::images::Mode::parse(rest)
