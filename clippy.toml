@@ -1,0 +1,3 @@
+# DISPATCH rule 5: unwrap()/expect() are allowed in tests only.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
