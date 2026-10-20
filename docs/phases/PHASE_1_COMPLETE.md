@@ -133,6 +133,19 @@ spektr-store::merge merge_folds_edges_and_unmerge_restores_exactly
 spektr-store::merge merge_rules
 ```
 
+### CI
+
+[Run 39385087007](https://github.com/infktd/spektr/actions/runs/39385087007) on `ed1f5f4`:
+
+```
+success ed1f5f4
+lint (x86_64-unknown-linux-gnu): success
+test (aarch64-unknown-linux-gnu): success
+test (aarch64-apple-darwin): success
+test (x86_64-unknown-linux-gnu): success
+test (x86_64-apple-darwin): success
+```
+
 ### Ego benchmark (M1 Pro, `bench` profile)
 
 ```
