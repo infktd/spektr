@@ -1,0 +1,20 @@
+name = "2,000-entity case, scrolled"
+size = [170, 48]
+synth = [["big", 2000]]
+checklist = [
+  "Entities pane stays virtualized: only visible rows drawn; scrolling keeps the cursor visible",
+  "Large ego groups paginate (≤ 5 rows, `··· N more ] p/q`); `]` pages",
+  "Hub entities are flagged `⊛ hub`",
+]
+
+[[step]]
+run = ["open", "big.spektr"]
+do = [
+  "wait NORMAL",
+  "frame big",
+  "keys ]",
+  "frame big-page2",
+  "keys shift-tab g g j ↵ j j j j j ↵ ctrl-d ctrl-d",
+  "frame big-scrolled",
+  "keys q",
+]

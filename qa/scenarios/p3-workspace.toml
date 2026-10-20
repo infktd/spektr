@@ -1,0 +1,33 @@
+name = "Workspace on the Phase 2 fixture case (identity)"
+size = [170, 48]
+compare = "docs/design/Identity.dc.html"
+checklist = [
+  "Top bar: spektr (accent, bold) │ case · subject ◎ Jordan Marlow · last seen; right: rules, findings, running/queued, chain ✓",
+  "Entities pane: groups in spec order with ▾/▸, counts, ≤4 rows then ··· N more; ▸ marks the focus; hubs ⊛ hub (warn)",
+  "Ego view: breadcrumb ◎ Jordan Marlow › ~ jmarlow.wav; inbound/symmetric left, card center (20 wide), outbound right",
+  "Group headers show predicate and count with a faint connector toward the card",
+  "Strength bars: three levels; only confirmed is green",
+  "Cursor row has the accent ▌ bar and the selection background in the focused pane",
+  "Inspector follows the cursor: header bold, type · key muted, fields, Evidence N, Strength",
+  "Activity rail: right column with running/queued/done/failed and rules; vertical rule",
+  "Status line: NORMAL pill (accent), hints from the registry, UTC clock",
+  "No text overflows a pane; no stray characters at pane borders",
+]
+
+[[step]]
+run = ["new", "demo-missing-01", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "demo-missing-01.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = ["open", "demo-missing-01.spektr"]
+do = [
+  "wait has_account",
+  "frame workspace",
+  "keys j j",
+  "frame cursor-down",
+  "keys tab",
+  "frame entities-focused",
+  "keys q",
+]

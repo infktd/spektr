@@ -1,0 +1,33 @@
+name = "Navigation and modes: filter, pivot, back, focus moves"
+size = [170, 48]
+compare = "docs/design/Identity.dc.html"
+checklist = [
+  "FILTER pill (fg) while typing; `/ text` with a caret and `N match`; groups expand to show matches",
+  "↵ on an outbound row pivots: breadcrumb grows (earlier steps muted), the ego view re-centers on the account",
+  "⌫ goes back to the previous focus",
+  "tab moves focus: the focused pane has the accent border and title; the cursor bar ▌ appears only in the focused pane",
+  "Expanding a collapsed group with ↵ shows ≤ 4 rows then `··· N more`",
+]
+
+[[step]]
+run = ["new", "demo", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "demo.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+do = [
+  "wait has_account",
+  "keys / text:git",
+  "frame filter",
+  "keys esc tab j ↵",
+  "frame pivot",
+  "keys ⌫",
+  "frame back",
+  "keys shift-tab",
+  "frame focus-entities",
+  "keys g g j j j j ↵",
+  "frame group-expanded",
+  "keys q",
+]

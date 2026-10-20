@@ -1,0 +1,45 @@
+name = "Responsive layout and the size floor"
+size = [170, 48]
+checklist = [
+  "200×60: full layout, W_e 38, W_i 48, graph takes the rest",
+  "130×40: W_e 32, W_i 42",
+  "120×36: no inspector column; `i` opens the inspector as a right-side overlay",
+  "100×30: still usable; nothing overflows",
+  "99×30: centered `spektr needs at least 100×30 (now 99×30)`",
+  "Live resize from 170×48 to 120×36 re-lays out without artifacts",
+]
+
+[[step]]
+run = ["new", "demo", "--profile", "tracelabs", "--subject", "Jordan Marlow"]
+
+[[step]]
+run = ["run", "demo.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+size = [200, 60]
+do = ["wait NORMAL", "frame w200x60", "keys q"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+size = [130, 40]
+do = ["wait NORMAL", "frame w130x40", "keys q"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+size = [120, 36]
+do = ["wait NORMAL", "frame w120x36", "keys i", "frame w120x36-inspector", "keys q"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+size = [100, 30]
+do = ["wait NORMAL", "frame w100x30", "keys q"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+size = [99, 30]
+do = ["wait needs at least", "frame w99x30", "keys q"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+do = ["wait NORMAL", "resize 120 36", "frame live-resize", "keys q"]

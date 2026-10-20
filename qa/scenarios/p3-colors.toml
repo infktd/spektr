@@ -1,0 +1,24 @@
+name = "Color modes and ASCII glyphs"
+size = [170, 48]
+config = "glyphs = \"ascii\"\n"
+checklist = [
+  "NO_COLOR: no colors; focus is bold; cursor row and mode pill are reverse video; every glyph kept",
+  "256-color (COLORTERM unset): same layout, indexed colors close to the tokens",
+  "glyphs = ascii: entity glyphs and markers are ASCII; columns stay aligned",
+]
+
+[[step]]
+run = ["new", "demo", "--profile", "tracelabs", "--subject", "Jordan Marlow"]
+
+[[step]]
+run = ["run", "demo.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+env = { NO_COLOR = "1" }
+do = ["wait NORMAL", "frame no-color", "keys q"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+env = { COLORTERM = "" }
+do = ["wait NORMAL", "frame color-256", "keys q"]

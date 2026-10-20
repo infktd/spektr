@@ -1,0 +1,47 @@
+name = "Launcher: recent cases, doctor, new-case dialog"
+size = [132, 40]
+compare = "docs/design/Launcher.dc.html"
+checklist = [
+  "Wordmark `s p e k t r` bold, the six-color spectral strip under it (the only multicolor element), subtitle with the version",
+  "Recent cases in an accent-bordered box: case, entities, edges, last opened, chain; cursor row ▌ on selection",
+  "A tampered case shows `✕ break at #1` in hostile; good cases show ✓ in ok",
+  "Footer of the box: path · size · seeds for the selected case",
+  "Doctor panel in two columns with ✓ / ! glyphs; the terminal line shows the color mode and size",
+  "Bottom line: ↵ open  n new case  o open path  v verify chain  q quit, and `spektr --help` on the right",
+  "New-case dialog: centered, bg_raised, accent border, fields with a caret; ↵ creates and opens the workspace",
+]
+
+[[step]]
+run = ["new", "tl-ctf-1019", "--profile", "tracelabs"]
+
+[[step]]
+run = ["run", "tl-ctf-1019.spektr", "--seed", "domain:kestrel.example"]
+
+[[step]]
+run = ["new", "scratch"]
+
+[[step]]
+run = ["open", "scratch.spektr"]
+do = ["wait NORMAL", "keys q"]
+tamper = "scratch"
+
+[[step]]
+run = ["open", "tl-ctf-1019.spektr"]
+do = ["wait NORMAL", "keys q"]
+
+[[step]]
+run = []
+do = [
+  "wait Recent cases",
+  "frame launcher",
+  "keys j",
+  "frame launcher-broken",
+  "keys n",
+  "frame new-case",
+  "keys text:demo-missing-01 tab → tab text:Jordan",
+  "frame new-case-filled",
+  "keys ↵",
+  "wait NORMAL",
+  "frame created",
+  "keys q",
+]
