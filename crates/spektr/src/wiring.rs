@@ -43,6 +43,11 @@ impl Ctx {
         })
     }
 
+    /// The clock: `SPEKTR_CLOCK` in test mode, else the system.
+    pub fn now(&self) -> jiff::Timestamp {
+        self.test.clock.unwrap_or_else(jiff::Timestamp::now)
+    }
+
     pub fn store_options(&self) -> Result<OpenOptions> {
         let clock = self.test.clock.map_or(Clock::System, Clock::Fixed);
         let ids = self.test.seed.map_or_else(IdGen::random, IdGen::seeded);
@@ -110,8 +115,13 @@ impl Ctx {
         self.start(engine, modules)
     }
 
-    pub async fn create(&self, case: &Path, init: &CaseInit) -> Result<EngineHandle> {
+    pub async fn create(
+        &self,
+        case: &Path,
+        init: &CaseInit,
+        modules: Modules<'_>,
+    ) -> Result<EngineHandle> {
         let engine = Engine::create(case, init, self.engine_config()?).await?;
-        self.start(engine, Modules::None)
+        self.start(engine, modules)
     }
 }
