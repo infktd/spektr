@@ -19,7 +19,7 @@ use crate::theme::{Theme, Token};
 
 pub fn render(buf: &mut Buffer, area: Rect, s: &AppState, w: &Workspace, hits: &mut Hits) {
     let l = layout::workspace(area.width, area.height);
-    top_bar(buf, l.top, s, w);
+    top_bar(buf, l.top, s, w, None);
     entities(buf, l.entities, s, w, hits);
     graph(buf, l.graph, s, w, hits);
     if l.inspector.width > 0 {
@@ -38,7 +38,15 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &AppState, w: &Workspace, hits: &
     }
 }
 
-fn top_bar(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace) {
+/// The top bar; `section` (`playbooks`, `review`) replaces the subject on
+/// full screens.
+pub(super) fn top_bar(
+    buf: &mut Buffer,
+    r: Rect,
+    s: &AppState,
+    w: &Workspace,
+    section: Option<&str>,
+) {
     let t = &s.theme;
     let g = s.glyphs;
     let dot = g.m(Marker::Dot);
@@ -55,7 +63,9 @@ fn top_bar(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace) {
         Some(st) => {
             left.push(run(st.name.clone(), t.text()));
             left.push(run("  ", t.text()));
-            if let Some(sub) = &st.subject {
+            if let Some(sec) = section {
+                left.push(run(sec.to_string(), t.muted()));
+            } else if let Some(sub) = &st.subject {
                 left.push(run("subject ", t.muted()));
                 left.push(run(
                     format!("{} {}", g.entity(&sub.ty), sub.value),
@@ -90,6 +100,13 @@ fn top_bar(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace) {
         ]);
         if st.review_pending > 0 {
             items.push(vec![run(format!("review {}", st.review_pending), t.warn())]);
+        }
+        if st.checklist_open > 0 {
+            items.push(vec![
+                run("checklist ", t.muted()),
+                run(st.checklist_open.to_string(), t.text()),
+                run(" open", t.muted()),
+            ]);
         }
         let dot_tok = if w.running > 0 { t.accent() } else { t.muted() };
         items.push(vec![
@@ -398,16 +415,8 @@ fn graph(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace, hits: &mut Hits
     let inner = layout::inner(r);
     match w.tab {
         Tab::Ego => ego_view(buf, inner, s, w, hits),
-        Tab::Timeline | Tab::Path => {
-            let name = if w.tab == Tab::Timeline {
-                "timeline"
-            } else {
-                "path"
-            };
-            let msg = format!("{name}: {}", crate::palette::NOT_YET);
-            let c = layout::centered(inner, text::width(&msg) as u16, 1);
-            draw::put(buf, c.x, c.y, c.width, &[run(msg, t.muted())]);
-        }
+        Tab::Timeline => super::tabs::timeline(buf, inner, s, w, hits),
+        Tab::Path => super::tabs::path(buf, inner, s, w, hits),
     }
 }
 
@@ -886,6 +895,9 @@ fn inspector(
         fill,
     );
     let inner = layout::inner(r);
+    if w.inspect_edge.is_some() {
+        return edge_compare(buf, inner, s, w);
+    }
     let Some(d) = &w.detail else {
         draw::put(
             buf,
@@ -899,6 +911,20 @@ fn inspector(
     let e = &d.entity.summary;
     let bottom = inner.bottom().saturating_sub(2);
     let mut y = inner.y;
+    if let Some(sha) = &d.image {
+        let used = super::image::draw(
+            buf,
+            s,
+            inner.x,
+            y,
+            super::image::preview_size(inner),
+            sha,
+            &e.value,
+        );
+        if used > 0 {
+            y += used + 1;
+        }
+    }
     let line = |buf: &mut Buffer, y: &mut u16, runs: &[Run]| {
         if *y < bottom {
             draw::put(buf, inner.x, *y, inner.width, runs);
@@ -1112,6 +1138,27 @@ fn inspector(
             );
         }
     }
+    if !d.checklist.is_empty() {
+        y += 1;
+        if y < bottom {
+            section(buf, t, g, inner.x, y, inner.width, "Checklist");
+        }
+        y += 1;
+        let pw = 18usize;
+        for it in &d.checklist {
+            let tw = (inner.width as usize).saturating_sub(pw + 4);
+            line(
+                buf,
+                &mut y,
+                &[
+                    run(format!("{} ", g.m(Marker::Pending)), t.muted()),
+                    run(text::fit(&it.step_title, tw), t.text()),
+                    run("  ", t.text()),
+                    run(text::truncate(&it.playbook, pw), t.muted()),
+                ],
+            );
+        }
+    }
     if !d.notes.is_empty() {
         y += 1;
         if y < bottom {
@@ -1257,6 +1304,22 @@ fn activity(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace, hits: &mut H
             y += 1;
         }
     }
+    if let Some(pb) = &w.playbook_line
+        && y < inner.bottom()
+    {
+        draw::put(
+            buf,
+            x,
+            y,
+            cw,
+            &[
+                run(format!("{} ", g.m(Marker::Running)), t.accent()),
+                run("playbook ", t.muted()),
+                run(pb.clone(), t.text()),
+            ],
+        );
+        y += 1;
+    }
     let blocked = w.modules.iter().filter(|m| m.blocked.is_some()).count();
     if blocked > 0 && y < inner.bottom() {
         draw::put(
@@ -1285,4 +1348,183 @@ pub fn visible_values(w: &Workspace) -> Vec<&EntitySummary> {
             _ => None,
         })
         .collect()
+}
+
+/// The inspector comparing a correlated edge (TUI_SPEC §4.4): both
+/// entities and the artifact, the avatars side by side with their dHash
+/// distance (or the shared value with each side's sources), strength and
+/// evidence. `v` confirms, `x` rejects.
+fn edge_compare(buf: &mut Buffer, inner: Rect, s: &AppState, w: &Workspace) {
+    let t = &s.theme;
+    let g = s.glyphs;
+    let Some(e) = &w.edge else {
+        draw::put(
+            buf,
+            inner.x,
+            inner.y,
+            inner.width,
+            &[run("loading…", t.muted())],
+        );
+        return;
+    };
+    let bottom = inner.bottom().saturating_sub(2);
+    let mut y = inner.y;
+    let line = |buf: &mut Buffer, y: &mut u16, runs: &[Run]| {
+        if *y < bottom {
+            draw::put(buf, inner.x, *y, inner.width, runs);
+        }
+        *y += 1;
+    };
+    let label = e
+        .artifact
+        .map_or_else(|| e.predicate.clone(), |a| a.label().to_string());
+    line(
+        buf,
+        &mut y,
+        &[
+            run(format!("{} ", g.m(Marker::Correlated)), t.accent()),
+            run(label, t.accent()),
+        ],
+    );
+    let ent = |x: &EntitySummary| format!("{} {}", g.entity(&x.ty), display_value(x, g));
+    line(buf, &mut y, &[run(ent(&e.a), t.focus_text())]);
+    line(
+        buf,
+        &mut y,
+        &[
+            run(format!("{} ", g.m(Marker::Sym)), t.muted()),
+            run(ent(&e.b), t.focus_text()),
+        ],
+    );
+    y += 1;
+    let avatars = matches!(e.artifact, Some(spektr_model::ArtifactKind::AvatarPhash));
+    if avatars {
+        let size = super::image::pair_size(inner.width, inner.height);
+        let mut used = 0;
+        if let Some(sha) = &e.a_image {
+            used = used.max(super::image::draw(
+                buf, s, inner.x, y, size, sha, &e.a.value,
+            ));
+        }
+        if let Some(sha) = &e.b_image {
+            used = used.max(super::image::draw(
+                buf,
+                s,
+                inner.x + size.0 + 2,
+                y,
+                size,
+                sha,
+                &e.b.value,
+            ));
+        }
+        if used > 0 {
+            y += used;
+        }
+        if let Some(dist) = e.distance {
+            line(
+                buf,
+                &mut y,
+                &[run(format!("dHash distance {dist}/64"), t.muted())],
+            );
+        }
+    } else if let Some(v) = &e.value {
+        line(
+            buf,
+            &mut y,
+            &[
+                run(text::fit("shared", 10), t.muted()),
+                run(v.clone(), t.text()),
+            ],
+        );
+        for (who, src) in [(&e.a, &e.a_sources), (&e.b, &e.b_sources)] {
+            let m = src
+                .first()
+                .map(|o| format!("{} {}", o.module, o.created_at.strftime("%H:%M")));
+            line(
+                buf,
+                &mut y,
+                &[
+                    run(text::fit(&display_value(who, g), 22), t.text()),
+                    run(m.unwrap_or_else(|| "—".into()), t.muted()),
+                ],
+            );
+        }
+    }
+    y += 1;
+    if y < bottom {
+        section(buf, t, g, inner.x, y, inner.width, "Strength");
+    }
+    y += 1;
+    let sources = e
+        .evidence
+        .iter()
+        .map(|o| o.module.as_str())
+        .collect::<std::collections::BTreeSet<_>>()
+        .len();
+    match e.strength {
+        Some(st) => line(
+            buf,
+            &mut y,
+            &[
+                run(g.strength(st), t.fg(strength_token(st))),
+                run(format!(" {}", st.as_str()), t.text()),
+                run(
+                    format!(
+                        "  {} {sources} source{}",
+                        g.m(Marker::Dot),
+                        if sources == 1 { "" } else { "s" }
+                    ),
+                    t.muted(),
+                ),
+            ],
+        ),
+        None => line(buf, &mut y, &[run(e.state.clone(), t.muted())]),
+    }
+    if let Some(at) = e.confirmed_at {
+        line(
+            buf,
+            &mut y,
+            &[run(
+                format!("confirmed by the analyst {}", at.strftime("%Y-%m-%d %H:%M")),
+                t.ok(),
+            )],
+        );
+    }
+    y += 1;
+    if y < bottom {
+        section(
+            buf,
+            t,
+            g,
+            inner.x,
+            y,
+            inner.width,
+            &format!("Evidence {}", e.evidence.len()),
+        );
+    }
+    y += 1;
+    for o in &e.evidence {
+        line(
+            buf,
+            &mut y,
+            &[
+                run(text::fit(&o.module, 15), t.text()),
+                run(format!("{} ", text::fit(&o.module_version, 8)), t.muted()),
+                run(o.created_at.strftime("%H:%M").to_string(), t.muted()),
+            ],
+        );
+    }
+    let mut hints = Vec::new();
+    for a in [Action::Confirm, Action::Reject] {
+        if let Some(h) = s.keymap.hint_for(a, Ctx::Entity) {
+            hints.push(h);
+        }
+    }
+    draw::put(
+        buf,
+        inner.x,
+        inner.bottom().saturating_sub(1),
+        inner.width,
+        &super::hint_runs(s, &hints),
+    );
 }

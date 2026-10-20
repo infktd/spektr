@@ -8,7 +8,7 @@ use futures::future::BoxFuture;
 use spektr_engine::{EngineHandle, Profiles};
 use spektr_model::EntityFlags;
 use spektr_store::Db;
-use spektr_tui::{Chain, DoctorLine, Host, Level, NewCase, RecentCase, Settings};
+use spektr_tui::{Chain, DoctorLine, External, Host, Level, NewCase, RecentCase, Settings};
 
 use crate::cli::NewArgs;
 use crate::commands::doctor;
@@ -152,6 +152,81 @@ impl Host for TuiHost {
     fn now(&self) -> jiff::Timestamp {
         self.ctx.now()
     }
+
+    fn external(&self, what: &External) -> Result<Option<String>, String> {
+        let (kind, target) = match what {
+            External::Url(u) => ("url", u.clone()),
+            External::Open(p) => ("open", p.display().to_string()),
+            External::Reveal(p) => ("reveal", p.display().to_string()),
+            External::Pager(p) => ("pager", p.display().to_string()),
+        };
+        // Test mode (ARCHITECTURE §8): nothing reaches the OS; the request
+        // is recorded for the E2E tests.
+        if self.ctx.test.test_mode {
+            record_open(&self.ctx.paths.state, kind, &target).map_err(|e| e.to_string())?;
+            return Ok(Some(target));
+        }
+        let r = match what {
+            External::Url(u) => open::that_detached(u),
+            External::Open(p) => open::that_detached(p),
+            External::Reveal(p) => reveal(p),
+            External::Pager(p) => pager(p),
+        };
+        r.map(|()| None)
+            .map_err(|e| format!("opening {target}: {e}"))
+    }
+
+    fn pager_takes_terminal(&self) -> bool {
+        !self.ctx.test.test_mode
+    }
+}
+
+/// Append `{"kind", "target"}` to `<state>/opened.jsonl`.
+fn record_open(state: &Path, kind: &str, target: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    std::fs::create_dir_all(state)?;
+    let mut f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(state.join("opened.jsonl"))?;
+    writeln!(
+        f,
+        "{}",
+        serde_json::json!({ "kind": kind, "target": target })
+    )
+}
+
+/// Select a file in the system file manager.
+fn reveal(p: &Path) -> std::io::Result<()> {
+    if cfg!(target_os = "macos") {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(p)
+            .spawn()
+            .map(|_| ())
+    } else if cfg!(windows) {
+        std::process::Command::new("explorer")
+            .arg(format!("/select,{}", p.display()))
+            .spawn()
+            .map(|_| ())
+    } else {
+        open::that_detached(p.parent().unwrap_or(p))
+    }
+}
+
+/// `$PAGER` (default `less -R`), waiting for it to exit.
+fn pager(p: &Path) -> std::io::Result<()> {
+    let cmd = std::env::var("PAGER")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| "less -R".into());
+    let mut parts = cmd.split_whitespace();
+    let prog = parts.next().unwrap_or("less");
+    std::process::Command::new(prog)
+        .args(parts)
+        .arg(p)
+        .status()
+        .map(|_| ())
 }
 
 /// TUI settings from config.toml and the environment.
@@ -172,8 +247,20 @@ pub fn settings(ctx: &Ctx) -> Settings {
             (k.clone(), list)
         })
         .collect();
+    // Test mode defaults to halfblocks, so frames don't depend on the
+    // terminal; config can still ask for a protocol (the real-terminal QA).
+    let images = c
+        .images
+        .as_deref()
+        .and_then(spektr_tui::ImageMode::parse)
+        .unwrap_or(if ctx.test.test_mode {
+            spektr_tui::ImageMode::Halfblocks
+        } else {
+            spektr_tui::ImageMode::Auto
+        });
     Settings {
         mouse: c.mouse.unwrap_or(true),
+        images,
         glyphs: c
             .glyphs
             .as_deref()

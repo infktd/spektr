@@ -21,7 +21,7 @@ use ratatui::backend::CrosstermBackend;
 use spektr_engine::{EngineEvent, EngineHandle};
 use tokio::sync::{broadcast, mpsc};
 
-use crate::host::{Host, Settings};
+use crate::host::{External, Host, Settings};
 use crate::msg::{Effect, Msg};
 use crate::state::{AppState, Screen};
 use crate::update::{init, update};
@@ -41,6 +41,40 @@ pub enum Start {
 enum Internal {
     Msg(Msg),
     Engine(PathBuf, EngineHandle),
+    /// Show a file in the pager: the loop hands it the terminal.
+    Pager(PathBuf),
+}
+
+/// Attachments read from disk stop here (the capture limit).
+const MAX_ATTACH: u64 = spektr_engine::MAX_CAPTURE;
+
+/// Where evidence opened outside the TUI is written.
+fn evidence_file(sha: &str, name: &str) -> std::io::Result<PathBuf> {
+    let dir = std::env::temp_dir().join("spektr-evidence");
+    std::fs::create_dir_all(&dir)?;
+    let safe: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || "._-".contains(c) {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    Ok(dir.join(format!("{}-{safe}", &sha[..sha.len().min(12)])))
+}
+
+/// Runtime state the effects use.
+struct Rt<'a> {
+    host: &'a Arc<dyn Host>,
+    engine: &'a Option<EngineHandle>,
+    tx: &'a mpsc::UnboundedSender<Internal>,
+    refresh_at: &'a mut Option<tokio::time::Instant>,
+    /// The picker in use, and the one detected at startup (its font size
+    /// lets `:images` switch protocol without querying again).
+    picker: Option<ratatui_image::picker::Picker>,
+    detected: Option<ratatui_image::picker::Picker>,
 }
 
 fn restore() {
@@ -67,18 +101,16 @@ pub async fn run(
         restore();
         prev(info);
     }));
-    enable_raw_mode()?;
     let mut out = io::stdout();
-    execute!(
-        out,
-        EnterAlternateScreen,
-        EnableBracketedPaste,
-        cursor::Hide
-    )?;
+    execute!(out, EnterAlternateScreen)?;
+    // The image-protocol query runs before raw mode (it manages its own).
+    let images = crate::images::detect(settings.images);
+    enable_raw_mode()?;
+    execute!(out, EnableBracketedPaste, cursor::Hide)?;
     if settings.mouse {
         execute!(out, EnableMouseCapture)?;
     }
-    let result = run_loop(host, settings, start).await;
+    let result = run_loop(host, settings, start, images).await;
     restore();
     result
 }
@@ -104,16 +136,77 @@ async fn sleep_until(at: Option<tokio::time::Instant>) {
     }
 }
 
+/// Give the terminal to a pager, then take it back.
+/// `Ok(Err(e))`: the pager failed; `Ok(Ok(Some(t)))`: test mode recorded it.
+fn with_pager(
+    term: &mut Terminal<CrosstermBackend<Stdout>>,
+    host: &Arc<dyn Host>,
+    path: PathBuf,
+    mouse: bool,
+) -> io::Result<Result<Option<String>, String>> {
+    if !host.pager_takes_terminal() {
+        return Ok(host.external(&External::Pager(path)));
+    }
+    restore();
+    let r = host.external(&External::Pager(path));
+    enable_raw_mode()?;
+    let mut out = io::stdout();
+    execute!(
+        out,
+        EnterAlternateScreen,
+        EnableBracketedPaste,
+        cursor::Hide
+    )?;
+    if mouse {
+        execute!(out, EnableMouseCapture)?;
+    }
+    term.clear()?;
+    Ok(r)
+}
+
+/// Start decoding the images the current frame wants.
+fn request_images(s: &mut AppState, rt: &Rt<'_>) {
+    let (Some(picker), Some(eng)) = (rt.picker.clone(), rt.engine.clone()) else {
+        return;
+    };
+    for key in crate::view::wanted_images(s) {
+        if !s.images.request(&key) {
+            continue;
+        }
+        let (tx, eng, picker) = (rt.tx.clone(), eng.clone(), picker.clone());
+        tokio::spawn(async move {
+            let r = match eng.query(spektr_engine::Query::Blob(key.sha.clone())).await {
+                Ok(spektr_engine::QueryResult::Blob(Some(bytes))) => {
+                    let (w, h) = (key.w, key.h);
+                    tokio::task::spawn_blocking(move || {
+                        crate::images::encode(&picker, &bytes, w, h)
+                    })
+                    .await
+                    .unwrap_or_else(|e| Err(e.to_string()))
+                }
+                Ok(_) => Err("not in the case".into()),
+                Err(e) => Err(e.to_string()),
+            };
+            let _ = tx.send(Internal::Msg(Msg::Image(key, r)));
+        });
+    }
+}
+
 async fn run_loop(
     host: Arc<dyn Host>,
     settings: Settings,
     start: Start,
+    images: (Option<ratatui_image::picker::Picker>, String),
 ) -> io::Result<Option<EngineHandle>> {
     let backend = CrosstermBackend::new(io::stdout());
     let mut term = Terminal::new(backend)?;
     let size = term.size()?;
     let mut s = AppState::new(settings, host.now());
     s.size = (size.width, size.height);
+    let (picker, protocol) = images;
+    s.images = crate::images::Images::new(protocol, picker.is_some());
+    let detected = picker.clone();
+    let mut picker = picker;
     if let Start::Open(p) = start {
         s.screen = Screen::Opening(p);
     }
@@ -127,7 +220,18 @@ async fn run_loop(
     let mut last_draw = Instant::now() - FRAME;
     let t0 = Instant::now();
     let fx = init(&mut s);
-    run_effects(fx, &host, &engine, &tx, &mut refresh_at, &mut term);
+    {
+        let mut rt = Rt {
+            host: &host,
+            engine: &engine,
+            tx: &tx,
+            refresh_at: &mut refresh_at,
+            picker: picker.take(),
+            detected: detected.clone(),
+        };
+        run_effects(fx, &mut rt, &mut s, &mut term);
+        picker = rt.picker;
+    }
     loop {
         if s.quit {
             break;
@@ -164,6 +268,15 @@ async fn run_loop(
                     host.opened(&path);
                     Some(Msg::Opened(path, Ok(())))
                 }
+                Internal::Pager(path) => {
+                    let r = with_pager(&mut term, &host, path, s.mouse)?;
+                    s.dirty = true;
+                    match r {
+                        Ok(Some(t)) => Some(Msg::WouldOpen(t)),
+                        Ok(None) => None,
+                        Err(e) => Some(Msg::Acted { what: "pager".into(), result: Err(e) }),
+                    }
+                }
             },
             m = next_engine(&mut engine_rx) => Some(m),
             _ = tick.tick() => Some(Msg::Tick(host.now())),
@@ -178,7 +291,17 @@ async fn run_loop(
         };
         if let Some(m) = msg {
             let fx = update(&mut s, m);
-            run_effects(fx, &host, &engine, &tx, &mut refresh_at, &mut term);
+            let mut rt = Rt {
+                host: &host,
+                engine: &engine,
+                tx: &tx,
+                refresh_at: &mut refresh_at,
+                picker: picker.take(),
+                detected: detected.clone(),
+            };
+            run_effects(fx, &mut rt, &mut s, &mut term);
+            request_images(&mut s, &rt);
+            picker = rt.picker;
         }
     }
     Ok(engine)
@@ -196,12 +319,11 @@ fn draw(term: &mut Terminal<CrosstermBackend<Stdout>>, s: &mut AppState) -> io::
 
 fn run_effects(
     fx: Vec<Effect>,
-    host: &Arc<dyn Host>,
-    engine: &Option<EngineHandle>,
-    tx: &mpsc::UnboundedSender<Internal>,
-    refresh_at: &mut Option<tokio::time::Instant>,
+    rt: &mut Rt<'_>,
+    s: &mut AppState,
     term: &mut Terminal<CrosstermBackend<Stdout>>,
 ) {
+    let (host, engine, tx) = (rt.host, rt.engine, rt.tx);
     for e in fx {
         let sender = tx.clone();
         let send = move |m: Msg| {
@@ -270,7 +392,7 @@ fn run_effects(
                 }
             }
             Effect::ScheduleRefresh => {
-                *refresh_at = Some(tokio::time::Instant::now() + REFRESH);
+                *rt.refresh_at = Some(tokio::time::Instant::now() + REFRESH);
             }
             Effect::Copy(text) => {
                 let out = term.backend_mut();
@@ -281,7 +403,109 @@ fn run_effects(
                 let _ = out.flush();
             }
             Effect::OpenUrl(u) => {
-                let _ = open::that_detached(u);
+                let h = host.clone();
+                tokio::task::spawn_blocking(move || match h.external(&External::Url(u)) {
+                    Ok(Some(t)) => send(Msg::WouldOpen(t)),
+                    Ok(None) => {}
+                    Err(e) => send(Msg::Acted {
+                        what: "open".into(),
+                        result: Err(e),
+                    }),
+                });
+            }
+            Effect::OpenBlob { sha, name, reveal } => {
+                if let Some(eng) = engine.clone() {
+                    let h = host.clone();
+                    tokio::spawn(async move {
+                        match open_blob(&eng, &h, &sha, &name, reveal).await {
+                            Ok(Some(t)) => send(Msg::WouldOpen(t)),
+                            Ok(None) => {}
+                            Err(e) => send(Msg::Acted {
+                                what: "open".into(),
+                                result: Err(e),
+                            }),
+                        }
+                    });
+                }
+            }
+            Effect::OpenEvidence(obs) => {
+                if let Some(eng) = engine.clone() {
+                    let h = host.clone();
+                    let tx2 = tx.clone();
+                    tokio::spawn(async move {
+                        match open_evidence(&eng, &h, &tx2, obs).await {
+                            Ok(Some(t)) => send(Msg::WouldOpen(t)),
+                            Ok(None) => {}
+                            Err(e) => send(Msg::Acted {
+                                what: "open".into(),
+                                result: Err(e),
+                            }),
+                        }
+                    });
+                }
+            }
+            Effect::AttachFile { path, entity } => {
+                if let Some(eng) = engine.clone() {
+                    tokio::spawn(async move {
+                        let name = path.file_name().map_or_else(
+                            || "attachment".into(),
+                            |n| n.to_string_lossy().into_owned(),
+                        );
+                        let read =
+                            tokio::task::spawn_blocking(move || -> Result<Vec<u8>, String> {
+                                let len = std::fs::metadata(&path)
+                                    .map_err(|e| format!("{}: {e}", path.display()))?
+                                    .len();
+                                if len > MAX_ATTACH {
+                                    return Err(format!(
+                                        "{} is over the 25 MB limit",
+                                        path.display()
+                                    ));
+                                }
+                                std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))
+                            })
+                            .await
+                            .unwrap_or_else(|e| Err(e.to_string()));
+                        let result = match read {
+                            Ok(bytes) => eng
+                                .act(spektr_engine::EngineAction::Attach {
+                                    entity,
+                                    name,
+                                    bytes,
+                                    note: None,
+                                })
+                                .await
+                                .map_err(|e| e.to_string()),
+                            Err(e) => Err(e),
+                        };
+                        send(Msg::Acted {
+                            what: "attach".into(),
+                            result,
+                        });
+                    });
+                }
+            }
+            Effect::SetImages(mode) => {
+                use ratatui_image::picker::{Picker, ProtocolType};
+                let base = || rt.detected.clone().unwrap_or_else(Picker::halfblocks);
+                let forced = |p: ProtocolType| {
+                    let mut x = base();
+                    x.set_protocol_type(p);
+                    x
+                };
+                rt.picker = match mode {
+                    crate::images::Mode::Off => None,
+                    crate::images::Mode::Auto => rt.detected.clone(),
+                    crate::images::Mode::Halfblocks => Some(Picker::halfblocks()),
+                    crate::images::Mode::Kitty => Some(forced(ProtocolType::Kitty)),
+                    crate::images::Mode::Sixel => Some(forced(ProtocolType::Sixel)),
+                    crate::images::Mode::Iterm2 => Some(forced(ProtocolType::Iterm2)),
+                };
+                let name = rt.picker.as_ref().map_or("off".to_string(), |p| {
+                    format!("{:?}", p.protocol_type()).to_lowercase()
+                });
+                s.images = crate::images::Images::new(name, rt.picker.is_some());
+                s.dirty = true;
             }
             Effect::SetMouse(on) => {
                 let out = term.backend_mut();
@@ -294,4 +518,72 @@ fn run_effects(
             Effect::Quit => {}
         }
     }
+}
+
+async fn open_blob(
+    eng: &EngineHandle,
+    host: &Arc<dyn Host>,
+    sha: &str,
+    name: &str,
+    reveal: bool,
+) -> Result<Option<String>, String> {
+    let bytes = match eng.query(spektr_engine::Query::Blob(sha.to_string())).await {
+        Ok(spektr_engine::QueryResult::Blob(Some(b))) => b,
+        Ok(_) => return Err("not in the case".into()),
+        Err(e) => return Err(e.to_string()),
+    };
+    let path = evidence_file(sha, name).map_err(|e| e.to_string())?;
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+    let h = host.clone();
+    tokio::task::spawn_blocking(move || {
+        h.external(&if reveal {
+            External::Reveal(path)
+        } else {
+            External::Open(path)
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// A capture's screenshot or an image in the viewer; anything else (a raw
+/// response, a capture's HTML without a screenshot) in the pager.
+async fn open_evidence(
+    eng: &EngineHandle,
+    host: &Arc<dyn Host>,
+    tx: &mpsc::UnboundedSender<Internal>,
+    obs: spektr_model::ObservationId,
+) -> Result<Option<String>, String> {
+    let raw = match eng.query(spektr_engine::Query::Raw(obs)).await {
+        Ok(spektr_engine::QueryResult::Raw(Some(r))) => r,
+        Ok(_) => return Err("no such observation".into()),
+        Err(e) => return Err(e.to_string()),
+    };
+    if let Some(shot) = raw.summary["screenshot"].as_str() {
+        return open_blob(eng, host, shot, "screenshot.png", false).await;
+    }
+    let Some(bytes) = raw.bytes else {
+        return Err(format!(
+            "{} kept no bytes for this observation",
+            raw.observation.module
+        ));
+    };
+    let sha = raw
+        .observation
+        .blob
+        .clone()
+        .unwrap_or_else(|| obs.to_string());
+    if spektr_engine::is_image(&bytes) {
+        return open_blob(eng, host, &sha, "image", false).await;
+    }
+    let ext = match raw.observation.content_type.as_deref() {
+        Some(c) if c.contains("html") => "html",
+        Some(c) if c.contains("json") => "json",
+        _ => "txt",
+    };
+    let path = evidence_file(&sha, &format!("{}.{ext}", raw.observation.module))
+        .map_err(|e| e.to_string())?;
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+    let _ = tx.send(Internal::Pager(path));
+    Ok(None)
 }

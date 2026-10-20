@@ -99,7 +99,8 @@ fn handle() -> impl Strategy<Value = String> {
 /// A DNS label. Labels with `--` in positions 3–4 are reserved (`xn--` is
 /// punycode, and an arbitrary one is an invalid IDN), so they're excluded.
 fn label() -> impl Strategy<Value = String> {
-    "[a-z0-9]([a-z0-9-]{0,10}[a-z0-9])?".prop_filter("reserved `??--` label", |l| l.get(2..4) != Some("--"))
+    "[a-z0-9]([a-z0-9-]{0,10}[a-z0-9])?"
+        .prop_filter("reserved `??--` label", |l| l.get(2..4) != Some("--"))
 }
 
 proptest! {

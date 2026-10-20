@@ -33,7 +33,14 @@ fn check(name: &str, level: Level, detail: impl Into<String>) -> Check {
 use crate::paths::tilde;
 
 pub fn run(ctx: &Ctx, a: DoctorArgs) -> Result<()> {
-    let out = checks(ctx);
+    let mut out = checks(ctx);
+    // Only the CLI queries the terminal: inside the TUI the query would
+    // steal its input (the TUI detects once at startup instead).
+    let at = out
+        .iter()
+        .position(|c| c.name == "terminal")
+        .map_or(out.len(), |i| i + 1);
+    out.insert(at, images_check(ctx));
     if a.json {
         for c in &out {
             println!("{}", json!(c));
@@ -223,11 +230,6 @@ pub fn checks(ctx: &Ctx) -> Vec<Check> {
         Level::Ok,
         format!("{color} · TERM={term}"),
     ));
-    out.push(check(
-        "images",
-        Level::Ok,
-        "protocol detection arrives with image previews (Phase 4)",
-    ));
     if std::env::var_os("TMUX").is_some() {
         let mouse = std::process::Command::new("tmux")
             .args(["show", "-gv", "mouse"])
@@ -245,4 +247,38 @@ pub fn checks(ctx: &Ctx) -> Vec<Check> {
     }
 
     out
+}
+
+/// The image protocol (TUI_SPEC §9): queried from the terminal for `auto`,
+/// only when stdout is a terminal (the query writes to it).
+fn images_check(ctx: &Ctx) -> Check {
+    use std::io::IsTerminal;
+    let mode = ctx
+        .config
+        .images
+        .as_deref()
+        .and_then(spektr_tui::ImageMode::parse)
+        .unwrap_or_default();
+    if mode == spektr_tui::ImageMode::Off {
+        return check("images", Level::Ok, "off (images = \"off\")");
+    }
+    if !std::io::stdout().is_terminal() || !std::io::stdin().is_terminal() {
+        return check(
+            "images",
+            Level::Ok,
+            format!("{} · not a terminal, not queried", mode.as_str()),
+        );
+    }
+    let (_, proto) = spektr_tui::detect_images(mode);
+    let level = if proto.starts_with("halfblocks") && mode == spektr_tui::ImageMode::Auto {
+        Level::Warn
+    } else {
+        Level::Ok
+    };
+    let note = if level == Level::Warn {
+        " · no graphics protocol answered; previews use halfblocks"
+    } else {
+        ""
+    };
+    check("images", level, format!("{proto}{note}"))
 }

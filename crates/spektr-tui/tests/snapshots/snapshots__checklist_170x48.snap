@@ -1,0 +1,52 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+ spektr  │  demo-missing-01  playbooks                                  rules tracelabs   findings 4   review 5   checklist 3 open   ● 1 running · 2 queued   chain ✓ 206
+╭ Playbooks 3 runs ───────────────────────────────────────────────────╮ ╭ Checklist 3 open ─────────────────────────────────────────────────────────── [open]  done  all ╮
+│  ▸ person-from-username   ~ jmarlow.wav                 step 4/6    │ │ Reverse image search  person-from-username · step 5                                            │
+│  ✓ person-from-email      @ jordan.marlow@mail.example  done 5/5    │ │ ▌○ ▨ avatar-github.png                     lens · yandex · tineye                              │
+│  ✓ image-triage           ▨ IMG_2214.jpg                done 3/3    │ │  ○ ▨ avatar-bluesky.png                    lens · yandex · tineye                              │
+│                                                                     │ │                                                                                                │
+│ Steps · person-from-username ────────────────────────────────────── │ │ Review unsure sweep hits  person-from-username · step 6                                        │
+│ ✓ 1  run username-sweep                on seed        1 job         │ │  ○ ~ jmarlow.wav                           opens Review                                        │
+│ ✓ 2  run github bluesky gitlab         on seed        5 jobs        │ │                                                                                                │
+│        mastodon hackernews                                          │ │ Selected ───────────────────────────────────────────────────────────────────────────────────── │
+│ ✓ 3  run avatar-hash                   on 9 ◐ account 9 jobs        │ │ Reverse image search the GitHub avatar for jmarlow-wav. Look for the same photo on other       │
+│ ▸ 4  run http-fingerprint wayback      on 4 ↗ url     2/4 jobs      │ │ profiles, shops, forums or news.                                                               │
+│ ○ 5  check reverse image search        on 3 ▨ image                 │ │                                                                                                │
+│ ○ 6  check review unsure sweep hits    —                            │ │ o open ▸   Google Lens   ·   Yandex Images   ·   TinEye                                        │
+│                                                                     │ │ Opening a launcher is recorded in the audit log.                                               │
+│ Available ───────────────────────────────────────────────────────── │ │                                                                                                │
+│   person-from-username   ~ username     built-in                    │ │                                                                                                │
+│   person-from-email      @ email        built-in                    │ │                                                                                                │
+│   person-from-phone      + phone        built-in                    │ │                                                                                                │
+│   image-triage           ▨ image        built-in                    │ │                                                                                                │
+│   domain-recon           ◆ domain       built-in                    │ │                                                                                                │
+│   tracelabs-kickoff      ◎ person       built-in · tracelabs        │ │                                                                                                │
+│   forum-sweep            ~ username     ~/.config/spektr/playbooks  │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│                                                                     │ │                                                                                                │
+│ Rules still apply inside a playbook: the tracelabs profile blocks   │ │ ────────────────────────────────────────────────────────────────────────────────────────────── │
+│ anything that isn't passive.                                        │ │ d done   s skip   n note   f finding from item   ↵ go to entity                                │
+╰─────────────────────────────────────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+  CHECKLIST   tab pane   p run playbook   X stop run   esc back to graph                                                                                     18:14:22 UTC

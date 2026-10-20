@@ -25,6 +25,7 @@ ratatui-textarea.workspace = true
 nucleo-matcher.workspace = true
 unicode-width.workspace = true
 jiff.workspace = true
+serde_json.workspace = true
 image.workspace = true
 open.workspace = true
 

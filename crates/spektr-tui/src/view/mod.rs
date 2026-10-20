@@ -1,10 +1,16 @@
 //! Rendering: pure functions of `AppState` that draw into the frame and
 //! return the hit regions for the mouse (TUI_SPEC §8, §11).
 
+mod checklist;
 mod draw;
+mod image;
 mod launcher;
 mod overlay;
+mod review;
+mod tabs;
 mod workspace;
+
+pub use image::wanted as wanted_images;
 
 pub use overlay::wrap;
 
@@ -52,7 +58,11 @@ pub fn render_buf(buf: &mut Buffer, area: Rect, s: &AppState) -> Hits {
                 draw::put(buf, r.x, r.y, r.width, &[run(msg, t.muted())]);
                 return hits;
             }
-            workspace::render(buf, area, s, w, &mut hits);
+            match w.view {
+                crate::state::View::Main => workspace::render(buf, area, s, w, &mut hits),
+                crate::state::View::Checklist => checklist::render(buf, area, s, w, &mut hits),
+                crate::state::View::Review => review::render(buf, area, s, w, &mut hits),
+            }
         }
     }
     match &s.overlay {
@@ -80,6 +90,8 @@ fn hint_ctxs(s: &AppState) -> Vec<Ctx> {
         Some(Overlay::Dialog(_)) => vec![Ctx::Dialog],
         None => match s.mode() {
             Mode::Filter => vec![Ctx::Filter],
+            Mode::Checklist => vec![Ctx::Checklist],
+            Mode::Review => vec![Ctx::Review],
             _ => vec![Ctx::Entity, Ctx::Global],
         },
     }
@@ -129,7 +141,15 @@ fn status_line(buf: &mut Buffer, area: Rect, s: &AppState, hits: &mut Hits) {
         );
         avail = avail.saturating_sub(tw + 3);
     }
-    let hints = s.keymap.hints(&hint_ctxs(s));
+    let mut hints = s.keymap.hints(&hint_ctxs(s));
+    if s.overlay.is_none()
+        && matches!(s.mode(), Mode::Checklist | Mode::Review)
+        && let Some((k, _)) = s
+            .keymap
+            .hint_for(crate::keymap::Action::Escape, Ctx::Global)
+    {
+        hints.push((k, "back to graph"));
+    }
     draw::put(buf, area.x + 1 + pw + 2, y, avail, &hint_runs(s, &hints));
 }
 

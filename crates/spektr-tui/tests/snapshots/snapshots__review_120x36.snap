@@ -1,0 +1,40 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+ spektr  │  demo-missing-01  review     findings 4   review 5   checklist 3 open   ● 1 running · 2 queued   chain ✓ 206
+╭ Review ───────────────────────── [pending 3]  accepted 0  rejecte…╮ ╭ Detail ────────────────────────────────────────╮
+│   kind    site                  link                              │ │ account ◐ forum · jmarlow.wav                  │
+│                                                                   │ │ unsure sweep hit · Example Forum · login wall  │
+│ ▌ sweep   Example Forum         ~ jmarlow.wav …  login wall       │ │                                                │
+│   sweep   Photo Site            ~ jmarlow.wav …  HTTP 403         │ │ username      jmarlow.wav                      │
+│   merge   same-person           ◎ Jordan Marlo…                   │ │ site          forum                            │
+│                                                                   │ │ url           https://forum.example/u/jmarlow… │
+│                                                                   │ │ reason        login wall                       │
+│                                                                   │ │ module        username-sweep                   │
+│                                                                   │ │                                                │
+│                                                                   │ │ Accepting adds the account, with the sweep's   │
+│                                                                   │ │ response as evidence (1 observation).          │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│                                                                   │ │                                                │
+│ Unsure sweep hits and same-person suggestions wait here. Nothing  │ │ ────────────────────────────────────────────── │
+│ becomes an account or merges without you.                         │ │ a accept   x reject   s later   O open         │
+╰───────────────────────────────────────────────────────────────────╯ ╰────────────────────────────────────────────────╯
+  REVIEW   a accept   x reject   s later   O open   esc back to graph                                      18:14:22 UTC

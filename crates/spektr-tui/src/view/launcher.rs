@@ -217,6 +217,13 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &AppState, l: &Launcher, hits: &m
         level: Level::Ok,
         detail: format!("{mode} {} {}×{}", g.m(Marker::Dot), s.size.0, s.size.1),
     });
+    if !s.images.protocol.is_empty() {
+        checks.push(crate::host::DoctorLine {
+            name: "images".into(),
+            level: Level::Ok,
+            detail: s.images.protocol.clone(),
+        });
+    }
     let per_col = checks.len().div_ceil(2).max(1) as u16;
     let room = area.bottom().saturating_sub(y + 4);
     let per_col = per_col.min(room.max(1));

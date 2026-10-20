@@ -307,6 +307,8 @@ pub fn workspace(mode: ColorMode, size: (u16, u16)) -> AppState {
             ),
         ],
         checklist: Vec::new(),
+        launchers: Vec::new(),
+        image: None,
         findings: vec![FindingView {
             id: 3,
             title: "Advancing the Timeline".into(),
@@ -335,6 +337,7 @@ pub fn workspace(mode: ColorMode, size: (u16, u16)) -> AppState {
         audit_rows: 206,
         findings: 4,
         review_pending: 5,
+        checklist_open: 0,
         jobs: BTreeMap::from([
             ("running".into(), 1),
             ("queued".into(), 2),
@@ -489,4 +492,436 @@ pub fn launcher(size: (u16, u16)) -> AppState {
         error: None,
     });
     s
+}
+
+fn find(w: &Workspace, value: &str) -> EntitySummary {
+    w.entities
+        .iter()
+        .find(|e| e.value == value)
+        .cloned()
+        .unwrap()
+}
+
+fn info(title: &str, kind: &str, detail: &str, on: &str) -> spektr_engine::StepInfo {
+    spektr_engine::StepInfo {
+        title: title.into(),
+        kind: kind.into(),
+        detail: detail.into(),
+        on: on.into(),
+    }
+}
+
+fn stepv(
+    n: u32,
+    i: spektr_engine::StepInfo,
+    state: &str,
+    selected: u32,
+    result: serde_json::Value,
+) -> spektr_engine::StepView {
+    spektr_engine::StepView {
+        step: n,
+        info: i,
+        state: state.into(),
+        selected,
+        capped: 0,
+        result,
+    }
+}
+
+fn pb(name: &str, seed: &str, source: &str, profile: &str) -> spektr_engine::PlaybookInfo {
+    spektr_engine::PlaybookInfo {
+        name: name.into(),
+        version: "1.0.0".into(),
+        description: format!("{name}."),
+        seed: vec![seed.into()],
+        requires_profile: profile.into(),
+        source: source.into(),
+        steps: Vec::new(),
+        errors: Vec::new(),
+        warnings: Vec::new(),
+    }
+}
+
+fn lv(id: &str, name: &str) -> spektr_engine::LauncherView {
+    spektr_engine::LauncherView {
+        id: id.into(),
+        name: name.into(),
+        url: Some(format!("https://search.example/{id}")),
+        disabled: None,
+    }
+}
+
+/// Playbook runs, the checklist, review items, the timeline, a path and an
+/// avatar edge comparison, on top of `workspace` (artboards 05, 08, 10).
+pub fn playbook_screens(s: &mut AppState) {
+    use serde_json::json;
+    use spektr_model::{ChecklistItemId, PlaybookRunId, ReviewItemId};
+    let ids = Ids(IdGen::seeded(7));
+    let at = |t: &str| -> Timestamp { format!("2026-10-20T{t}Z").parse().unwrap() };
+    let Screen::Workspace(w) = &mut s.screen else {
+        panic!()
+    };
+    let seed = find(w, "jmarlow.wav");
+    let email = find(w, "jordan.marlow@mail.example");
+    let subject = find(w, "Jordan Marlow");
+    let gh = find(w, "github:jmarlow-wav");
+    let bsky = find(w, "bluesky:jmarlow.wav");
+    let img = |v: &str| {
+        let mut e = ids.ent(CoreType::Image, v, EntityFlags::NONE, 2);
+        e.key = format!("sha256:{:0>64}", v.len());
+        e
+    };
+    let (a1, a2, a3, photo) = (
+        img("avatar-github.png"),
+        img("avatar-bluesky.png"),
+        img("avatar-soundcloud.png"),
+        img("IMG_2214.jpg"),
+    );
+    let (r1, r2, r3) = (
+        PlaybookRunId(ids.0.next(now())),
+        PlaybookRunId(ids.0.next(now())),
+        PlaybookRunId(ids.0.next(now())),
+    );
+    let run = |id,
+               playbook: &str,
+               seed: &EntitySummary,
+               state: &str,
+               cur,
+               total,
+               started: &str,
+               steps| spektr_engine::RunView {
+        id,
+        playbook: playbook.into(),
+        seed: Some(seed.clone()),
+        parent: None,
+        state: state.into(),
+        current_step: cur,
+        total_steps: total,
+        started_at: at(started),
+        finished_at: None,
+        steps,
+    };
+    let steps = vec![
+        stepv(
+            1,
+            info("Sweep the handle", "run", "run username-sweep", "seed"),
+            "done",
+            1,
+            json!({"jobs": {"done": 1}}),
+        ),
+        stepv(
+            2,
+            info(
+                "Profile details",
+                "run",
+                "run github bluesky gitlab mastodon hackernews",
+                "seed",
+            ),
+            "done",
+            1,
+            json!({"jobs": {"done": 3, "cached": 2}}),
+        ),
+        stepv(
+            3,
+            info(
+                "Avatar hashes",
+                "run",
+                "run avatar-hash",
+                "account from run",
+            ),
+            "done",
+            9,
+            json!({"jobs": {"done": 9}}),
+        ),
+        stepv(
+            4,
+            info(
+                "Linked sites",
+                "run",
+                "run http-fingerprint wayback",
+                "url from run, max 25",
+            ),
+            "running",
+            4,
+            json!({"jobs": {"done": 2, "running": 2}}),
+        ),
+        stepv(
+            5,
+            info(
+                "Reverse image search",
+                "check",
+                "Reverse image search the avatar.",
+                "image from run",
+            ),
+            "pending",
+            3,
+            json!({}),
+        ),
+        stepv(
+            6,
+            info(
+                "Review unsure sweep hits",
+                "check",
+                "Review the unsure hits.",
+                "—",
+            ),
+            "pending",
+            0,
+            json!({}),
+        ),
+    ];
+    w.checklist.runs = vec![
+        run(
+            r1,
+            "person-from-username",
+            &seed,
+            "running",
+            4,
+            6,
+            "18:20:00",
+            steps,
+        ),
+        run(
+            r2,
+            "person-from-email",
+            &email,
+            "done",
+            5,
+            5,
+            "18:08:00",
+            Vec::new(),
+        ),
+        run(
+            r3,
+            "image-triage",
+            &photo,
+            "done",
+            3,
+            3,
+            "18:02:00",
+            Vec::new(),
+        ),
+    ];
+    w.checklist.playbooks = vec![
+        pb("person-from-username", "username", "built-in", ""),
+        pb("person-from-email", "email", "built-in", ""),
+        pb("person-from-phone", "phone", "built-in", ""),
+        pb("image-triage", "image", "built-in", ""),
+        pb("domain-recon", "domain", "built-in", ""),
+        pb("tracelabs-kickoff", "person", "built-in", "tracelabs"),
+        pb(
+            "forum-sweep",
+            "username",
+            "/home/jm/.config/spektr/playbooks/forum-sweep.toml",
+            "",
+        ),
+    ];
+    let item = |run,
+                playbook: &str,
+                step,
+                title: &str,
+                e: Option<&EntitySummary>,
+                text: &str,
+                state: &str,
+                note: Option<&str>,
+                launchers: Vec<spektr_engine::LauncherView>,
+                screen: Option<&str>| spektr_engine::ItemView {
+        id: ChecklistItemId(ids.0.next(now())),
+        run,
+        playbook: playbook.into(),
+        step,
+        step_title: title.into(),
+        entity: e.cloned(),
+        text: text.into(),
+        launchers,
+        screen: screen.map(str::to_string),
+        state: state.into(),
+        note: note.map(str::to_string),
+        resolved_at: (state != "open").then(|| at("18:22:00")),
+        local_image: None,
+    };
+    let rev = || {
+        vec![
+            lv("lens", "Google Lens"),
+            lv("yandex-images", "Yandex Images"),
+            lv("tineye", "TinEye"),
+        ]
+    };
+    let text = "Reverse image search the GitHub avatar for jmarlow-wav. Look for the same photo on other profiles, shops, forums or news.";
+    w.checklist.items = vec![
+        item(
+            r1,
+            "person-from-username",
+            5,
+            "Reverse image search",
+            Some(&a1),
+            text,
+            "open",
+            None,
+            rev(),
+            None,
+        ),
+        item(
+            r1,
+            "person-from-username",
+            5,
+            "Reverse image search",
+            Some(&a2),
+            text,
+            "open",
+            None,
+            rev(),
+            None,
+        ),
+        item(
+            r1,
+            "person-from-username",
+            5,
+            "Reverse image search",
+            Some(&a3),
+            text,
+            "done",
+            Some("same photo on a forum"),
+            rev(),
+            None,
+        ),
+        item(
+            r1,
+            "person-from-username",
+            6,
+            "Review unsure sweep hits",
+            Some(&seed),
+            "Five sites didn't answer clearly.",
+            "open",
+            None,
+            Vec::new(),
+            Some("review"),
+        ),
+        item(
+            r2,
+            "person-from-email",
+            4,
+            "Search the exact address",
+            Some(&email),
+            "Search the exact address in quotes.",
+            "done",
+            None,
+            vec![lv("google-exact", "Google")],
+            None,
+        ),
+        item(
+            r3,
+            "image-triage",
+            3,
+            "Geolocate if no GPS",
+            Some(&photo),
+            "Geolocate the photo by hand.",
+            "skipped",
+            Some("has GPS"),
+            Vec::new(),
+            None,
+        ),
+    ];
+    w.checklist.loaded = true;
+    if let Some(st) = &mut w.status {
+        st.checklist_open = 3;
+    }
+    // review
+    let rv = |kind: &str, payload: serde_json::Value| spektr_engine::ReviewView {
+        id: ReviewItemId(ids.0.next(now())),
+        kind: kind.into(),
+        state: "pending".into(),
+        payload,
+    };
+    let sweep = |site: &str, name: &str, platform: &str, reason: &str| {
+        rv(
+            "sweep_unsure",
+            json!({
+                "module": "username-sweep", "input": seed.id, "evidence": ["o1"],
+                "detail": {"site": site, "name": name, "username": "jmarlow.wav", "platform": platform,
+                           "handle": "jmarlow.wav", "url": format!("https://{site}.example/u/jmarlow.wav"), "reason": reason},
+            }),
+        )
+    };
+    w.review.items = vec![
+        sweep("forum", "Example Forum", "forum", "login wall"),
+        sweep("photos", "Photo Site", "photos", "HTTP 403"),
+        rv(
+            "same_person",
+            json!({"a": subject.id, "b": gh.id, "via": seed.id, "a_value": "Jordan Marlow", "b_value": "J. Marlow", "via_value": "jmarlow.wav", "via_type": "username"}),
+        ),
+    ];
+    w.review.loaded = true;
+    // timeline
+    let te = |t: &str, e: &EntitySummary, attr: &str, module: &str| spektr_engine::TimelineEvent {
+        at: format!("2026-{t}:00Z").parse().unwrap(),
+        entity: e.clone(),
+        attr: attr.into(),
+        value: String::new(),
+        observation: ids.obs(),
+        module: module.into(),
+    };
+    w.timeline.events = Some(vec![
+        te("03-01T10:00", &gh, "joined", "github"),
+        te("08-14T21:40", &bsky, "last_post", "bluesky"),
+        te("09-27T19:05", &photo, "taken_at", "exif"),
+        te("10-16T09:12", &gh, "last_active", "github"),
+    ]);
+    // path
+    w.path_tab.from = Some(seed.clone());
+    w.path_tab.target = Some(email.clone());
+    w.path_tab.view = Some(Some(spektr_engine::PathView {
+        steps: vec![
+            spektr_engine::PathStep {
+                entity: seed.clone(),
+                via: None,
+            },
+            spektr_engine::PathStep {
+                entity: gh.clone(),
+                via: Some((
+                    ids.edge(),
+                    Predicate::Core(CorePredicate::HasAccount),
+                    Direction::Out,
+                    Some(Strength::Confirmed),
+                )),
+            },
+            spektr_engine::PathStep {
+                entity: email.clone(),
+                via: Some((
+                    ids.edge(),
+                    Predicate::Core(CorePredicate::HasEmail),
+                    Direction::Out,
+                    Some(Strength::Corroborated),
+                )),
+            },
+        ],
+    }));
+    // the avatar edge
+    let ev = ObservationView {
+        id: ids.obs(),
+        module: "avatar_phash".into(),
+        module_version: "0.1.0".into(),
+        kind: "correlator".into(),
+        source_url: None,
+        content_type: None,
+        blob: None,
+        created_at: at("18:07:00"),
+    };
+    w.edge = Some(spektr_engine::EdgeDetail {
+        edge: ids.edge(),
+        a: gh.clone(),
+        b: bsky.clone(),
+        predicate: "shares_artifact".into(),
+        artifact: Some(ArtifactKind::AvatarPhash),
+        value: Some("00ff~00fe".into()),
+        distance: Some(3),
+        a_image: Some(a1.key.trim_start_matches("sha256:").into()),
+        b_image: Some(a2.key.trim_start_matches("sha256:").into()),
+        strength: Some(Strength::Single),
+        state: "active".into(),
+        confirmed_at: None,
+        evidence: vec![ev],
+        a_sources: Vec::new(),
+        b_sources: Vec::new(),
+    });
 }

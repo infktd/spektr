@@ -185,6 +185,8 @@ pub enum Query {
     Raw(ObservationId),
     /// Blob bytes by SHA-256 hex (image previews).
     Blob(String),
+    /// One edge, for the inspector's comparison view.
+    Edge(EdgeId),
 }
 
 /// The inspector's view of one entity.
@@ -198,6 +200,11 @@ pub struct EntityDetail {
     pub notes: Vec<NoteView>,
     /// Open checklist items for the entity.
     pub checklist: Vec<crate::workflow::ItemView>,
+    /// Launchers for the entity ("Open in browser ▸").
+    pub launchers: Vec<crate::workflow::LauncherView>,
+    /// The image to preview (TUI_SPEC §9): an image's own bytes, an
+    /// account's avatar, or the image that depicts a person. SHA-256 hex.
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -297,6 +304,8 @@ pub struct CaseStatus {
     pub audit_rows: u64,
     pub findings: u64,
     pub review_pending: u64,
+    /// Open checklist items (top bar: `checklist N open`).
+    pub checklist_open: u64,
     pub jobs: BTreeMap<String, u64>,
 }
 
@@ -339,6 +348,7 @@ pub enum QueryResult {
     Launchers(Vec<crate::workflow::LauncherView>),
     Raw(Option<Box<crate::evidence::RawView>>),
     Blob(Option<Vec<u8>>),
+    Edge(Option<Box<EdgeDetail>>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -387,6 +397,62 @@ impl From<ReviewItemRow> for ReviewView {
             payload: r.payload,
         }
     }
+}
+
+/// The blob an entity's preview shows: an image's own, or the avatar an
+/// account `posted` (role = avatar).
+fn preview_image(
+    r: &spektr_store::Reader<'_>,
+    root: EntityId,
+    e: &EntityRow,
+) -> spektr_store::StoreResult<Option<String>> {
+    if e.ty.is(spektr_model::CoreType::Image) {
+        return Ok(e.key.strip_prefix("sha256:").map(str::to_string));
+    }
+    let (pred, outbound) = match e.ty.core() {
+        Some(spektr_model::CoreType::Account) => ("posted", true),
+        Some(spektr_model::CoreType::Person) => ("depicts", false),
+        _ => return Ok(None),
+    };
+    let members = r.members(root)?;
+    for edge in r.edges_touching(&members)? {
+        if edge.state != spektr_store::EdgeState::Active || edge.predicate.as_str() != pred {
+            continue;
+        }
+        let other = if outbound { edge.dst } else { edge.src };
+        if members.contains(&other) {
+            continue;
+        }
+        if let Some(img) = r.entity(r.resolve(other)?)?
+            && img.ty.is(spektr_model::CoreType::Image)
+        {
+            return Ok(img.key.strip_prefix("sha256:").map(str::to_string));
+        }
+    }
+    Ok(None)
+}
+
+/// A correlation edge, for the inspector's comparison (TUI_SPEC §4.4).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct EdgeDetail {
+    pub edge: EdgeId,
+    pub a: EntitySummary,
+    pub b: EntitySummary,
+    pub predicate: String,
+    /// For `shares_artifact`: the artifact kind and shared value.
+    pub artifact: Option<spektr_model::ArtifactKind>,
+    pub value: Option<String>,
+    /// For `avatar_phash`: the dHash distance (of 64 bits).
+    pub distance: Option<u32>,
+    pub a_image: Option<String>,
+    pub b_image: Option<String>,
+    pub strength: Option<spektr_model::Strength>,
+    pub state: String,
+    pub confirmed_at: Option<jiff::Timestamp>,
+    pub evidence: Vec<ObservationView>,
+    /// Each side's own observations (the shared value's sources).
+    pub a_sources: Vec<ObservationView>,
+    pub b_sources: Vec<ObservationView>,
 }
 
 #[derive(Clone)]
@@ -765,6 +831,8 @@ impl EngineHandle {
                                     .map(Into::into)
                                     .collect(),
                                 checklist: Vec::new(),
+                                launchers: Vec::new(),
+                                image: preview_image(r, root, &e)?,
                                 entity: e.into(),
                             })))
                         })
@@ -774,6 +842,7 @@ impl EngineHandle {
                     d.checklist =
                         crate::workflow::checklist(&self.shared, Some(ItemState::Open), Some(id))
                             .await?;
+                    d.launchers = crate::workflow::launchers_for(&self.shared, id).await?;
                 }
                 res
             }
@@ -852,6 +921,63 @@ impl EngineHandle {
             Query::Raw(id) => {
                 QueryResult::Raw(crate::evidence::raw(&self.shared, id).await?.map(Box::new))
             }
+            Query::Edge(id) => QueryResult::Edge(
+                store
+                    .read(move |r| {
+                        let Some(edge) = r.edge(id)? else {
+                            return Ok(None);
+                        };
+                        let (a, b) = (r.resolve(edge.src)?, r.resolve(edge.dst)?);
+                        let (Some(ae), Some(be)) = (r.entity(a)?, r.entity(b)?) else {
+                            return Ok(None);
+                        };
+                        let ev = r.evidence(id)?;
+                        let mut evidence = Vec::new();
+                        let mut distance = None;
+                        for e in &ev {
+                            if let Some(o) = r.observation(e.observation)? {
+                                if distance.is_none() {
+                                    distance = o.summary["detail"]["distance"]
+                                        .as_u64()
+                                        .and_then(|d| u32::try_from(d).ok());
+                                }
+                                evidence.push(o.into());
+                            }
+                        }
+                        let sources = |id| -> spektr_store::StoreResult<Vec<ObservationView>> {
+                            Ok(r.entity_observations(id)?
+                                .into_iter()
+                                .take(6)
+                                .map(Into::into)
+                                .collect())
+                        };
+                        let artifact =
+                            spektr_model::ArtifactKind::parse_discriminator(&edge.discriminator);
+                        let strength = {
+                            let keys: std::collections::BTreeSet<&str> =
+                                ev.iter().map(|e| e.source_key.as_str()).collect();
+                            spektr_model::Strength::compute(keys.len(), edge.confirmed_at.is_some())
+                        };
+                        Ok(Some(Box::new(EdgeDetail {
+                            edge: id,
+                            a_image: preview_image(r, a, &ae)?,
+                            b_image: preview_image(r, b, &be)?,
+                            a: ae.summary(),
+                            b: be.summary(),
+                            predicate: edge.predicate.as_str().to_string(),
+                            artifact: artifact.map(|x| x.0),
+                            value: artifact.map(|x| x.1.to_string()),
+                            distance,
+                            strength,
+                            state: edge.state.to_string(),
+                            confirmed_at: edge.confirmed_at,
+                            evidence,
+                            a_sources: sources(a)?,
+                            b_sources: sources(b)?,
+                        })))
+                    })
+                    .await?,
+            ),
             Query::Blob(hex) => QueryResult::Blob(match spektr_store::Sha256::from_hex(&hex) {
                 Some(sha) => store.read(move |r| r.blob(sha)).await?,
                 None => None,
@@ -885,6 +1011,7 @@ impl EngineHandle {
                     r.audit_count()?,
                     r.findings()?.len() as u64,
                     r.review_items(Some(ReviewState::Pending))?.len() as u64,
+                    r.checklist_items(None, Some(ItemState::Open))?.len() as u64,
                     jobs,
                 ))
             })
@@ -904,7 +1031,8 @@ impl EngineHandle {
             audit_rows: counts.4,
             findings: counts.5,
             review_pending: counts.6,
-            jobs: counts.7,
+            checklist_open: counts.7,
+            jobs: counts.8,
         })
     }
 

@@ -4032,6 +4032,7 @@ dependencies = [
  "ratatui",
  "ratatui-image",
  "ratatui-textarea",
+ "serde_json",
  "spektr-engine",
  "spektr-model",
  "tokio",

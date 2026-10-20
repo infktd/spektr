@@ -6,8 +6,11 @@ use std::path::PathBuf;
 
 use jiff::Timestamp;
 use ratatui::layout::Rect;
-use spektr_engine::{CaseStatus, EgoParams, EgoView, EntityDetail, EntitySummary, ModuleInfo};
-use spektr_model::{EdgeId, EntityId, EntityType};
+use spektr_engine::{
+    CaseStatus, EdgeDetail, EgoParams, EgoView, EntityDetail, EntitySummary, ItemView, ModuleInfo,
+    PathView, PlaybookInfo, ReviewView, RunView, TimelineEvent,
+};
+use spektr_model::{ChecklistItemId, EdgeId, EntityId, EntityType, ReviewItemId};
 
 use crate::ego::{Col, Item};
 use crate::glyph::{GlyphSet, Marker};
@@ -89,6 +92,228 @@ pub enum Hit {
     DialogItem(usize),
     /// Inside an overlay but on nothing actionable: absorbs the click.
     Overlay,
+    /// Checklist screen: a run row, an item row, a filter tab.
+    RunRow(usize),
+    ItemRow(usize),
+    ItemFilterTab(ItemFilter),
+    /// Review screen: a queue row, a filter tab.
+    ReviewRow(usize),
+    ReviewFilterTab(ReviewFilter),
+    /// Timeline tab row.
+    TimeRow(usize),
+}
+
+/// What fills the workspace: the panes, or a full screen (TUI_SPEC §5).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum View {
+    #[default]
+    Main,
+    Checklist,
+    Review,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ItemFilter {
+    #[default]
+    Open,
+    Done,
+    All,
+}
+
+impl ItemFilter {
+    pub const ALL: [ItemFilter; 3] = [ItemFilter::Open, ItemFilter::Done, ItemFilter::All];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            ItemFilter::Open => "open",
+            ItemFilter::Done => "done",
+            ItemFilter::All => "all",
+        }
+    }
+
+    pub fn accepts(self, state: &str) -> bool {
+        match self {
+            ItemFilter::Open => state == "open",
+            ItemFilter::Done => state != "open",
+            ItemFilter::All => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ChecklistPane {
+    #[default]
+    Runs,
+    Items,
+}
+
+/// The Checklist screen (artboard 10).
+#[derive(Debug, Clone, Default)]
+pub struct ChecklistScreen {
+    /// Runs in display order: each top-level run, then its nested runs.
+    pub runs: Vec<RunView>,
+    pub playbooks: Vec<PlaybookInfo>,
+    /// Every item; the filter applies when listing.
+    pub items: Vec<ItemView>,
+    pub filter: ItemFilter,
+    pub pane: ChecklistPane,
+    pub run_sel: usize,
+    /// Index into the filtered items.
+    pub item_sel: usize,
+    /// Jump to this item once the items arrive (from the inspector).
+    pub want_item: Option<ChecklistItemId>,
+    pub loaded: bool,
+}
+
+impl ChecklistScreen {
+    /// Top-level runs first (newest first), each followed by its children.
+    pub fn order(mut runs: Vec<RunView>) -> Vec<RunView> {
+        runs.sort_by_key(|r| std::cmp::Reverse(r.started_at));
+        let mut out = Vec::new();
+        for top in runs.iter().filter(|r| r.parent.is_none()) {
+            out.push(top.clone());
+            let mut kids: Vec<_> = runs
+                .iter()
+                .filter(|r| r.parent == Some(top.id))
+                .cloned()
+                .collect();
+            kids.sort_by_key(|r| r.started_at);
+            out.extend(kids);
+        }
+        out
+    }
+
+    pub fn visible(&self) -> Vec<&ItemView> {
+        self.items
+            .iter()
+            .filter(|i| self.filter.accepts(&i.state))
+            .collect()
+    }
+
+    pub fn selected_item(&self) -> Option<&ItemView> {
+        self.visible().get(self.item_sel).copied()
+    }
+
+    pub fn selected_run(&self) -> Option<&RunView> {
+        self.runs.get(self.run_sel)
+    }
+
+    pub fn open_count(&self) -> usize {
+        self.items.iter().filter(|i| i.state == "open").count()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ReviewFilter {
+    #[default]
+    Pending,
+    Accepted,
+    Rejected,
+    Later,
+}
+
+impl ReviewFilter {
+    pub const ALL: [ReviewFilter; 4] = [
+        ReviewFilter::Pending,
+        ReviewFilter::Accepted,
+        ReviewFilter::Rejected,
+        ReviewFilter::Later,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            ReviewFilter::Pending => "pending",
+            ReviewFilter::Accepted => "accepted",
+            ReviewFilter::Rejected => "rejected",
+            ReviewFilter::Later => "later",
+        }
+    }
+}
+
+/// The Review screen (artboard 05's layout).
+#[derive(Debug, Clone, Default)]
+pub struct ReviewScreen {
+    pub items: Vec<ReviewView>,
+    pub filter: ReviewFilter,
+    pub sel: usize,
+    /// Side-by-side details for a `same_person` item: `(a, b)`.
+    pub compare: Option<(ReviewItemId, Option<EntityDetail>, Option<EntityDetail>)>,
+    pub loaded: bool,
+    /// Open the queue on this entity's items only (`u`).
+    pub only: Option<EntityId>,
+}
+
+impl ReviewScreen {
+    pub fn visible(&self) -> Vec<&ReviewView> {
+        self.items
+            .iter()
+            .filter(|i| i.state == self.filter.label())
+            .filter(|i| match self.only {
+                Some(e) => {
+                    let id = serde_json_id(&i.payload["input"]);
+                    id == Some(e)
+                        || serde_json_id(&i.payload["a"]) == Some(e)
+                        || serde_json_id(&i.payload["b"]) == Some(e)
+                }
+                None => true,
+            })
+            .collect()
+    }
+
+    pub fn selected(&self) -> Option<&ReviewView> {
+        self.visible().get(self.sel).copied()
+    }
+
+    pub fn count(&self, f: ReviewFilter) -> usize {
+        self.items.iter().filter(|i| i.state == f.label()).count()
+    }
+}
+
+/// An entity id stored in a JSON payload.
+pub fn serde_json_id(v: &serde_json::Value) -> Option<EntityId> {
+    v.as_str().and_then(|s| s.parse().ok())
+}
+
+/// The timeline tab.
+#[derive(Debug, Clone, Default)]
+pub struct TimelineState {
+    pub events: Option<Vec<TimelineEvent>>,
+    pub cursor: usize,
+    /// `e` cycles through the event kinds (attribute names).
+    pub kind: Option<String>,
+}
+
+impl TimelineState {
+    pub fn kinds(&self) -> Vec<String> {
+        let mut k: Vec<String> = self
+            .events
+            .iter()
+            .flatten()
+            .map(|e| e.attr.clone())
+            .collect();
+        k.sort();
+        k.dedup();
+        k
+    }
+
+    pub fn visible(&self) -> Vec<&TimelineEvent> {
+        self.events
+            .iter()
+            .flatten()
+            .filter(|e| self.kind.as_ref().is_none_or(|k| &e.attr == k))
+            .collect()
+    }
+}
+
+/// The path tab: from the focus to `target`.
+#[derive(Debug, Clone, Default)]
+pub struct PathState {
+    pub from: Option<EntitySummary>,
+    pub target: Option<EntitySummary>,
+    /// `Some(None)`: no path within the hop limit.
+    pub view: Option<Option<PathView>>,
+    /// Index into the path's steps.
+    pub cursor: usize,
 }
 
 pub struct AppState {
@@ -118,6 +343,8 @@ pub struct AppState {
     pub warnings: Vec<String>,
     /// A verify the user asked for: its result is shown as a toast.
     pub verify_requested: Option<PathBuf>,
+    /// Encoded image previews (TUI_SPEC §9).
+    pub images: crate::images::Images,
 }
 
 pub enum Screen {
@@ -178,11 +405,13 @@ pub struct Stale {
     pub entities: bool,
     pub ego: bool,
     pub detail: bool,
+    /// The open screen (Checklist, Review) or tab (timeline, path).
+    pub screen: bool,
 }
 
 impl Stale {
     pub fn any(&self) -> bool {
-        self.status || self.entities || self.ego || self.detail
+        self.status || self.entities || self.ego || self.detail || self.screen
     }
 
     pub fn all() -> Self {
@@ -191,6 +420,7 @@ impl Stale {
             entities: true,
             ego: true,
             detail: true,
+            screen: true,
         }
     }
 }
@@ -222,8 +452,17 @@ pub struct Workspace {
     /// The entity the inspector shows (follows the cursor).
     pub inspect: Option<EntityId>,
     pub detail: Option<EntityDetail>,
+    /// The correlated edge under the cursor, compared in the inspector.
+    pub inspect_edge: Option<EdgeId>,
+    pub edge: Option<EdgeDetail>,
     pub insp_cursor: usize,
     pub insp_overlay: bool,
+
+    pub view: View,
+    pub checklist: ChecklistScreen,
+    pub review: ReviewScreen,
+    pub timeline: TimelineState,
+    pub path_tab: PathState,
 
     pub activity: VecDeque<ActRow>,
     pub act_scroll: usize,
@@ -237,6 +476,8 @@ pub struct Workspace {
     pub failed: u64,
     /// `playbook person-from-username · step 4/6` while a run is going.
     pub playbook_line: Option<String>,
+    /// The running top-level playbook run; its end clears the line.
+    pub top_run: Option<spektr_model::PlaybookRunId>,
 
     pub pane: Pane,
     pub tab: Tab,
@@ -268,8 +509,15 @@ impl Workspace {
             ego_idx: 0,
             inspect: None,
             detail: None,
+            inspect_edge: None,
+            edge: None,
             insp_cursor: 0,
             insp_overlay: false,
+            view: View::Main,
+            checklist: ChecklistScreen::default(),
+            review: ReviewScreen::default(),
+            timeline: TimelineState::default(),
+            path_tab: PathState::default(),
             activity: VecDeque::new(),
             act_scroll: 0,
             past_jobs: None,
@@ -279,6 +527,7 @@ impl Workspace {
             done: 0,
             failed: 0,
             playbook_line: None,
+            top_run: None,
             pane: Pane::Graph,
             tab: Tab::Ego,
             fresh: BTreeSet::new(),
@@ -315,9 +564,26 @@ impl Workspace {
         crate::ego::row(ego, self.ego_item()?).map(|(_, r)| &r.entity)
     }
 
+    /// The entity under the timeline cursor.
+    pub fn timeline_entity(&self) -> Option<&EntitySummary> {
+        self.timeline
+            .visible()
+            .get(self.timeline.cursor)
+            .map(|e| &e.entity)
+    }
+
     /// The entity actions apply to: the cursor in the focused pane.
     pub fn cursor_entity(&self) -> Option<&EntitySummary> {
         match self.pane {
+            Pane::Graph if self.tab == Tab::Timeline => self.timeline_entity(),
+            Pane::Graph if self.tab == Tab::Path => self
+                .path_tab
+                .view
+                .as_ref()
+                .and_then(|v| v.as_ref())
+                .and_then(|v| v.steps.get(self.path_tab.cursor))
+                .map(|s| &s.entity)
+                .or(self.path_tab.target.as_ref()),
             Pane::Entities => self.ent_cursor_entity(),
             Pane::Graph => self.ego_cursor_entity(),
             Pane::Inspector => self
@@ -329,11 +595,26 @@ impl Workspace {
 
     /// The edge under the cursor (graph rows only).
     pub fn cursor_edge(&self) -> Option<EdgeId> {
-        if self.pane != Pane::Graph || self.ego_col == Col::Card {
+        if self.pane != Pane::Graph || self.tab != Tab::Ego || self.ego_col == Col::Card {
             return None;
         }
         let ego = self.ego.as_ref()?;
         crate::ego::row(ego, self.ego_item()?).and_then(|(_, r)| r.edges.first().copied())
+    }
+
+    /// The correlated edge under the cursor (a `≈` group row), which the
+    /// inspector compares (TUI_SPEC §4.4).
+    pub fn cursor_correlation(&self) -> Option<EdgeId> {
+        if self.pane != Pane::Graph || self.tab != Tab::Ego || self.ego_col == Col::Card {
+            return None;
+        }
+        let ego = self.ego.as_ref()?;
+        let (g, r) = crate::ego::row(ego, self.ego_item()?)?;
+        if g.key.is_correlated() {
+            r.edges.first().copied()
+        } else {
+            None
+        }
     }
 
     pub fn profile(&self) -> &str {
@@ -398,6 +679,12 @@ pub enum MenuAct {
     Key(crate::keymap::Action),
     RunModule(String),
     RunAll,
+    RunPlaybook(String),
+    /// A launcher, optionally for a checklist item.
+    Launch {
+        launcher: String,
+        item: Option<ChecklistItemId>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -475,7 +762,26 @@ pub enum Purpose {
     Note(EntityId),
     Quit,
     RejectEdge(EdgeId),
-    Merge { into: EntityId },
+    Merge {
+        into: EntityId,
+    },
+    /// Checklist: done with an optional note, skip with a reason, a note.
+    ItemDone(ChecklistItemId),
+    ItemSkip(ChecklistItemId),
+    ItemNote(ChecklistItemId),
+    StopRun,
+    /// Review: accept a same-person item by merging `b` into `a`.
+    ReviewMerge {
+        id: ReviewItemId,
+        a: EntityId,
+        b: EntityId,
+    },
+    /// `:path` picker.
+    PathTo,
+    /// `:capture` / `c` with a URL to confirm or type.
+    Capture(Option<EntityId>),
+    /// `:attach` / `a`: a local path.
+    Attach(Option<EntityId>),
 }
 
 #[derive(Debug, Clone)]
@@ -545,6 +851,7 @@ impl AppState {
             profiles: Vec::new(),
             warnings,
             verify_requested: None,
+            images: crate::images::Images::default(),
         }
     }
 
@@ -569,10 +876,15 @@ impl AppState {
             Some(Overlay::Dialog(d)) if d.has_text_focus() => return Mode::Command,
             _ => {}
         }
-        if let Some(w) = self.workspace()
-            && w.filter.as_ref().is_some_and(|f| f.editing)
-        {
-            return Mode::Filter;
+        if let Some(w) = self.workspace() {
+            if w.filter.as_ref().is_some_and(|f| f.editing) {
+                return Mode::Filter;
+            }
+            match w.view {
+                View::Checklist => return Mode::Checklist,
+                View::Review => return Mode::Review,
+                View::Main => {}
+            }
         }
         Mode::Normal
     }
@@ -600,13 +912,17 @@ impl AppState {
             }
             None => match &self.screen {
                 Screen::Launcher(_) | Screen::Opening(_) => c.extend([Ctx::Launcher, Ctx::Nav]),
-                Screen::Workspace(w) => {
-                    if w.filter.as_ref().is_some_and(|f| f.editing) {
-                        c.extend([Ctx::Text, Ctx::Filter]);
-                    } else {
-                        c.extend([Ctx::Nav, Ctx::Entity]);
+                Screen::Workspace(w) => match w.view {
+                    View::Checklist => c.extend([Ctx::Checklist, Ctx::Nav]),
+                    View::Review => c.extend([Ctx::Review, Ctx::Nav]),
+                    View::Main => {
+                        if w.filter.as_ref().is_some_and(|f| f.editing) {
+                            c.extend([Ctx::Text, Ctx::Filter]);
+                        } else {
+                            c.extend([Ctx::Nav, Ctx::Entity]);
+                        }
                     }
-                }
+                },
             },
         }
         c.push(Ctx::Global);
