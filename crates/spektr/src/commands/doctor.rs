@@ -9,17 +9,17 @@ use crate::wiring::Ctx;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
-enum Level {
+pub enum Level {
     Ok,
     Warn,
     Fail,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-struct Check {
-    name: String,
-    level: Level,
-    detail: String,
+pub struct Check {
+    pub name: String,
+    pub level: Level,
+    pub detail: String,
 }
 
 fn check(name: &str, level: Level, detail: impl Into<String>) -> Check {
@@ -42,6 +42,27 @@ fn tilde(p: &std::path::Path) -> String {
 }
 
 pub fn run(ctx: &Ctx, a: DoctorArgs) -> Result<()> {
+    let out = checks(ctx);
+    if a.json {
+        for c in &out {
+            println!("{}", json!(c));
+        }
+    } else {
+        println!("Doctor");
+        for c in &out {
+            let g = match c.level {
+                Level::Ok => "✓",
+                Level::Warn => "!",
+                Level::Fail => "✕",
+            };
+            println!("{g} {:<12} {}", c.name, c.detail);
+        }
+    }
+    Ok(())
+}
+
+/// Every check, in display order.
+pub fn checks(ctx: &Ctx) -> Vec<Check> {
     let mut out = Vec::new();
     let cfg = ctx.paths.config_file();
     out.push(if cfg.exists() {
@@ -232,20 +253,5 @@ pub fn run(ctx: &Ctx, a: DoctorArgs) -> Result<()> {
         });
     }
 
-    if a.json {
-        for c in &out {
-            println!("{}", json!(c));
-        }
-    } else {
-        println!("Doctor");
-        for c in &out {
-            let g = match c.level {
-                Level::Ok => "✓",
-                Level::Warn => "!",
-                Level::Fail => "✕",
-            };
-            println!("{g} {:<12} {}", c.name, c.detail);
-        }
-    }
-    Ok(())
+    out
 }

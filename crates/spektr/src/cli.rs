@@ -14,6 +14,8 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Open the TUI on a case.
+    Open(OpenArgs),
     /// Create <name>.spektr.
     New(NewArgs),
     /// Seed and expand, run to quiescence, print a summary.
@@ -26,6 +28,11 @@ pub enum Command {
     Verify(VerifyArgs),
     /// Check config, secrets, binaries, terminal and DNS.
     Doctor(DoctorArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct OpenArgs {
+    pub case: PathBuf,
 }
 
 #[derive(Debug, Args)]
