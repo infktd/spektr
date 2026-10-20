@@ -20,9 +20,10 @@ use crate::msg::{Effect, Msg, Tag};
 use crate::palette::{self, Cmd, NOT_YET};
 use crate::state::{
     ACTIVITY_CAP, ActRow, AppState, Dialog, EntItem, Field, FilterState, Help, Hit, Menu, MenuAct,
-    Overlay, Palette, Pane, Purpose, Screen, Stale, Tab, Workspace,
+    Overlay, Palette, Pane, Purpose, Screen, Stale, Tab, View, Workspace,
 };
 use crate::theme::Token;
+use crate::{screens, tabs};
 
 /// Double-click window (TUI_SPEC §8).
 const DOUBLE_CLICK_MS: u64 = 400;
@@ -127,6 +128,7 @@ fn handle(s: &mut AppState, msg: Msg) -> Vec<Effect> {
                 Effect::Verify(path),
                 Effect::Query(Tag::Status, Query::Status),
                 Effect::Query(Tag::Modules, Query::Modules),
+                Effect::Query(Tag::Playbooks, Query::Playbooks),
                 Effect::Query(Tag::Entities, Query::Entities),
                 Effect::Query(
                     Tag::Jobs,
@@ -161,6 +163,29 @@ fn handle(s: &mut AppState, msg: Msg) -> Vec<Effect> {
         }
         Msg::Query(tag, r) => query_result(s, tag, r, &mut fx),
         Msg::Acted { what, result } => acted(s, &what, result, &mut fx),
+        Msg::WouldOpen(target) => {
+            let now = s.now;
+            if let Some(w) = s.workspace_mut() {
+                push_row(
+                    w,
+                    ActRow {
+                        at: now,
+                        marker: Marker::Link,
+                        token: Token::Accent,
+                        module: "open".into(),
+                        module_token: Token::Fg,
+                        spans: vec![(format!("would open {target}"), Token::FgMuted)],
+                    },
+                );
+            }
+        }
+        Msg::Image(key, r) => {
+            let slot = match r {
+                Ok(ready) => crate::images::Slot::Ready(ready),
+                Err(e) => crate::images::Slot::Failed(e),
+            };
+            s.images.insert(key, slot);
+        }
     }
     fx
 }
@@ -444,6 +469,14 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
         sync_inspect(w, fx);
         return;
     }
+    if w.view != View::Main {
+        if screens::act(s, a, fx) {
+            return;
+        }
+    } else if w.tab != Tab::Ego && tabs::act(w, a, fx) {
+        return;
+    }
+    let Some(w) = s.workspace_mut() else { return };
     let half = (layout::entity_rows(&layout::workspace(size.0, size.1)) / 2).max(1) as isize;
     match a {
         Action::Quit => return quit(s, fx),
@@ -462,12 +495,25 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
         }
         Action::NextPane => cycle_pane(w, &panes, true),
         Action::PrevPane => cycle_pane(w, &panes, false),
-        Action::TabEgo => w.tab = Tab::Ego,
-        Action::TabTimeline => w.tab = Tab::Timeline,
-        Action::TabPath => w.tab = Tab::Path,
-        Action::Findings | Action::Review | Action::Checklist => {
-            let name = a.name();
-            toast(s, &format!("{name}: {NOT_YET}"), Token::FgMuted);
+        Action::TabEgo => {
+            w.view = View::Main;
+            w.tab = Tab::Ego;
+            w.pane = Pane::Graph;
+        }
+        Action::TabTimeline => {
+            w.view = View::Main;
+            tabs::open_timeline(w, fx);
+        }
+        Action::TabPath => {
+            w.view = View::Main;
+            return tabs::open_path(s, fx);
+        }
+        Action::Findings => toast(s, &format!("findings: {NOT_YET}"), Token::FgMuted),
+        Action::Review => screens::open_review(w, None, fx),
+        Action::Checklist => screens::open_checklist(w, None, fx),
+        Action::ReviewUnsure => {
+            let only = w.cursor_entity().map(|e| e.id);
+            screens::open_review(w, only, fx);
         }
         Action::Escape => {
             if w.filter.is_some() {
@@ -493,8 +539,12 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
         Action::PrevPage | Action::NextPage => page(w, a == Action::NextPage, fx),
         Action::Activate => activate(w, fx),
         Action::Back => back(w, fx),
-        Action::Menu => open_menu(s, None, false),
-        Action::RunModule => open_menu(s, None, true),
+        Action::Menu => open_menu(s, None, None),
+        Action::RunModule => open_menu(s, None, Some(Action::RunModule)),
+        Action::RunPlaybook => open_menu(s, None, Some(Action::RunPlaybook)),
+        Action::Capture => open_capture(s),
+        Action::OpenEvidence => open_evidence(s, fx),
+        Action::EventFilter => toast(s, "e filters the timeline (2)", Token::FgMuted),
         Action::Copy => {
             if let Some(e) = w.cursor_entity() {
                 let v = e.value.clone();
@@ -555,14 +605,7 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
                 s.dirty = false;
             }
         }
-        Action::Unmerge
-        | Action::Capture
-        | Action::NewFinding
-        | Action::Attach
-        | Action::OpenEvidence
-        | Action::ReviewUnsure
-        | Action::RunPlaybook
-        | Action::EventFilter => {
+        Action::Unmerge | Action::NewFinding | Action::Attach => {
             let name = a.name();
             toast(s, &format!("{name}: {NOT_YET}"), Token::FgMuted);
         }
@@ -785,10 +828,19 @@ fn back(w: &mut Workspace, fx: &mut Vec<Effect>) {
     }
 }
 
-/// Keep the inspector on the cursor entity (TUI_SPEC §4.4).
-fn sync_inspect(w: &mut Workspace, fx: &mut Vec<Effect>) {
-    if w.pane == Pane::Inspector {
+/// Keep the inspector on the cursor entity (TUI_SPEC §4.4), comparing the
+/// edge when the cursor is on a correlated row.
+pub fn sync_inspect(w: &mut Workspace, fx: &mut Vec<Effect>) {
+    if w.pane == Pane::Inspector || w.view != View::Main {
         return;
+    }
+    let corr = w.cursor_correlation();
+    if corr != w.inspect_edge {
+        w.inspect_edge = corr;
+        w.edge = None;
+        if let Some(e) = corr {
+            fx.push(Effect::Query(Tag::Edge(e), Query::Edge(e)));
+        }
     }
     let Some(id) = w.cursor_entity().map(|e| e.id) else {
         return;
@@ -907,24 +959,109 @@ fn refilter_picks(s: &mut AppState) {
     let Some(Overlay::Dialog(d)) = &s.overlay else {
         return;
     };
-    let Purpose::Merge { into } = d.purpose else {
-        return;
-    };
-    let Some(target) = w.entity(into).cloned() else {
-        return;
-    };
     let q = d.fields.first().map(Field::value).unwrap_or_default();
-    let candidates: Vec<EntitySummary> = w
-        .entities
-        .iter()
-        .filter(|o| o.ty == target.ty && o.id != into)
-        .cloned()
-        .collect();
+    let candidates: Vec<EntitySummary> = match d.purpose {
+        Purpose::Merge { into } => {
+            let Some(target) = w.entity(into).cloned() else {
+                return;
+            };
+            w.entities
+                .iter()
+                .filter(|o| o.ty == target.ty && o.id != into)
+                .cloned()
+                .collect()
+        }
+        Purpose::PathTo => w
+            .entities
+            .iter()
+            .filter(|o| Some(o.id) != w.focus)
+            .cloned()
+            .collect(),
+        _ => return,
+    };
     let keep = entities::matching(&candidates, &q);
     let picks: Vec<EntitySummary> = keep.into_iter().map(|i| candidates[i].clone()).collect();
     if let Some(Overlay::Dialog(d)) = &mut s.overlay {
         d.pick_sel = d.pick_sel.min(picks.len().saturating_sub(1));
         d.picks = picks;
+    }
+}
+
+/// The URL `c` captures for an entity: a url's own, an account's profile,
+/// an image's source.
+fn capture_url(w: &Workspace, e: &EntitySummary) -> Option<String> {
+    if e.ty.is(CoreType::Url) {
+        return Some(e.key.clone());
+    }
+    let d = w.detail.as_ref().filter(|d| d.entity.summary.id == e.id)?;
+    let attr = if e.ty.is(CoreType::Image) {
+        "source_url"
+    } else {
+        "profile_url"
+    };
+    d.entity
+        .attrs
+        .get(attr)?
+        .iter()
+        .find_map(|a| match &a.value {
+            spektr_model::AttrValue::Url(u) | spektr_model::AttrValue::Text(u) => Some(u.clone()),
+            _ => None,
+        })
+}
+
+/// `c`: confirm (or type) the URL to capture for the cursor entity.
+fn open_capture(s: &mut AppState) {
+    let glyphs = s.glyphs;
+    let Some(w) = s.workspace() else { return };
+    let target = w.cursor_entity().cloned();
+    let url = target.as_ref().and_then(|e| capture_url(w, e));
+    let mut d = Dialog::input(
+        "Capture",
+        vec![Field::Text {
+            label: "url".into(),
+            value: url.unwrap_or_default(),
+            hint: "HTML, headers and a screenshot".into(),
+        }],
+        Purpose::Capture(target.as_ref().map(|e| e.id)),
+    );
+    if let Some(e) = &target {
+        d.body = vec![format!(
+            "Saved as evidence for {} {}.",
+            glyphs.entity(&e.ty),
+            display_value(e, glyphs)
+        )];
+    }
+    s.overlay = Some(Overlay::Dialog(d));
+}
+
+/// `o`: the selected evidence (inspector), else the entity's newest: a raw
+/// response in the pager, a capture's screenshot or an image in the viewer.
+fn open_evidence(s: &mut AppState, fx: &mut Vec<Effect>) {
+    let Some(w) = s.workspace() else { return };
+    let Some(e) = w.cursor_entity().cloned() else {
+        return toast(s, "no entity under the cursor", Token::FgMuted);
+    };
+    let Some(d) = w.detail.as_ref().filter(|d| d.entity.summary.id == e.id) else {
+        return toast(s, "loading…", Token::FgMuted);
+    };
+    if w.pane != Pane::Inspector
+        && let Some(sha) = e.key.strip_prefix("sha256:")
+    {
+        fx.push(Effect::OpenBlob {
+            sha: sha.to_string(),
+            name: e.value.clone(),
+            reveal: false,
+        });
+        return;
+    }
+    let obs = if w.pane == Pane::Inspector {
+        d.observations.get(w.insp_cursor)
+    } else {
+        d.observations.iter().max_by_key(|o| o.created_at)
+    };
+    match obs {
+        Some(o) => fx.push(Effect::OpenEvidence(o.id)),
+        None => toast(s, "no evidence", Token::FgMuted),
     }
 }
 
@@ -1104,14 +1241,66 @@ fn run_cmd(s: &mut AppState, cmd: Cmd, target: Option<&EntitySummary>, fx: &mut 
         }
         Cmd::Glyphs(g) => s.glyphs = g,
         Cmd::Help => s.overlay = Some(Overlay::Help(Help::default())),
+        Cmd::Path(r) => fx.push(Effect::Query(Tag::FindPath, Query::Find(r))),
+        Cmd::Capture(None) => open_capture(s),
+        Cmd::Capture(Some(url)) => fx.push(Effect::Act {
+            what: "capture".into(),
+            action: EngineAction::Capture {
+                entity: target.map(|t| t.id),
+                url,
+                screenshot: true,
+            },
+        }),
+        Cmd::Attach(path) => fx.push(Effect::AttachFile {
+            path: expand_home(&path, s.settings.home.as_deref()),
+            entity: target.map(|t| t.id),
+        }),
+        Cmd::Open(launcher) => {
+            if let Some(id) = need_target(s) {
+                fx.push(Effect::Act {
+                    what: launcher.clone(),
+                    action: EngineAction::OpenLauncher {
+                        launcher,
+                        entity: id,
+                        item: None,
+                    },
+                });
+            }
+        }
+        Cmd::Playbook(name) => {
+            if let Some(id) = need_target(s) {
+                fx.push(Effect::Act {
+                    what: format!("playbook {name}"),
+                    action: EngineAction::StartPlaybook { name, entity: id },
+                });
+            }
+        }
+        Cmd::PlaybookStop => fx.push(Effect::Act {
+            what: "playbook stop".into(),
+            action: EngineAction::StopPlaybook,
+        }),
+        Cmd::Checklist => {
+            if let Some(w) = s.workspace_mut() {
+                screens::open_checklist(w, None, fx);
+            }
+        }
+        Cmd::Reload => fx.push(Effect::Act {
+            what: "reload".into(),
+            action: EngineAction::Reload,
+        }),
+        Cmd::Images(m) => {
+            fx.push(Effect::SetImages(m));
+            toast(s, &format!("images {}", m.as_str()), Token::FgMuted);
+        }
     }
 }
 
 // ---- context menu
 
-/// Open the context menu on the cursor entity; `run` opens `Run module ▸`
-/// straight away. `at` is the click cell for a right-click.
-pub fn open_menu(s: &mut AppState, at: Option<(u16, u16)>, run: bool) {
+/// Open the context menu on the cursor entity; `sub` opens that item's
+/// submenu (`Run module ▸`, `Run playbook ▸`) straight away. `at` is the
+/// click cell for a right-click.
+pub fn open_menu(s: &mut AppState, at: Option<(u16, u16)>, sub: Option<Action>) {
     let glyphs = s.glyphs;
     let size = s.size;
     let Some(w) = s.workspace() else { return };
@@ -1134,7 +1323,21 @@ pub fn open_menu(s: &mut AppState, at: Option<(u16, u16)>, run: bool) {
         ),
         None => target.ty.as_str().to_string(),
     };
-    let items = menu::build(&s.keymap, &target, edge, w.focus == Some(target.id));
+    let detail = w
+        .detail
+        .as_ref()
+        .filter(|d| d.entity.summary.id == target.id);
+    let items = menu::build(
+        &s.keymap,
+        &target,
+        &menu::Info {
+            edge,
+            is_focus: w.focus == Some(target.id),
+            launchers: detail.map(|d| d.launchers.as_slice()),
+            playbooks: &w.checklist.playbooks,
+            observations: obs.unwrap_or(0),
+        },
+    );
     let anchor = at.unwrap_or_else(|| row_anchor(w, &s.hits, size));
     let mut m = Menu {
         anchor,
@@ -1145,9 +1348,18 @@ pub fn open_menu(s: &mut AppState, at: Option<(u16, u16)>, run: bool) {
         sel: 0,
         sub: None,
     };
-    if run {
-        m.sel = m.items.iter().position(|i| i.submenu).unwrap_or(0);
-        open_sub(w, &s.keymap, &mut m);
+    if let Some(a) = sub {
+        match m.items.iter().position(|i| i.act == MenuAct::Key(a)) {
+            Some(i) if m.items[i].submenu => {
+                m.sel = i;
+                open_sub(w, &s.keymap, &mut m);
+            }
+            Some(i) => {
+                let why = m.items[i].disabled.clone().unwrap_or_default();
+                return toast(s, &why, Token::FgMuted);
+            }
+            None => {}
+        }
     }
     s.overlay = Some(Overlay::Menu(m));
 }
@@ -1193,7 +1405,19 @@ fn open_sub(w: &Workspace, km: &crate::keymap::Keymap, m: &mut Menu) {
             .copied()
             .map(hhmm)
     };
-    m.sub = Some(menu::run_submenu(km, &target, &w.modules, &last_run));
+    let launchers = w
+        .detail
+        .as_ref()
+        .filter(|d| d.entity.summary.id == target.id)
+        .map(|d| d.launchers.clone())
+        .unwrap_or_default();
+    m.sub = Some(match m.items.get(m.sel).map(|i| &i.act) {
+        Some(MenuAct::Key(Action::RunPlaybook)) => {
+            menu::playbook_submenu(&target, &w.checklist.playbooks, w.profile())
+        }
+        Some(MenuAct::Key(Action::OpenUrl)) => menu::launcher_submenu(km, &target, &launchers),
+        _ => menu::run_submenu(km, &target, &w.modules, &last_run),
+    });
 }
 
 fn menu_act(s: &mut AppState, mut m: Menu, a: Action, fx: &mut Vec<Effect>) {
@@ -1261,6 +1485,21 @@ fn run_menu_act(s: &mut AppState, m: &Menu, a: MenuAct, fx: &mut Vec<Effect>) {
             what: "run all eligible".into(),
             action: EngineAction::RunAll {
                 entity: m.target.id,
+            },
+        }),
+        MenuAct::RunPlaybook(name) => fx.push(Effect::Act {
+            what: format!("playbook {name}"),
+            action: EngineAction::StartPlaybook {
+                name,
+                entity: m.target.id,
+            },
+        }),
+        MenuAct::Launch { launcher, item } => fx.push(Effect::Act {
+            what: launcher.clone(),
+            action: EngineAction::OpenLauncher {
+                launcher,
+                entity: m.target.id,
+                item,
             },
         }),
         MenuAct::Key(Action::Activate) => {
@@ -1397,6 +1636,57 @@ fn dialog_ok(s: &mut AppState, mut d: Dialog, fx: &mut Vec<Effect>) {
             d.error = None;
             s.overlay = Some(Overlay::Dialog(d));
         }
+        p @ (Purpose::ItemDone(_)
+        | Purpose::ItemSkip(_)
+        | Purpose::ItemNote(_)
+        | Purpose::StopRun
+        | Purpose::ReviewMerge { .. }) => {
+            if matches!(p, Purpose::ItemSkip(_)) && val(0).is_empty() {
+                d.error = Some("give a reason".into());
+                s.overlay = Some(Overlay::Dialog(d));
+                return;
+            }
+            screens::dialog_ok(&p, val(0), fx);
+        }
+        Purpose::PathTo => {
+            let Some(to) = d.picks.get(d.pick_sel).cloned() else {
+                d.error = Some("no match".into());
+                s.overlay = Some(Overlay::Dialog(d));
+                return;
+            };
+            if let Some(w) = s.workspace_mut() {
+                tabs::path_to(w, to, fx);
+            }
+        }
+        Purpose::Capture(entity) => {
+            let url = val(0);
+            if url.is_empty() {
+                d.error = Some("enter a URL".into());
+                s.overlay = Some(Overlay::Dialog(d));
+                return;
+            }
+            toast(s, "capturing…", Token::FgMuted);
+            fx.push(Effect::Act {
+                what: "capture".into(),
+                action: EngineAction::Capture {
+                    entity,
+                    url,
+                    screenshot: true,
+                },
+            });
+        }
+        Purpose::Attach(entity) => {
+            let p = val(0);
+            if p.is_empty() {
+                d.error = Some("enter a path".into());
+                s.overlay = Some(Overlay::Dialog(d));
+                return;
+            }
+            fx.push(Effect::AttachFile {
+                path: expand_home(&p, s.settings.home.as_deref()),
+                entity,
+            });
+        }
         Purpose::Merge { into } => {
             let Some(other) = d.picks.get(d.pick_sel).cloned() else {
                 d.error = Some("nothing to merge with".into());
@@ -1468,7 +1758,7 @@ fn mouse(s: &mut AppState, m: MouseEvent, ms: u64, fx: &mut Vec<Effect>) {
             let Some(h) = hit else { return };
             if matches!(h, Hit::EntRow(_) | Hit::Ego(..) | Hit::Card) {
                 click(s, h, false, fx);
-                open_menu(s, Some((m.column, m.row)), false);
+                open_menu(s, Some((m.column, m.row)), None);
             }
         }
         MouseEventKind::ScrollDown | MouseEventKind::ScrollUp => {
@@ -1497,6 +1787,26 @@ fn wheel(s: &mut AppState, hit: Option<Hit>, d: isize, fx: &mut Vec<Effect>) {
         return;
     }
     let Some(w) = s.workspace_mut() else { return };
+    if w.view != View::Main {
+        if let Some(Hit::RunRow(_)) = hit {
+            w.checklist.pane = crate::state::ChecklistPane::Runs;
+        } else if let Some(Hit::ItemRow(_)) = hit {
+            w.checklist.pane = crate::state::ChecklistPane::Items;
+        }
+        let a = if d > 0 { Action::Down } else { Action::Up };
+        for _ in 0..d.unsigned_abs() {
+            screens::act(s, a, fx);
+        }
+        return;
+    }
+    if w.tab != Tab::Ego && matches!(hit, Some(Hit::TimeRow(_) | Hit::Pane(Pane::Graph))) {
+        w.pane = Pane::Graph;
+        let a = if d > 0 { Action::Down } else { Action::Up };
+        for _ in 0..d.unsigned_abs() {
+            tabs::act(w, a, fx);
+        }
+        return;
+    }
     let pane = match hit {
         Some(Hit::EntRow(_) | Hit::Pane(Pane::Entities)) => Some(Pane::Entities),
         Some(Hit::Ego(..) | Hit::Card | Hit::Crumb(_) | Hit::Pane(Pane::Graph)) => {
@@ -1609,7 +1919,51 @@ fn click(s: &mut AppState, h: Hit, double: bool, fx: &mut Vec<Effect>) {
             w.pane = Pane::Inspector;
             w.insp_cursor = i;
         }
-        Hit::Tab(t) => w.tab = t,
+        Hit::Tab(t) => {
+            let a = match t {
+                Tab::Ego => Action::TabEgo,
+                Tab::Timeline => Action::TabTimeline,
+                Tab::Path => Action::TabPath,
+            };
+            return act(s, a, fx);
+        }
+        Hit::RunRow(i) => {
+            w.checklist.pane = crate::state::ChecklistPane::Runs;
+            w.checklist.run_sel = i;
+            if double {
+                return act(s, Action::Activate, fx);
+            }
+        }
+        Hit::ItemRow(i) => {
+            w.checklist.pane = crate::state::ChecklistPane::Items;
+            w.checklist.item_sel = i;
+            if double {
+                return act(s, Action::Activate, fx);
+            }
+        }
+        Hit::ItemFilterTab(f) => {
+            w.checklist.filter = f;
+            w.checklist.item_sel = 0;
+        }
+        Hit::ReviewRow(i) => {
+            w.review.sel = i;
+            screens::compare(w, fx);
+        }
+        Hit::ReviewFilterTab(f) => {
+            w.review.filter = f;
+            w.review.sel = 0;
+            screens::compare(w, fx);
+        }
+        Hit::TimeRow(i) => {
+            w.pane = Pane::Graph;
+            match w.tab {
+                Tab::Timeline => w.timeline.cursor = i,
+                _ => w.path_tab.cursor = i,
+            }
+            if double {
+                return act(s, Action::Activate, fx);
+            }
+        }
         _ => {}
     }
     sync_inspect(w, fx);
@@ -1617,7 +1971,7 @@ fn click(s: &mut AppState, h: Hit, double: bool, fx: &mut Vec<Effect>) {
 
 // ---- engine
 
-fn schedule(w: &mut Workspace, fx: &mut Vec<Effect>) {
+pub fn schedule(w: &mut Workspace, fx: &mut Vec<Effect>) {
     if !w.refresh_scheduled {
         w.refresh_scheduled = true;
         fx.push(Effect::ScheduleRefresh);
@@ -1653,6 +2007,17 @@ fn refresh(s: &mut AppState, fx: &mut Vec<Effect>) {
     {
         fx.push(Effect::Query(Tag::Detail(id), Query::Detail(id)));
     }
+    if st.detail
+        && let Some(e) = w.inspect_edge
+    {
+        fx.push(Effect::Query(Tag::Edge(e), Query::Edge(e)));
+    }
+    if st.screen {
+        fx.extend(screens::queries(w));
+        if w.view == View::Main {
+            fx.extend(tabs::queries(w));
+        }
+    }
 }
 
 fn ent_span(e: &EntitySummary, g: crate::glyph::GlyphSet) -> Vec<(String, Token)> {
@@ -1683,6 +2048,14 @@ fn engine_event(s: &mut AppState, ev: EngineEvent, fx: &mut Vec<Effect>) {
         spans,
     };
     w.stale.status = true;
+    // Screens and tabs re-query on anything that changes what they list.
+    if !matches!(
+        ev.kind,
+        EventKind::JobProgress { .. } | EventKind::JobQueued { .. } | EventKind::Budget { .. }
+    ) && (w.view != View::Main || w.tab != Tab::Ego)
+    {
+        w.stale.screen = true;
+    }
     match ev.kind {
         EventKind::JobQueued { .. } => {}
         EventKind::JobStarted { module, entity, .. } => {
@@ -1852,11 +2225,14 @@ fn engine_event(s: &mut AppState, ev: EngineEvent, fx: &mut Vec<Effect>) {
         }
         EventKind::CaseChanged { .. } => w.stale = Stale::all(),
         EventKind::PlaybookStarted {
+            run,
             playbook,
             seed,
             parent,
-            ..
         } => {
+            if parent.is_none() {
+                w.top_run = Some(run);
+            }
             let mut spans = vec![
                 (format!("{playbook}  "), Token::Fg),
                 ("on ".into(), Token::FgMuted),
@@ -1905,9 +2281,14 @@ fn engine_event(s: &mut AppState, ev: EngineEvent, fx: &mut Vec<Effect>) {
             w.stale.ego = true;
         }
         EventKind::PlaybookFinished {
-            playbook, state, ..
+            run,
+            playbook,
+            state,
         } => {
-            w.playbook_line = None;
+            if w.top_run.is_none_or(|t| t == run) {
+                w.top_run = None;
+                w.playbook_line = None;
+            }
             let (m, t) = match state.as_str() {
                 "done" => (Marker::Ok, Token::Ok),
                 "failed" => (Marker::Failed, Token::Hostile),
@@ -1980,6 +2361,36 @@ fn query_result(s: &mut AppState, tag: Tag, r: Result<QueryResult, String>, fx: 
     }
     let s_glyphs = s.glyphs;
     let Some(w) = s.workspace_mut() else { return };
+    match &tag {
+        Tag::Runs | Tag::Playbooks | Tag::Checklist | Tag::Review | Tag::ReviewSide(..) => {
+            if !screens::result(w, &tag, r, fx) {
+                s.dirty = false;
+            }
+            return;
+        }
+        Tag::Timeline | Tag::Path(..) => {
+            if !tabs::result(w, &tag, r, fx) {
+                s.dirty = false;
+            }
+            return;
+        }
+        Tag::Edge(id) => {
+            if let QueryResult::Edge(e) = r
+                && w.inspect_edge == Some(*id)
+            {
+                w.edge = e.map(|b| *b);
+            }
+            return;
+        }
+        Tag::FindPath => {
+            match r {
+                QueryResult::Found(Some(e)) => tabs::path_to(w, e, fx),
+                _ => toast(s, "not in the case", Token::FgMuted),
+            }
+            return;
+        }
+        _ => {}
+    }
     match (tag, r) {
         (Tag::Status, QueryResult::Status(st)) => {
             let n = |k: &str| st.jobs.get(k).copied().unwrap_or(0);

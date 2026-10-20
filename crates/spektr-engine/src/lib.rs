@@ -32,7 +32,7 @@ pub use error::{EngineError, EngineResult};
 pub use events::{EngineEvent, EventKind};
 pub use evidence::{RawView, is_image};
 pub use handle::{
-    ActionOutcome, CaseStatus, EngineAction, EngineHandle, EntityDetail, EntityRowView,
+    ActionOutcome, CaseStatus, EdgeDetail, EngineAction, EngineHandle, EntityDetail, EntityRowView,
     FindingView, JobView, ModuleInfo, NoteView, ObservationView, Query, QueryResult, ReviewView,
 };
 pub use module::{

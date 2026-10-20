@@ -1,0 +1,52 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+ spektr  │  demo-missing-01  subject ◎ Jordan Marlow · last seen 2026…  rules tracelabs   findings 4   review 5   checklist 3 open   ● 1 running · 2 queued   chain ✓ 206
+╭ Entities 15 ───────────────────────╮╭ Graph ────────────────────────────────────────────── 1 ego  2 timeline  [3 path] ╮╭ Inspector ───────────────────────────────────╮
+│ / filter                           ││ path ~ jmarlow.wav → @ jordan.marlow@mail.example                                ││ ◐ github · jmarlow-wav                       │
+│                                    ││                                                                                  ││ account                                      │
+│ ▾ ◎ person              1          ││▌~ jmarlow.wav                                                                    ││                                              │
+│     Jordan Marlow          subject ││ │ → has_account ▰▰▰                                                              ││ bio           synths, trails, coffee         │
+│                                    ││ ◐ github · jmarlow-wav                                                           ││ display name  Jordan M.                      │
+│ ▾ ~ username            3          ││ │ → has_email ▰▰▱                                                                ││ joined        2019-03-01                     │
+│   ▸ jmarlow.wav                  ⌂ ││ @ jordan.marlow@mail.example                                                     ││ last active   2026-10-16 09:12               │
+│     jm4rlow                      • ││                                                                                  ││               ▲ after last-seen date         │
+│     jordanmarlow                   ││                                                                                  ││ links         ↗ jmarlow.example              │
+│                                    ││                                                                                  ││                                              │
+│ ▸ ◐ account             7          ││                                                                                  ││ Evidence 3 ───────────────────────────────── │
+│ ▾ @ email               2          ││                                                                                  ││ capture        html+png 18:11  9a3f…11       │
+│     jm4rlow@mail.example         • ││                                                                                  ││ github         0.4.0    18:06  77d0…c4       │
+│     jordan.marlow@mail.example     ││                                                                                  ││ username-sweep 1.0.0    18:05  2c71…ae       │
+│                                    ││                                                                                  ││                                              │
+│ ▾ ↗ url                 1          ││                                                                                  ││ Strength ─────────────────────────────────── │
+│     https://jmarlow.example        ││                                                                                  ││ ▰▰▰ confirmed                                │
+│                                    ││                                                                                  ││ 6 edges · in 2 · out 2                       │
+│ ▾ ◆ domain              1          ││                                                                                  ││                                              │
+│     mail.example             ⊛ hub ││                                                                                  ││ Used in ──────────────────────────────────── │
+│                                    ││                                                                                  ││ F-3  Advancing the Timeline  draft           │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││                                              │
+│                                    ││                                                                                  ││ o open   y copy   f new finding              │
+╰────────────────────────────────────╯╰──────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+╭ Activity ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ 18:12:40 ✓ exif            ▨ IMG_2214.jpg  → ⌖ 45.52, -122.68                                                                         │ running   1   queued 2         │
+│ 18:11:02 ✓ capture         github.com/jmarlow-wav · html + png                                                                        │ done     23   failed 0         │
+│ 18:06:12 ✓ github          +1 @ email  +1 ↗ url                                                                                       │ rules    tracelabs             │
+│ 18:05:30 ✓ username-sweep  300 sites · 7 found · 5 unsure                                                                             │          passive only · no     │
+│                                                                                                                                       │          probing               │
+│                                                                                                                                       │ blocked  1 module              │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  NORMAL   : command   / filter   tab pane   F findings   space menu   ? help                                                                                18:14:22 UTC

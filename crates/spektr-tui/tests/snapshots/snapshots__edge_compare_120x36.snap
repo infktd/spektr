@@ -1,0 +1,40 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+ spektr  │  demo-missing-01  subject …  findings 4   review 5   checklist 3 open   ● 1 running · 2 queued   chain ✓ 206
+╭ Entities 15 ───────────────╮╭ Graph ──────────────────────────────────────────────────── [1 ego]  2 timeline  3 path ╮
+│ / filter                   ││ ◎ Jordan Marlow  ›  ~ jmarlow.wav                                                      │
+│                            ││                                                                                        │
+│ ▾ ◎ person      1          ││ uses_handle ← 1 ────────────────                      ──────────────── → 7 has_account │
+│     Jordan Marlow  subject ││ └ ◎ Jordan Marlow            ▰▰▱                      ▌ ◐ github     jmarlow-wav   ▰▰▰ │
+│                            ││                                  ╭──────────────────╮ ├ ◐ bluesky    jmarlow.wav   ▰▰▱ │
+│ ▾ ~ username    3          ││ variant_of ↔ 2 ───────────────── │                  │ ├ ◐ soundcloud jmarlow       ▰▰▱ │
+│   ▸ jmarlow.wav          ⌂ ││ ├ ~ jordanmarlow             ▰▱▱ │ ~ username       │ ├ ◐ reddit     jmarlow_wav   ▰▱▱ │
+│     jm4rlow              • ││ └ ~ jm4rlow •                ▰▱▱ │ jmarlow.wav      │ ├ ◐ strava     jmarlow       ▰▱▱ │
+│     jordanmarlow           ││                                  │                  │ └ ··· 2 more               ] 1/2 │
+│                            ││ ≈ same_avatar ↔ 3 ────────────── │ accts 7          │                                  │
+│ ▸ ◐ account     7          ││ ├ ◐ github     jmarlow-wav       │ vars  2          │                                  │
+│ ▾ @ email       2          ││ ├ ◐ bluesky    jmarlow.wav       │ obs   4          │                                  │
+│     jm4rlow@mail.example • ││ └ ◐ soundcloud jmarlow           │                  │                                  │
+│     jordan.marlow@mail.ex… ││   avatar hash match · 3 sources  │ ⌂ seed           │                                  │
+│                            ││                                  │                  │                                  │
+│ ▾ ↗ url         1          ││                                  ╰──────────────────╯                                  │
+│     https://jmarlow.examp… ││                                                                                        │
+│                            ││                                                                                        │
+│ ▾ ◆ domain      1          ││                                                                                        │
+│     mail.example     ⊛ hub ││                                                                                        │
+│                            ││                                                                                        │
+│                            ││                                                                                        │
+│                            ││                                                                                        │
+│                            ││ ↵ pivot   ⌫ back   c capture           ▰▱▱ 1 source   ▰▰▱ corroborated   ▰▰▰ confirmed │
+╰────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────────╯
+╭ Activity ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ 18:12:40 ✓ exif            ▨ IMG_2214.jpg  → ⌖ 45.52, -122.68                       │ running   1   queued 2         │
+│ 18:11:02 ✓ capture         github.com/jmarlow-wav · html + png                      │ done     23   failed 0         │
+│ 18:06:12 ✓ github          +1 @ email  +1 ↗ url                                     │ rules    tracelabs             │
+│ 18:05:30 ✓ username-sweep  300 sites · 7 found · 5 unsure                           │          passive only · no     │
+│                                                                                     │          probing               │
+│                                                                                     │ blocked  1 module              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  NORMAL   : command   / filter   tab pane   F findings   space menu   ? help                              18:14:22 UTC

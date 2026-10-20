@@ -809,7 +809,8 @@ pub const BINDINGS: &[Binding] = &[
         &["d"],
         C::Checklist,
         "Mark the item done (prompts for an optional note)",
-    ),
+    )
+    .label("done"),
     b(
         A::ItemSkip,
         "item-skip",
@@ -817,6 +818,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Checklist,
         "Skip the item (prompts for a reason)",
     )
+    .label("skip")
     .shadows(&["s"]),
     b(
         A::ItemNote,
@@ -825,6 +827,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Checklist,
         "Add or edit the note",
     )
+    .label("note")
     .shadows(&["n"]),
     b(
         A::ItemOpen,
@@ -833,6 +836,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Checklist,
         "Open a launcher ▸",
     )
+    .label("open ▸")
     .shadows(&["o"]),
     b(
         A::ItemFinding,
@@ -841,6 +845,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Checklist,
         "New finding from this item",
     )
+    .label("finding from item")
     .shadows(&["f"]),
     b(
         A::Activate,
@@ -849,6 +854,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Checklist,
         "Go to the item's entity, or open its screen",
     )
+    .label("go to entity")
     .shadows(&["↵"]),
     b(
         A::PlaybookOnSeed,
@@ -857,6 +863,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Checklist,
         "Run a playbook on the selected run's seed",
     )
+    .hint("run playbook", 2)
     .shadows(&["p"]),
     b(
         A::StopRun,
@@ -864,7 +871,8 @@ pub const BINDINGS: &[Binding] = &[
         &["X"],
         C::Checklist,
         "Stop the selected run (asks first)",
-    ),
+    )
+    .hint("stop run", 3),
     b(
         A::SwitchPane,
         "checklist-pane",
@@ -872,6 +880,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Checklist,
         "Switch between the runs and checklist panes",
     )
+    .hint("pane", 1)
     .shadows(&["tab"]),
     // ---- review screen (Phase 4)
     b(
@@ -881,6 +890,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Review,
         "Accept (a sweep hit becomes an account; same-person opens the merge confirmation)",
     )
+    .hint("accept", 1)
     .shadows(&["a"]),
     b(
         A::ReviewReject,
@@ -889,8 +899,11 @@ pub const BINDINGS: &[Binding] = &[
         C::Review,
         "Reject",
     )
+    .hint("reject", 2)
     .shadows(&["x"]),
-    b(A::ReviewLater, "review-later", &["s"], C::Review, "Later").shadows(&["s"]),
+    b(A::ReviewLater, "review-later", &["s"], C::Review, "Later")
+        .hint("later", 3)
+        .shadows(&["s"]),
     b(
         A::OpenUrl,
         "review-open",
@@ -898,6 +911,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Review,
         "Open in the browser",
     )
+    .hint("open", 4)
     .shadows(&["O"]),
 ];
 

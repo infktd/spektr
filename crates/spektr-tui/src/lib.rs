@@ -8,19 +8,23 @@ pub mod ego;
 pub mod entities;
 pub mod glyph;
 pub mod host;
+pub mod images;
 pub mod keymap;
 pub mod layout;
 pub mod menu;
 pub mod msg;
 pub mod palette;
 pub mod runtime;
+pub mod screens;
 pub mod state;
+pub mod tabs;
 pub mod text;
 pub mod theme;
 pub mod update;
 pub mod view;
 
-pub use host::{Chain, DoctorLine, Host, Level, NewCase, RecentCase, Settings};
+pub use host::{Chain, DoctorLine, External, Host, Level, NewCase, RecentCase, Settings};
+pub use images::{Mode as ImageMode, detect as detect_images};
 pub use runtime::{Start, run};
 
 /// Name of this crate, for diagnostics.

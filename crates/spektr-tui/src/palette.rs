@@ -43,7 +43,7 @@ pub const COMMANDS: &[(&str, &str, bool)] = &[
     (
         "path ",
         "Shortest path from the focus: path <type>:<value>",
-        false,
+        true,
     ),
     (
         "note ",
@@ -51,22 +51,30 @@ pub const COMMANDS: &[(&str, &str, bool)] = &[
         true,
     ),
     ("finding new", "New finding from the cursor entity", false),
-    ("capture ", "Capture a page: capture <url>", false),
-    ("attach ", "Attach a file: attach <path>", false),
-    ("open ", "Open a pivot launcher on the cursor entity", false),
+    ("capture ", "Capture a page: capture <url>", true),
+    ("attach ", "Attach a file: attach <path>", true),
+    (
+        "open ",
+        "Open a pivot launcher on the cursor entity: open <launcher>",
+        true,
+    ),
     (
         "export ",
         "Export the case: export json|md|tracelabs",
         false,
     ),
     ("verify", "Re-hash the audit chain and blobs", true),
-    ("playbook ", "Run a playbook on the focused entity", false),
-    ("playbook stop", "Stop the running playbook", false),
-    ("checklist", "Open the checklist", false),
+    (
+        "playbook ",
+        "Run a playbook on the focused entity: playbook <name>",
+        true,
+    ),
+    ("playbook stop", "Stop the running playbook", true),
+    ("checklist", "Open the checklist and playbook runs", true),
     (
         "reload",
         "Re-read modules, playbooks, profiles and launchers",
-        false,
+        true,
     ),
     (
         "region ",
@@ -82,7 +90,7 @@ pub const COMMANDS: &[(&str, &str, bool)] = &[
     (
         "images ",
         "Image protocol: images auto|kitty|sixel|iterm2|halfblocks|off",
-        false,
+        true,
     ),
     ("glyphs unicode", "Unicode glyphs", true),
     ("glyphs ascii", "ASCII glyphs", true),
@@ -98,7 +106,10 @@ pub const NOT_YET: &str = "not available yet";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Cmd {
     Seed(EntityRef),
-    Run { module: String, rerun: bool },
+    Run {
+        module: String,
+        rerun: bool,
+    },
     Expand,
     Depth(u32),
     ScopeAdd(String),
@@ -113,6 +124,16 @@ pub enum Cmd {
     Mouse(bool),
     Glyphs(GlyphSet),
     Help,
+    Path(EntityRef),
+    /// Without a URL: the cursor entity's.
+    Capture(Option<String>),
+    Attach(String),
+    Open(String),
+    Playbook(String),
+    PlaybookStop,
+    Checklist,
+    Reload,
+    Images(crate::images::Mode),
 }
 
 pub fn parse(line: &str) -> Result<Cmd, String> {
@@ -167,6 +188,22 @@ pub fn parse(line: &str) -> Result<Cmd, String> {
         },
         "glyphs" => Cmd::Glyphs(GlyphSet::parse(rest).ok_or("glyphs unicode|ascii")?),
         "help" => Cmd::Help,
+        "path" => Cmd::Path(
+            need("<type>:<value>")?
+                .parse::<EntityRef>()
+                .map_err(|e| e.to_string())?,
+        ),
+        "capture" => Cmd::Capture(Some(rest.to_string()).filter(|r| !r.is_empty())),
+        "attach" => Cmd::Attach(need("a file path")?),
+        "open" => Cmd::Open(need("a launcher id")?),
+        "playbook" if rest == "stop" => Cmd::PlaybookStop,
+        "playbook" => Cmd::Playbook(need("a playbook name")?),
+        "checklist" => Cmd::Checklist,
+        "reload" => Cmd::Reload,
+        "images" => Cmd::Images(
+            crate::images::Mode::parse(rest)
+                .ok_or("images auto|kitty|sixel|iterm2|halfblocks|off")?,
+        ),
         "" => return Err("type a command".into()),
         other => {
             if COMMANDS

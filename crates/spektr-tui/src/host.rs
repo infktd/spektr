@@ -69,6 +69,8 @@ pub struct NewCase {
 #[derive(Debug, Clone)]
 pub struct Settings {
     pub mouse: bool,
+    /// `images` in config.toml (TUI_SPEC §9).
+    pub images: crate::images::Mode,
     pub glyphs: GlyphSet,
     pub colors: ColorMode,
     pub keys: BTreeMap<String, Vec<String>>,
@@ -80,6 +82,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             mouse: true,
+            images: crate::images::Mode::Auto,
             glyphs: GlyphSet::Unicode,
             colors: ColorMode::TrueColor,
             keys: BTreeMap::new(),
@@ -87,6 +90,18 @@ impl Default for Settings {
             home: None,
         }
     }
+}
+
+/// Something opened outside the TUI.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum External {
+    Url(String),
+    /// A file in the system viewer.
+    Open(PathBuf),
+    /// A file selected in the file manager.
+    Reveal(PathBuf),
+    /// A file in `$PAGER`; blocks until the pager exits.
+    Pager(PathBuf),
 }
 
 pub trait Host: Send + Sync + 'static {
@@ -108,4 +123,12 @@ pub trait Host: Send + Sync + 'static {
     fn opened(&self, path: &Path);
     /// The clock: fixed under `SPEKTR_CLOCK` in test mode.
     fn now(&self) -> Timestamp;
+    /// Open a URL, a file or a pager. Test mode records it instead and
+    /// returns the target, which the rail shows as `↗ would open …`.
+    fn external(&self, what: &External) -> Result<Option<String>, String>;
+    /// Whether `External::Pager` takes over the terminal (it doesn't in
+    /// test mode).
+    fn pager_takes_terminal(&self) -> bool {
+        true
+    }
 }

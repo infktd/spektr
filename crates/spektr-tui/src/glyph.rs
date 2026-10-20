@@ -68,6 +68,8 @@ impl GlyphSet {
             Marker::Rule => ("─", "-"),
             Marker::VRule => ("│", "|"),
             Marker::Link => ("↗", "^"),
+            Marker::Skipped => ("–", "-"),
+            Marker::Image => ("▨", "#"),
         };
         match self {
             GlyphSet::Unicode => u,
@@ -106,6 +108,10 @@ pub enum Marker {
     Rule,
     VRule,
     Link,
+    /// A skipped checklist item.
+    Skipped,
+    /// An image preview's placeholder.
+    Image,
 }
 
 /// The token a strength bar is drawn in: single muted, corroborated fg,

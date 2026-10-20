@@ -9,27 +9,27 @@ expression: text(&s)
 │ ▾ ◎ person      1          ││ uses_handle ← 1 ────────────────                      ──────────────── → 7 has_account │
 │     Jordan Marlow  subject ││ └ ◎ Jordan Marlow            ▰▰▱                      ▌ ◐ github     jmarlow-wav   ▰▰▰ │
 │                            ││                                  ╭──────────────────╮ ├ ◐ bluesky    jmarlow.wav   ▰▰▱ │
-│ ▾ ~ username    3          ││ variant_of ↔ 2 ───────────── ╭────────────────────────────────────────╮ rlow       ▰▰▱ │
-│   ▸ jmarlow.wav          ⌂ ││ ├ ~ jordanmarlow             │ ◐ github · jmarlow-wav                 │ rlow_wav   ▰▱▱ │
-│     jm4rlow              • ││ └ ~ jm4rlow •                │ account · 3 observations               │ rlow       ▰▱▱ │
-│     jordanmarlow           ││                              │────────────────────────────────────────│          ] 1/2 │
-│                            ││ ╭──────────────────────────╮ │ Pivot here                           ↵ │                │
-│ ▸ ◐ account     7          ││ │ Modules for ◐ account    │ │ Run module                         r ▸ │                │
-│ ▾ @ email       2          ││ │──────────────────────────│ │ Run playbook         not available yet │                │
-│     jm4rlow@mail.example • ││ │▌github              free │ │ Open in browser                 no URL │                │
-│     jordan.marlow@mail.ex… ││ │──────────────────────────│ │ Copy value                           y │                │
-│                            ││ │ Run all eligible       A │ │────────────────────────────────────────│                │
-│ ▾ ↗ url         1          ││ ╰──────────────────────────╯ │ Add to scope                         s │                │
-│     https://jmarlow.examp… ││                              │ Exclude from scope                   S │                │
-│                            ││                              │────────────────────────────────────────│                │
-│ ▾ ◆ domain      1          ││                              │ Mark as finding      not available yet │                │
-│     mail.example     ⊛ hub ││                              │ Add note                             n │                │
-│                            ││                              │ Merge with…                          m │                │
-│                            ││                              │ Confirm edge                         v │                │
-│                            ││                              │ Reject edge                          x │                │
-│                            ││ ↵ pivot   ⌫ back   c capture │ Open raw response    not available yet │  ▰▰▰ confirmed │
-╰────────────────────────────╯╰───────────────────────────── ╰────────────────────────────────────────╯ ───────────────╯
-╭ Activity ─────────────────────────────────────────────────                                            ───────────────╮
+│ ▾ ~ username    3          ││ variant_of ↔ 2 ───────────── ╭───────────────────────────────────────╮ arlow       ▰▰▱ │
+│   ▸ jmarlow.wav          ⌂ ││ ├ ~ jordanmarlow             │ ◐ github · jmarlow-wav                │ arlow_wav   ▰▱▱ │
+│     jm4rlow              • ││ └ ~ jm4rlow •                │ account · 3 observations              │ arlow       ▰▱▱ │
+│     jordanmarlow           ││                              │───────────────────────────────────────│           ] 1/2 │
+│                            ││ ╭──────────────────────────╮ │ Pivot here                          ↵ │                 │
+│ ▸ ◐ account     7          ││ │ Modules for ◐ account    │ │ Run module                        r ▸ │                 │
+│ ▾ @ email       2          ││ │──────────────────────────│ │ Run playbook       none for this type │                 │
+│     jm4rlow@mail.example • ││ │▌github              free │ │ Open in browser    no URL or launcher │                 │
+│     jordan.marlow@mail.ex… ││ │──────────────────────────│ │ Copy value                          y │                 │
+│                            ││ │ Run all eligible       A │ │───────────────────────────────────────│                 │
+│ ▾ ↗ url         1          ││ ╰──────────────────────────╯ │ Add to scope                        s │                 │
+│     https://jmarlow.examp… ││                              │ Exclude from scope                  S │                 │
+│                            ││                              │───────────────────────────────────────│                 │
+│ ▾ ◆ domain      1          ││                              │ Mark as finding     not available yet │                 │
+│     mail.example     ⊛ hub ││                              │ Add note                            n │                 │
+│                            ││                              │ Merge with…                         m │                 │
+│                            ││                              │ Confirm edge                        v │                 │
+│                            ││                              │ Reject edge                         x │                 │
+│                            ││ ↵ pivot   ⌫ back   c capture │ Open raw response                   o │   ▰▰▰ confirmed │
+╰────────────────────────────╯╰───────────────────────────── ╰───────────────────────────────────────╯ ────────────────╯
+╭ Activity ─────────────────────────────────────────────────                                           ────────────────╮
 │ 18:12:40 ✓ exif            ▨ IMG_2214.jpg  → ⌖ 45.52, -122.68                       │ running   1   queued 2         │
 │ 18:11:02 ✓ capture         github.com/jmarlow-wav · html + png                      │ done     23   failed 0         │
 │ 18:06:12 ✓ github          +1 @ email  +1 ↗ url                                     │ rules    tracelabs             │

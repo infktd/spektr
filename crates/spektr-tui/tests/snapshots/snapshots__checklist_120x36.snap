@@ -1,0 +1,40 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+ spektr  │  demo-missing-01  playbooks  findings 4   review 5   checklist 3 open   ● 1 running · 2 queued   chain ✓ 206
+╭ Playbooks 3 runs ──────────────────────────────╮ ╭ Checklist 3 open ────────────────────────────── [open]  done  all ╮
+│  ▸ person-from-username   ~ jmarlow.w… step 4… │ │ Reverse image search  person-from-username · step 5               │
+│  ✓ person-from-email      @ jordan.ma… done 5… │ │ ▌○ ▨ avatar-github.png                     lens · yandex · tineye │
+│  ✓ image-triage           ▨ IMG_2214.… done 3… │ │  ○ ▨ avatar-bluesky.png                    lens · yandex · tineye │
+│                                                │ │                                                                   │
+│ Steps · person-from-username ───────────────── │ │ Review unsure sweep hits  person-from-username · step 6           │
+│ ✓ 1  run              on seed        1 job     │ │  ○ ~ jmarlow.wav                           opens Review           │
+│        username-sweep                          │ │                                                                   │
+│ ✓ 2  run github       on seed        5 jobs    │ │ Selected ──────────────────────────────────────────────────────── │
+│        bluesky gitlab                          │ │ Reverse image search the GitHub avatar for jmarlow-wav. Look for  │
+│        mastodon                                │ │ the same photo on other profiles, shops, forums or news.          │
+│ ✓ 3  run avatar-hash  on 9 ◐ account 9 jobs    │ │                                                                   │
+│ ▸ 4  run              on 4 ↗ url     2/4 jobs  │ │ o open ▸   Google Lens   ·   Yandex Images   ·   TinEye           │
+│        http-fingerprint                        │ │ Opening a launcher is recorded in the audit log.                  │
+│        wayback                                 │ │                                                                   │
+│ ○ 5  check reverse    on 3 ▨ image             │ │                                                                   │
+│        image search                            │ │                                                                   │
+│ ○ 6  check review     —                        │ │                                                                   │
+│        unsure sweep                            │ │                                                                   │
+│        hits                                    │ │                                                                   │
+│                                                │ │                                                                   │
+│ Available ──────────────────────────────────── │ │                                                                   │
+│   person-from-username   ~ username     built… │ │                                                                   │
+│   person-from-email      @ email        built… │ │                                                                   │
+│   person-from-phone      + phone        built… │ │                                                                   │
+│   image-triage           ▨ image        built… │ │                                                                   │
+│   domain-recon           ◆ domain       built… │ │                                                                   │
+│   tracelabs-kickoff      ◎ person       built… │ │                                                                   │
+│   forum-sweep            ~ username     ~/.co… │ │                                                                   │
+│                                                │ │                                                                   │
+│ Rules still apply inside a playbook: the       │ │                                                                   │
+│ tracelabs profile blocks anything that isn't   │ │ ───────────────────────────────────────────────────────────────── │
+│ passive.                                       │ │ d done   s skip   n note   f finding from item   ↵ go to entity   │
+╰────────────────────────────────────────────────╯ ╰───────────────────────────────────────────────────────────────────╯
+  CHECKLIST   tab pane   p run playbook   X stop run   esc back to graph                                   18:14:22 UTC
