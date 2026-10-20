@@ -47,6 +47,8 @@ psl          = "2.1.243"          # Public Suffix List; data updates ship as pat
 phonenumber  = "0.3.10"
 jiff         = { version = "0.2.38", features = ["serde"] }
 uuid         = { version = "1.28.0", features = ["v7", "serde"] }
+icu_normalizer = "2.3.0"         # NFKC (usernames, extension rules); already in the graph via idna
+icu_casemap  = "2.3.0"           # full Unicode case folding (`place:` locations, `casefold` rule)
 
 # store
 rusqlite     = { version = "0.40.2", features = ["bundled"] }
