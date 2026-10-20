@@ -739,6 +739,13 @@ pub fn playbook_screens(s: &mut AppState) {
         note: note.map(str::to_string),
         resolved_at: (state != "open").then(|| at("18:22:00")),
         local_image: None,
+        label: e.filter(|e| e.value.starts_with("avatar-")).map(|e| {
+            let site = e
+                .value
+                .trim_start_matches("avatar-")
+                .trim_end_matches(".png");
+            format!("avatar · {site} · jmarlow")
+        }),
     };
     let rev = || {
         vec![

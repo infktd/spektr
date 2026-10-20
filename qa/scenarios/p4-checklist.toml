@@ -1,0 +1,51 @@
+name = "Checklist screen: tracelabs-kickoff with nested runs (artboard 10)"
+size = [170, 48]
+compare = "docs/design/Checklist.dc.html"
+checklist = [
+  "Top bar: case · `playbooks` (muted); right: rules, findings, review, `checklist N open`, running/queued, chain",
+  "Left pane `Playbooks N runs`: runs with state glyphs (▸ accent running, ✓ done); nested runs indented 2 under the parent; `step N/M` accent while running, `done N/N` muted",
+  "Steps · <playbook> section with a faint rule; each step: glyph, number, `run …`/`check …`/`playbook …`, `on …`, result counts",
+  "Available section: playbooks with seed glyph + type and source (built-in · tracelabs)",
+  "Rules note at the bottom of the left pane (muted)",
+  "Right pane `Checklist N open` with `[open]  done  all` tabs in the border; items grouped under a bold step title + muted `playbook · step N`",
+  "Item rows: ○ open / ✓ done / – skipped, entity glyph + value, right-hand launchers or `opens Review`; cursor row ▌ + selection bg in the focused pane",
+  "Selected block: text, `o open ▸   Google Lens · Yandex Images · TinEye`, audit note; footer hints `d done s skip n note f finding from item ↵ go to entity`",
+  "Status line: CHECKLIST pill (accent), `tab pane   p run playbook   X stop run   esc back to graph`",
+  "Launcher menu (o) lists the item's launchers; the done dialog prompts for an optional note",
+]
+
+[[step]]
+run = ["new", "tl-kickoff", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "tl-kickoff.spektr", "--seed", "username:jmarlow.wav", "--seed", "email:jordan.marlow@mail.example"]
+
+[[step]]
+run = ["open", "tl-kickoff.spektr"]
+do = [
+  "wait 0 queued",
+  "keys / text:Jordan ↵ p",
+  "wait Playbooks for",
+  "frame menu-run-playbook",
+  "keys ↵ esc C",
+  "frame checklist-running",
+  "wait done 7/7",
+  "wait 0 queued",
+  "settle 300",
+  "frame checklist-done",
+  "keys j",
+  "frame checklist-nested-selected",
+  "keys tab",
+  "frame checklist-items",
+  "keys j j j j",
+  "frame checklist-avatar-item",
+  "keys o",
+  "frame checklist-launcher-menu",
+  "keys esc d",
+  "frame checklist-done-dialog",
+  "keys text:matched ↵",
+  "settle 300",
+  "keys ]",
+  "frame checklist-done-tab",
+  "keys esc q",
+]

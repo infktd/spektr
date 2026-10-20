@@ -1,0 +1,39 @@
+name = "Review screen: the unsure sweep hits (artboard 05 layout)"
+size = [170, 48]
+compare = "docs/design/Correlations.dc.html"
+checklist = [
+  "Top bar: case · `review`; `review N` (warn) while items are pending",
+  "Left pane `Review` (accent border) with `[pending N]  accepted N  rejected N  later N` in the border",
+  "Header row kind/site/link (muted); rows: kind, site, `~ user → ◐ platform · handle`, reason (muted); cursor ▌ + selection",
+  "Detail pane: `account ◐ platform · handle` bold, muted reason line, fields, the accept note; footer hints `a accept  x reject  s later  O open`",
+  "Status line: REVIEW pill (accent); hints include `esc back to graph`",
+  "After `a`: the item leaves pending and the account appears in the case",
+  "Empty filter shows `nothing <state>`",
+]
+
+[[step]]
+run = ["new", "demo", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "demo.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+do = [
+  "wait has_account",
+  "keys R",
+  "wait pending 5",
+  "settle 300",
+  "frame review-queue",
+  "keys j",
+  "frame review-second",
+  "keys a",
+  "wait accepted 1",
+  "settle 300",
+  "frame review-accepted-one",
+  "keys tab tab",
+  "frame review-empty-rejected",
+  "keys esc",
+  "frame back-to-graph",
+  "keys q",
+]

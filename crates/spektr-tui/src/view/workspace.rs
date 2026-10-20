@@ -993,6 +993,7 @@ fn inspector(
             line(buf, &mut y, &runs);
             any_field = true;
             let after = a.event
+                && crate::tabs::marks_activity(name)
                 && last_seen.is_some_and(|ls| {
                     a.value
                         .instant()
