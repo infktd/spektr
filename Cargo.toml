@@ -1,0 +1,130 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/spektr-model",
+    "crates/spektr-protocol",
+    "crates/spektr-store",
+    "crates/spektr-engine",
+    "crates/spektr-modules",
+    "crates/spektr-tui",
+    "crates/spektr",
+    "xtask",
+]
+default-members = ["crates/spektr"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+repository = "https://github.com/infktd/spektr"
+homepage = "https://github.com/infktd/spektr"
+authors = ["Jay (infktd)"]
+
+# Every version was re-verified on crates.io at Phase 0 kickoff (2026-10-20).
+# See docs/DEPENDENCIES.md for the policy and docs/phases/PHASE_0_COMPLETE.md for the check.
+[workspace.dependencies]
+# internal
+spektr-model    = { path = "crates/spektr-model",    version = "0.1.0" }
+spektr-protocol = { path = "crates/spektr-protocol", version = "0.1.0" }
+spektr-store    = { path = "crates/spektr-store",    version = "0.1.0" }
+spektr-engine   = { path = "crates/spektr-engine",   version = "0.1.0" }
+spektr-modules  = { path = "crates/spektr-modules",  version = "0.1.0" }
+spektr-tui      = { path = "crates/spektr-tui",      version = "0.1.0" }
+
+# core / serialization
+serde        = { version = "1.0.229", features = ["derive"] }
+serde_json   = "1.0.154"          # do NOT enable preserve_order (audit canonical JSON relies on sorted maps)
+toml         = "1.1.8"
+schemars     = "1.2.3"            # spektr-protocol, behind its `schema` feature
+thiserror    = "2.0.21"
+anyhow       = "1.0.104"          # bin + xtask only
+
+# model
+url          = "2.5.8"
+idna         = "1.1.0"
+psl          = "2.1.243"          # Public Suffix List; data updates ship as patch releases
+phonenumber  = "0.3.10"
+jiff         = { version = "0.2.38", features = ["serde"] }
+uuid         = { version = "1.28.0", features = ["v7", "serde"] }
+
+# store
+rusqlite     = { version = "0.40.2", features = ["bundled"] }
+zstd         = "0.14.3"
+sha2         = "0.11.1"
+
+# async / engine
+tokio        = { version = "1.54.0", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util", "fs", "signal"] }
+tokio-util   = "0.7.20"           # CancellationToken, codecs
+futures      = "0.3.34"           # BoxFuture, StreamExt
+governor     = "0.10.4"           # per-host rate limiting
+
+# spektr-modules (net · media · capture · built-ins)
+reqwest      = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "json", "gzip", "brotli", "charset", "http2", "system-proxy"] }
+rustls       = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+hickory-proto = "0.26.3"            # DNS wire format only; spektr-modules::net owns the stub resolver (async-trait-free, see PHASE_0_COMPLETE)
+scraper      = "0.27.0"           # HTML title, links, analytics ids
+which        = "8.0.6"            # capture: find chrome/chromium
+nom-exif     = "3.8.0"
+image        = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "gif"] }
+image_hasher = "3.1.1"            # dHash for avatar_phash
+
+# tui
+ratatui      = "0.30.2"
+crossterm    = { version = "0.29.0", features = ["event-stream", "osc52"] }
+ratatui-image = { version = "11.1.0", default-features = false, features = ["crossterm"] }
+ratatui-textarea = "0.9.3"        # default feature `crossterm`; built on ratatui-core / ratatui-widgets, compatible with ratatui 0.30
+nucleo-matcher = "0.3.1"          # fuzzy matching (filter, palette, pickers)
+
+# bin
+clap         = { version = "4.6.7", features = ["derive"] }
+dirs         = "7.0.0"            # home_dir() only; XDG resolution is spektr's own (ARCHITECTURE §5)
+open         = "5.4.4"            # system browser / viewer
+tracing      = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tracing-appender   = "0.2.5"
+
+# dev / test
+insta        = { version = "1.49.0", features = ["json"] }
+proptest     = "1.12.0"
+assert_cmd   = "2.2.2"
+tempfile     = "3.27.0"
+portable-pty = "0.9.0"            # e2e: run the real binary in a PTY
+vt100        = "0.18.1"           # e2e: parse the screen into cells with colors
+
+# DISPATCH rule 5: no unwrap()/expect() outside tests (clippy.toml allows them in tests).
+[workspace.lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+# keep image decoding usable in dev
+[profile.dev.package.image]
+opt-level = 2
+
+[profile.dev.package.zune-jpeg]
+opt-level = 2
+
+[profile.dev.package.sha2]
+opt-level = 2
+
+[profile.dev.package.zstd-sys]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+
+# release CI
+[profile.dist]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = true

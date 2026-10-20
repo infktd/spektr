@@ -1,0 +1,9 @@
+/target
+# QA frames and shots (docs/QA.md)
+/qa/out/
+# Written by Jay, never committed (docs/QA.md §4)
+/qa/live-targets.toml
+*.spektr
+*.spektr-wal
+*.spektr-shm
+.DS_Store
