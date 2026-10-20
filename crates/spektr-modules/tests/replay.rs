@@ -51,7 +51,7 @@ fn ty(s: &str) -> EntityType {
 #[tokio::test]
 async fn username_sweep_finds_accounts_and_queues_unsure_hits() {
     let net = Net::replay(Fixtures::load_dir(&fixtures_dir()).unwrap());
-    let (_dir, h) = engine(net.clone(), "tracelabs", &[]).await;
+    let (_dir, h) = engine(net.clone(), "tracelabs", &["username-sweep"]).await;
     let mut events = h.subscribe();
     h.act(EngineAction::Seed {
         entity: "username:jmarlow.wav".parse().unwrap(),
@@ -295,4 +295,124 @@ async fn unmatched_request_fails() {
     );
     // a fixture miss is not retried
     assert_eq!(jobs.iter().filter(|j| j.module == "github").count(), 1);
+}
+
+/// The tutor storyline (J2 steps 2–4 and 6), with every built-in
+/// registered: the sweep and the profile modules find the accounts, the
+/// avatars are fetched and hashed, and three of them correlate.
+#[tokio::test]
+async fn tutor_handle_expands_and_avatars_correlate() {
+    let net = Net::replay(Fixtures::load_dir(&fixtures_dir()).unwrap());
+    let (_dir, h) = engine(net.clone(), "tracelabs", &[]).await;
+    h.act(EngineAction::Seed {
+        entity: "username:jmarlow.wav".parse().unwrap(),
+    })
+    .await
+    .unwrap();
+    h.wait_idle(WAIT).await.unwrap();
+    assert!(
+        net.misses().is_empty(),
+        "unmatched requests: {:?}",
+        net.misses()
+    );
+
+    let (gh, avatar_edges, jobs, site) = h
+        .store()
+        .read(|r| {
+            let gh = r
+                .entity_by_key(&ty("account"), "github:jmarlow-wav")?
+                .unwrap();
+            let edges: Vec<(String, String)> = r
+                .all_edges()?
+                .into_iter()
+                .filter(|e| e.discriminator.starts_with("avatar_phash:"))
+                .map(|e| {
+                    let k = |id| {
+                        r.entity(id)
+                            .ok()
+                            .flatten()
+                            .map(|x| x.key)
+                            .unwrap_or_default()
+                    };
+                    let (a, b) = (k(e.src), k(e.dst));
+                    if a < b { (a, b) } else { (b, a) }
+                })
+                .collect();
+            let site = r
+                .entity_by_key(&ty("url"), "https://jmarlow.example/")?
+                .unwrap();
+            Ok((gh, edges, r.jobs(&[])?, site))
+        })
+        .await
+        .unwrap();
+
+    // GitHub: the variant handle, with last activity after the last-seen date.
+    let last = &gh.attrs["last_active"][0].value;
+    assert_eq!(
+        *last,
+        spektr_model::AttrValue::Time("2026-10-16T09:12:00Z".parse().unwrap())
+    );
+    assert!(gh.attrs.contains_key("matched_variant"));
+
+    // Three avatars are the same picture; the Mastodon one isn't.
+    let mut pairs = avatar_edges.clone();
+    pairs.sort();
+    assert_eq!(
+        pairs,
+        [
+            (
+                "bluesky:jmarlow.wav.bsky.social".to_string(),
+                "github:jmarlow-wav".to_string()
+            ),
+            (
+                "bluesky:jmarlow.wav.bsky.social".to_string(),
+                "gitlab:jmarlow.wav".to_string()
+            ),
+            (
+                "github:jmarlow-wav".to_string(),
+                "gitlab:jmarlow.wav".to_string()
+            ),
+        ]
+    );
+
+    // The site was fingerprinted: title and the analytics id.
+    assert!(site.attrs.contains_key("title"));
+    assert_eq!(
+        site.attrs["analytics_ids"][0].value,
+        spektr_model::AttrValue::Text("G-JM4RL0W2K6".into())
+    );
+
+    // Nothing failed; wayback (auto = false) and hibp (keyed, no secret) never ran.
+    let failed: Vec<_> = jobs
+        .iter()
+        .filter(|j| j.state == JobState::Failed)
+        .map(|j| (&j.module, &j.error))
+        .collect();
+    assert!(failed.is_empty(), "failed jobs: {failed:?}");
+    assert!(
+        !jobs
+            .iter()
+            .any(|j| j.module == "wayback" || j.module == "hibp")
+    );
+    for m in [
+        "username-sweep",
+        "github",
+        "bluesky",
+        "gitlab",
+        "mastodon",
+        "avatar-hash",
+        "http-fingerprint",
+        "email-check",
+        "gravatar",
+        "dns",
+        "crtsh",
+        "rdap",
+        "exif",
+    ] {
+        assert!(
+            jobs.iter()
+                .any(|j| j.module == m && j.state == JobState::Done),
+            "{m} never ran to done"
+        );
+    }
 }

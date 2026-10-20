@@ -1,0 +1,3 @@
+// Fictional Gravatar responses: no profiles for the tutor addresses.
+{"kind":"http","method":"GET","url":"https://api.gravatar.com/v3/profiles/695ba888b275af94ff6a1a4555450fd1bf21c4d3561dbfdb68be173ac66eefda","status":404,"headers":{"content-type":"application/json"},"body":{"error":"Profile not found","code":"not_found"}}
+{"kind":"http","method":"GET","url":"https://api.gravatar.com/v3/profiles/9233959618adeb13a7cc7c00a4220f6c613a5600685f6158dd61f55c74bd0b52","status":404,"headers":{"content-type":"application/json"},"body":{"error":"Profile not found","code":"not_found"}}

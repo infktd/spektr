@@ -88,14 +88,24 @@ impl Module for Github {
 
     fn run<'a>(&'a self, input: JobInput, cx: ModuleCx) -> BoxFuture<'a, Result<(), ModuleError>> {
         Box::pin(async move {
-            let handle = input.entity.handle().to_string();
-            // Not a possible GitHub login (e.g. `jmarlow.wav`): nothing to ask.
+            let mut handle = input.entity.handle().to_string();
+            // GitHub logins allow only letters, digits and `-`. For a username
+            // that GitHub can't have (`jmarlow.wav`), ask once for its one
+            // GitHub-legal variant (`jmarlow-wav`); nothing else is guessed.
             let platforms = PlatformRegistry::builtin();
-            if platforms
-                .get("github")
-                .is_some_and(|p| p.normalize_handle(&handle).is_err())
-            {
-                return Ok(());
+            let invalid = |h: &str| {
+                platforms
+                    .get("github")
+                    .is_some_and(|p| p.normalize_handle(h).is_err())
+            };
+            let mut variant = false;
+            if invalid(&handle) {
+                let v = handle.replace(['.', '_'], "-");
+                if input.entity.ty.as_str() == "account" || invalid(&v) {
+                    return Ok(());
+                }
+                handle = v;
+                variant = true;
             }
             let token = cx
                 .secrets
@@ -220,8 +230,29 @@ impl Module for Github {
                         .await?;
                 }
             }
-            out.progress(100, &format!("github · {}", user.login))
+            if variant {
+                out.attr(
+                    &acct,
+                    "matched_variant",
+                    AttrValue::Text(input.entity.handle().to_string()),
+                    false,
+                    "o1",
+                )
                 .await?;
+            }
+            out.progress(
+                100,
+                &if variant {
+                    format!(
+                        "github · {} (variant of {})",
+                        user.login,
+                        input.entity.handle()
+                    )
+                } else {
+                    format!("github · {}", user.login)
+                },
+            )
+            .await?;
             Ok(())
         })
     }

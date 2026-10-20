@@ -60,18 +60,18 @@ fn mouse_maps_onto_the_same_actions() {
     let _ = s;
 
     // Double-click an outbound row: pivot.
-    let (x, y) = find(&s2, "bluesky ");
+    let (x, y) = find(&s2, "bluesky   jmarlow");
     t.double_click(x, y).unwrap();
     let s = t.wait_for_text("›  ◐ bluesky", T).unwrap();
 
     // Wheel over the graph moves the cursor (back on the username first).
     t.keys("⌫").unwrap();
-    t.wait_for_text("7 has_account", T).unwrap();
+    t.wait_for_text("8 has_account", T).unwrap();
     let s = {
         let _ = s;
         settle(&t)
     };
-    let (x, y) = find(&s, "gitlab ");
+    let (x, y) = find(&s, "gitlab    jmarlow");
     t.wheel(x, y, true).unwrap();
     let s = t.wait_changed(&s, T).unwrap();
 
@@ -80,7 +80,7 @@ fn mouse_maps_onto_the_same_actions() {
         let _ = s;
         settle(&t)
     };
-    let (x, y) = find(&s, "gitlab ");
+    let (x, y) = find(&s, "gitlab    jmarlow");
     t.right_click(x, y).unwrap();
     let s = t.wait_for_text("Pivot here", T).unwrap();
     let (mx, my) = find(&s, "Pivot here");
