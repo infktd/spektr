@@ -1,12 +1,36 @@
 //! `spektr new <name>`.
 
+use std::path::PathBuf;
+
 use anyhow::{Context, Result, bail};
-use spektr_engine::{CaseInit, EngineAction, Profiles};
+use spektr_engine::{CaseInit, EngineAction, EngineHandle, Profiles};
 
 use crate::cli::NewArgs;
-use crate::wiring::Ctx;
+use crate::wiring::{Ctx, Modules};
 
 pub async fn run(ctx: &Ctx, a: NewArgs) -> Result<()> {
+    let (path, init, _) = create(ctx, &a, Modules::None).await?;
+    println!("created {}", path.display());
+    println!(
+        "  rules {} · depth {} · region {}{}",
+        init.rules_profile,
+        init.default_depth,
+        init.default_region,
+        init.subject
+            .as_deref()
+            .map(|s| format!(" · subject ◎ {s}"))
+            .unwrap_or_default()
+    );
+    Ok(())
+}
+
+/// Create the case file (shared with the TUI's new-case dialog) and record
+/// it in recent.toml.
+pub async fn create(
+    ctx: &Ctx,
+    a: &NewArgs,
+    modules: Modules<'_>,
+) -> Result<(PathBuf, CaseInit, EngineHandle)> {
     if a.name.is_empty()
         || !a
             .name
@@ -41,8 +65,8 @@ pub async fn run(ctx: &Ctx, a: NewArgs) -> Result<()> {
     if region.len() != 2 || !region.bytes().all(|b| b.is_ascii_uppercase()) {
         bail!("--region `{}` must be a two-letter country code", a.region);
     }
-    let dir = match a.dir {
-        Some(d) => d,
+    let dir = match &a.dir {
+        Some(d) => d.clone(),
         None => std::env::current_dir()?,
     };
     let path = dir.join(format!("{}.spektr", a.name));
@@ -58,7 +82,7 @@ pub async fn run(ctx: &Ctx, a: NewArgs) -> Result<()> {
         default_region: region,
         hub_threshold: 50,
     };
-    let handle = ctx.create(&path, &init).await?;
+    let handle = ctx.create(&path, &init, modules).await?;
     for rule in &a.scope {
         handle
             .act(EngineAction::AddScope(rule.clone()))
@@ -66,16 +90,6 @@ pub async fn run(ctx: &Ctx, a: NewArgs) -> Result<()> {
             .with_context(|| format!("--scope `{rule}`"))?;
     }
     handle.store().flush().await?;
-    println!("created {}", path.display());
-    println!(
-        "  rules {} · depth {} · region {}{}",
-        init.rules_profile,
-        init.default_depth,
-        init.default_region,
-        init.subject
-            .as_deref()
-            .map(|s| format!(" · subject ◎ {s}"))
-            .unwrap_or_default()
-    );
-    Ok(())
+    crate::recent::touch(&ctx.paths, &path, ctx.now());
+    Ok((path, init, handle))
 }

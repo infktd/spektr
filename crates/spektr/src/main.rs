@@ -6,12 +6,14 @@ mod config;
 mod fmt;
 mod logging;
 mod paths;
+mod recent;
 mod testenv;
+mod tui_host;
 mod wiring;
 
 use std::process::ExitCode;
 
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 
 use crate::cli::{Cli, Command};
 
@@ -20,13 +22,27 @@ const EXIT_ERROR: u8 = 1;
 const EXIT_USAGE: u8 = 2;
 const EXIT_VERIFY: u8 = 3;
 
+/// Run the TUI (launcher or a case) until the user quits.
+async fn tui(ctx: wiring::Ctx, start: spektr_tui::Start) -> anyhow::Result<ExitCode> {
+    use std::io::IsTerminal;
+    if !std::io::stdout().is_terminal() || !std::io::stdin().is_terminal() {
+        anyhow::bail!(
+            "spektr's TUI needs a terminal; for scripts use `spektr run`, `query` or `export`"
+        );
+    }
+    let settings = tui_host::settings(&ctx);
+    let host = std::sync::Arc::new(tui_host::TuiHost {
+        ctx: std::sync::Arc::new(ctx),
+    });
+    let engine = spektr_tui::run(host, settings, start).await?;
+    if let Some(h) = engine {
+        h.store().flush().await?;
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    let Some(command) = cli.command else {
-        // The launcher arrives with the TUI (Phase 3).
-        let _ = Cli::command().print_help();
-        return ExitCode::SUCCESS;
-    };
     let ctx = match wiring::Ctx::load() {
         Ok(c) => c,
         Err(e) => {
@@ -46,7 +62,16 @@ fn main() -> ExitCode {
         }
     };
     let result: anyhow::Result<ExitCode> = rt.block_on(async {
+        let Some(command) = cli.command else {
+            return tui(ctx, spektr_tui::Start::Launcher).await;
+        };
         match command {
+            Command::Open(a) => {
+                if !a.case.exists() {
+                    anyhow::bail!("{} not found", a.case.display());
+                }
+                tui(ctx, spektr_tui::Start::Open(a.case)).await
+            }
             Command::New(a) => commands::new::run(&ctx, a)
                 .await
                 .map(|()| ExitCode::SUCCESS),
