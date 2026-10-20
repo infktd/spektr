@@ -236,3 +236,17 @@ fn findings_screen_and_editor() {
         s
     });
 }
+
+#[test]
+fn tutor_coach_strip() {
+    snap("tutor", |size| {
+        let mut s = ws(size);
+        s.tutor = Some(spektr_tui::tutor::Tutor { lesson: 5, step: 0 });
+        s
+    });
+    snap("tutor_done", |size| {
+        let mut s = ws(size);
+        s.tutor = Some(spektr_tui::tutor::Tutor { lesson: 10, step: 0 });
+        s
+    });
+}

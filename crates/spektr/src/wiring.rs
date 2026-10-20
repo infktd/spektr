@@ -27,6 +27,8 @@ pub struct Ctx {
     pub config: Config,
     pub test: TestEnv,
     pub secrets: std::collections::BTreeMap<String, String>,
+    /// The tutor: every module replays the bundled fixtures.
+    pub tutor: bool,
 }
 
 impl Ctx {
@@ -49,6 +51,7 @@ impl Ctx {
             config,
             test,
             secrets,
+            tutor: false,
         })
     }
 
@@ -64,6 +67,9 @@ impl Ctx {
     }
 
     pub fn net(&self) -> Result<Net> {
+        if self.tutor {
+            return Ok(Net::replay(spektr_modules::bundled::fixtures()?));
+        }
         let transport = match &self.test.transport {
             TransportSpec::Live => Transport::Live,
             TransportSpec::Record(dir) => Transport::Record(dir.clone()),

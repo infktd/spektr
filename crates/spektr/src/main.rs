@@ -33,6 +33,7 @@ async fn tui(ctx: wiring::Ctx, start: spektr_tui::Start) -> anyhow::Result<ExitC
     let settings = tui_host::settings(&ctx);
     let host = std::sync::Arc::new(tui_host::TuiHost {
         ctx: std::sync::Arc::new(ctx),
+        tutor: std::sync::atomic::AtomicBool::new(false),
     });
     let engine = spektr_tui::run(host, settings, start).await?;
     if let Some(h) = engine {
@@ -103,6 +104,7 @@ fn main() -> ExitCode {
             Command::Attach(a) => commands::evidence::attach(&ctx, a)
                 .await
                 .map(|()| ExitCode::SUCCESS),
+            Command::Tutor { reset } => tui(ctx, spektr_tui::Start::Tutor(reset)).await,
             Command::Module(cmd) => commands::module::run(&ctx, cmd).await.map(|ok| {
                 if ok {
                     ExitCode::SUCCESS

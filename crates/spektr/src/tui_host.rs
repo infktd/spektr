@@ -8,6 +8,7 @@ use futures::future::BoxFuture;
 use spektr_engine::{EngineHandle, Profiles};
 use spektr_model::EntityFlags;
 use spektr_store::Db;
+use spektr_tui::host::TutorStart;
 use spektr_tui::{Chain, DoctorLine, External, Host, Level, NewCase, RecentCase, Settings};
 
 use crate::cli::NewArgs;
@@ -16,6 +17,32 @@ use crate::wiring::{Ctx, Modules};
 
 pub struct TuiHost {
     pub ctx: Arc<Ctx>,
+    /// The tutor is running: launchers and viewers are recorded, not opened.
+    pub tutor: std::sync::atomic::AtomicBool,
+}
+
+/// The tutor's case and progress file, in the state dir.
+pub fn tutor_paths(ctx: &Ctx) -> (PathBuf, PathBuf) {
+    (
+        ctx.paths.state.join("tutor").join("tutor.spektr"),
+        ctx.paths.state.join("tutor.toml"),
+    )
+}
+
+/// `(lesson, step)` from tutor.toml; the start when missing.
+pub fn tutor_progress(ctx: &Ctx) -> (usize, usize) {
+    let (_, p) = tutor_paths(ctx);
+    let Ok(text) = std::fs::read_to_string(p) else {
+        return (0, 0);
+    };
+    let t: toml::Table = toml::from_str(&text).unwrap_or_default();
+    let n = |k: &str| {
+        t.get(k)
+            .and_then(toml::Value::as_integer)
+            .and_then(|v| usize::try_from(v).ok())
+            .unwrap_or(0)
+    };
+    (n("lesson"), n("step"))
 }
 
 impl TuiHost {
@@ -163,7 +190,8 @@ impl Host for TuiHost {
         };
         // Test mode (ARCHITECTURE §8): nothing reaches the OS; the request
         // is recorded for the E2E tests.
-        if self.ctx.test.test_mode {
+        let tutor = self.tutor.load(std::sync::atomic::Ordering::Relaxed);
+        if self.ctx.test.test_mode || tutor {
             record_open(&self.ctx.paths.state, kind, &target).map_err(|e| e.to_string())?;
             return Ok(Some(target));
         }
@@ -180,6 +208,56 @@ impl Host for TuiHost {
 
     fn pager_takes_terminal(&self) -> bool {
         !self.ctx.test.test_mode
+    }
+
+    fn save_tutor(&self, lesson: usize, step: usize) {
+        let (_, p) = tutor_paths(&self.ctx);
+        if let Some(d) = p.parent() {
+            let _ = std::fs::create_dir_all(d);
+        }
+        let _ = std::fs::write(
+            p,
+            format!("# spektr tutor progress\nlesson = {lesson}\nstep = {step}\n"),
+        );
+    }
+
+    fn tutor(&self, reset: bool) -> BoxFuture<'_, Result<TutorStart, String>> {
+        Box::pin(async move {
+            let mut ctx = Ctx::load().map_err(|e| format!("{e:#}"))?;
+            ctx.test = self.ctx.test.clone();
+            ctx.tutor = true;
+            let (case, progress_file) = tutor_paths(&ctx);
+            if reset {
+                for ext in ["", "-wal", "-shm"] {
+                    let _ = std::fs::remove_file(format!("{}{ext}", case.display()));
+                }
+                let _ = std::fs::remove_file(&progress_file);
+            }
+            let engine = if case.exists() {
+                ctx.open(&case, None, Modules::All).await
+            } else {
+                if let Some(d) = case.parent() {
+                    std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
+                }
+                let init = spektr_engine::CaseInit {
+                    name: "tutor".into(),
+                    subject: Some("Jordan Marlow".into()),
+                    last_seen: "2026-09-28".parse().ok(),
+                    rules_profile: "tracelabs".into(),
+                    default_depth: 2,
+                    default_region: "US".into(),
+                    hub_threshold: 50,
+                };
+                ctx.create(&case, &init, Modules::All).await
+            }
+            .map_err(|e| format!("{e:#}"))?;
+            self.tutor.store(true, std::sync::atomic::Ordering::Relaxed);
+            Ok(TutorStart {
+                path: case,
+                engine,
+                progress: tutor_progress(&ctx),
+            })
+        })
     }
 }
 
@@ -280,6 +358,7 @@ pub fn settings(ctx: &Ctx) -> Settings {
             spektr_tui::ImageMode::Auto
         });
     Settings {
+        tutor: None,
         script: ctx.test.keys.clone().filter(|_| ctx.test.test_mode),
         mouse: c.mouse.unwrap_or(true),
         images,

@@ -36,6 +36,8 @@ const TICK: Duration = Duration::from_millis(250);
 pub enum Start {
     Launcher,
     Open(PathBuf),
+    /// The tutor (fresh with `true`).
+    Tutor(bool),
 }
 
 enum Internal {
@@ -246,8 +248,14 @@ async fn run_loop(
     s.images = crate::images::Images::new(protocol, picker.is_some());
     let detected = picker.clone();
     let mut picker = picker;
-    if let Start::Open(p) = start {
-        s.screen = Screen::Opening(p);
+    let mut tutor_start = None;
+    match start {
+        Start::Open(p) => s.screen = Screen::Opening(p),
+        Start::Tutor(reset) => {
+            s.screen = Screen::Opening(PathBuf::from("the tutor"));
+            tutor_start = Some(reset);
+        }
+        Start::Launcher => {}
     }
     let (tx, mut rx) = mpsc::unbounded_channel::<Internal>();
     let mut engine: Option<EngineHandle> = None;
@@ -258,7 +266,12 @@ async fn run_loop(
     let mut frame_at: Option<tokio::time::Instant> = None;
     let mut last_draw = Instant::now() - FRAME;
     let t0 = Instant::now();
-    let fx = init(&mut s);
+    let mut fx = init(&mut s);
+    if let Some(reset) = tutor_start {
+        // `init` would open the placeholder path; the host opens the tutor.
+        fx.retain(|e| !matches!(e, crate::msg::Effect::Open(_)));
+        fx.push(crate::msg::Effect::StartTutor(reset));
+    }
     {
         let mut rt = Rt {
             host: &host,
@@ -539,6 +552,29 @@ fn run_effects(
                         });
                     });
                 }
+            }
+            Effect::SaveTutor(lesson, step) => {
+                let h = host.clone();
+                tokio::task::spawn_blocking(move || h.save_tutor(lesson, step));
+            }
+            Effect::StartTutor(reset) => {
+                let h = host.clone();
+                let tx2 = tx.clone();
+                tokio::spawn(async move {
+                    match h.tutor(reset).await {
+                        Ok(t) => {
+                            let _ = tx2.send(Internal::Engine(t.path, t.engine));
+                            let _ = tx2
+                                .send(Internal::Msg(Msg::TutorStarted(t.progress.0, t.progress.1)));
+                        }
+                        Err(e) => {
+                            let _ = tx2.send(Internal::Msg(Msg::Acted {
+                                what: "tutor".into(),
+                                result: Err(e),
+                            }));
+                        }
+                    }
+                });
             }
             Effect::WriteFile(path, text) => {
                 tokio::task::spawn_blocking(move || {

@@ -21,6 +21,7 @@ pub mod state;
 pub mod tabs;
 pub mod text;
 pub mod theme;
+pub mod tutor;
 pub mod update;
 pub mod view;
 

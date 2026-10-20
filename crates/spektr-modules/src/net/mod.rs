@@ -4,7 +4,7 @@
 //! QA never touch the network.
 
 mod dns;
-mod fixtures;
+pub mod fixtures;
 mod http;
 
 use std::path::PathBuf;

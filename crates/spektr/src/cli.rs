@@ -38,6 +38,12 @@ pub enum Command {
     /// Set up optional components.
     #[command(subcommand)]
     Setup(SetupCmd),
+    /// The tutor: ten lessons on a bundled case, offline (about 15 minutes).
+    Tutor {
+        /// Start over.
+        #[arg(long)]
+        reset: bool,
+    },
     /// Exec modules: new, test, check, install, list, info, enable, disable.
     #[command(subcommand)]
     Module(ModuleCmd),

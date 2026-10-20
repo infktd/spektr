@@ -42,9 +42,41 @@ pub fn update(s: &mut AppState, msg: Msg) -> Vec<Effect> {
     // Handlers clear `dirty` when a message changed nothing; a render
     // already pending from an earlier message must survive that.
     let pending = s.dirty;
-    let fx = handle(s, msg);
+    let before = s.tutor.is_some().then(|| crate::tutor::probe(s));
+    let mut fx = handle(s, msg);
+    if let Some(before) = before {
+        tutor_advance(s, &before, &mut fx);
+    }
     s.dirty |= pending;
     fx
+}
+
+/// Feed the tutor what changed and what happened; save on progress.
+fn tutor_advance(s: &mut AppState, before: &crate::tutor::Probe, fx: &mut Vec<Effect>) {
+    let after = crate::tutor::probe(s);
+    let mut events = crate::tutor::diff(before, &after);
+    events.append(&mut s.tutor_events);
+    let Some(t) = &mut s.tutor else { return };
+    let mut moved = false;
+    for e in &events {
+        moved |= t.observe(e);
+    }
+    if moved {
+        let (lesson, step) = (t.lesson, t.step);
+        let done = t.done();
+        fx.push(Effect::SaveTutor(lesson, step));
+        s.dirty = true;
+        if done {
+            toast(s, "tutor complete · :tutor reset starts over", Token::Ok);
+        }
+    }
+}
+
+/// A semantic event for the tutor, when one is running.
+pub fn tutor_event(s: &mut AppState, e: crate::tutor::Event) {
+    if s.tutor.is_some() {
+        s.tutor_events.push(e);
+    }
 }
 
 fn handle(s: &mut AppState, msg: Msg) -> Vec<Effect> {
@@ -164,6 +196,9 @@ fn handle(s: &mut AppState, msg: Msg) -> Vec<Effect> {
         }
         Msg::Query(tag, r) => query_result(s, tag, r, &mut fx),
         Msg::Acted { what, result } => acted(s, &what, result, &mut fx),
+        Msg::TutorStarted(lesson, step) => {
+            s.tutor = Some(crate::tutor::Tutor { lesson, step });
+        }
         Msg::Wrote(r) => match r {
             Ok(p) => {
                 let t = format!(
@@ -505,10 +540,10 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
         Action::Help => s.overlay = Some(Overlay::Help(Help::default())),
         Action::Palette => open_palette(s),
         Action::Filter => {
+            // `/` starts a new search (esc clears a kept filter).
             w.pane = Pane::Entities;
-            let text = w.filter.take().map(|f| f.text).unwrap_or_default();
             w.filter = Some(FilterState {
-                text,
+                text: String::new(),
                 editing: true,
                 matches: 0,
             });
@@ -1324,6 +1359,18 @@ fn run_cmd(s: &mut AppState, cmd: Cmd, target: Option<&EntitySummary>, fx: &mut 
             what: "reload".into(),
             action: EngineAction::Reload,
         }),
+        Cmd::Tutor(reset) => {
+            toast(
+                s,
+                if reset {
+                    "restarting the tutor…"
+                } else {
+                    "opening the tutor…"
+                },
+                Token::FgMuted,
+            );
+            fx.push(Effect::StartTutor(reset));
+        }
         Cmd::FindingNew => match target {
             Some(t) => {
                 let about = Some(display_value(t, s.glyphs));
@@ -2137,6 +2184,19 @@ fn push_row(w: &mut Workspace, row: ActRow) {
 }
 
 fn engine_event(s: &mut AppState, ev: EngineEvent, fx: &mut Vec<Effect>) {
+    let tutor_on = s.tutor.is_some();
+    let mut tutor_evs = Vec::new();
+    engine_event_in(s, ev, fx, tutor_on, &mut tutor_evs);
+    s.tutor_events.extend(tutor_evs);
+}
+
+fn engine_event_in(
+    s: &mut AppState,
+    ev: EngineEvent,
+    fx: &mut Vec<Effect>,
+    tutor_on: bool,
+    tutor_evs: &mut Vec<crate::tutor::Event>,
+) {
     let g = s.glyphs;
     let Some(w) = s.workspace_mut() else { return };
     let at = ev.at;
@@ -2389,6 +2449,9 @@ fn engine_event(s: &mut AppState, ev: EngineEvent, fx: &mut Vec<Effect>) {
             if w.top_run.is_none_or(|t| t == run) {
                 w.top_run = None;
                 w.playbook_line = None;
+                if tutor_on && state == "done" {
+                    tutor_evs.push(crate::tutor::Event::PlaybookFinished(playbook.clone()));
+                }
             }
             let (m, t) = match state.as_str() {
                 "done" => (Marker::Ok, Token::Ok),
@@ -2429,6 +2492,9 @@ fn engine_event(s: &mut AppState, ev: EngineEvent, fx: &mut Vec<Effect>) {
         EventKind::LauncherOpened {
             launcher, entity, ..
         } => {
+            if tutor_on {
+                tutor_evs.push(crate::tutor::Event::LauncherOpened);
+            }
             let mut spans = vec![(format!("{launcher}  "), Token::Fg)];
             spans.extend(ent_span(&entity, g));
             spans.push(("  (recorded)".into(), Token::FgMuted));
@@ -2548,9 +2614,11 @@ fn query_result(s: &mut AppState, tag: Tag, r: Result<QueryResult, String>, fx: 
             }
             // Keep the cursor on the same row (group and entity) when rows
             // re-sort, e.g. a confirmed edge moving to the top.
+            // (only within one focus: a pivot starts at the top)
             let keep = w
                 .ego
                 .as_ref()
+                .filter(|e| e.focus.id == view.focus.id)
                 .zip(w.ego_item())
                 .and_then(|(e, it)| ego::row(e, it))
                 .map(|(g, r)| (g.key.clone(), r.entity.id));
@@ -2732,6 +2800,10 @@ fn acted(s: &mut AppState, what: &str, r: Result<ActionOutcome, String>, fx: &mu
                     jobs,
                 } => {
                     let e = entity.clone();
+                    if s.tutor.is_some() {
+                        s.tutor_events
+                            .push(crate::tutor::Event::Seeded(e.value.clone()));
+                    }
                     if let Some(w) = s.workspace_mut() {
                         w.stale = Stale::all();
                         schedule(w, fx);
@@ -2761,7 +2833,12 @@ fn acted(s: &mut AppState, what: &str, r: Result<ActionOutcome, String>, fx: &mu
                     }
                 }
                 ActionOutcome::Merged { .. } => "merged".into(),
-                ActionOutcome::PlaybookStarted { .. } => format!("{what}: started"),
+                ActionOutcome::PlaybookStarted { .. } => {
+                    if let Some(name) = what.strip_prefix("playbook ") {
+                        tutor_event(s, crate::tutor::Event::PlaybookStarted(name.to_string()));
+                    }
+                    format!("{what}: started")
+                }
                 ActionOutcome::Launch { url } => {
                     fx.push(Effect::OpenUrl(url.clone()));
                     format!("{what}: opened in the browser")
@@ -2773,7 +2850,10 @@ fn acted(s: &mut AppState, what: &str, r: Result<ActionOutcome, String>, fx: &mu
                         format!("reloaded · {}", warnings.join(" · "))
                     }
                 }
-                ActionOutcome::Captured { .. } => "captured".into(),
+                ActionOutcome::Captured { .. } => {
+                    tutor_event(s, crate::tutor::Event::Captured);
+                    "captured".into()
+                }
                 ActionOutcome::Attached { image, .. } => {
                     if image.is_some() {
                         "attached · image added".into()
@@ -2787,13 +2867,27 @@ fn acted(s: &mut AppState, what: &str, r: Result<ActionOutcome, String>, fx: &mu
                 },
                 ActionOutcome::FindingCreated { id } => {
                     let id = *id;
+                    tutor_event(s, crate::tutor::Event::FindingCreated);
                     if let Some(w) = s.workspace_mut() {
                         crate::findings::open(w, Some(id), fx);
                         w.findings.current = Some(id);
                     }
                     format!("F-{id} created · e edits it")
                 }
-                ActionOutcome::Done => format!("{what} ✓"),
+                ActionOutcome::Done => {
+                    let e = match what {
+                        "confirm" => Some(crate::tutor::Event::EdgeConfirmed),
+                        "done" | "skipped" => Some(crate::tutor::Event::ItemResolved),
+                        w if w.starts_with("F-") && w.ends_with(" ready") => {
+                            Some(crate::tutor::Event::FindingReady)
+                        }
+                        _ => None,
+                    };
+                    if let Some(e) = e {
+                        tutor_event(s, e);
+                    }
+                    format!("{what} ✓")
+                }
             };
             toast(s, &msg, Token::Fg);
             if let Some(w) = s.workspace_mut() {
