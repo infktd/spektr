@@ -348,6 +348,26 @@ impl<'a> Reader<'a> {
             .collect())
     }
 
+    /// A queued or running job for `(module, input)`, if any.
+    pub fn active_job(&self, module: &str, input: EntityId) -> StoreResult<Option<JobId>> {
+        let raw: Option<Vec<u8>> = self
+            .conn
+            .prepare_cached("SELECT id FROM job WHERE module = ?1 AND input_entity = ?2 AND state IN ('queued', 'running') LIMIT 1")?
+            .query_row(params![module, idb(input)], |r| r.get(0))
+            .optional()?;
+        Ok(raw.and_then(|b| JobId::from_slice(&b)))
+    }
+
+    /// Jobs of `module` that ran (or are running) since `since` — the daily
+    /// budget's usage.
+    pub fn jobs_since(&self, module: &str, since: Timestamp) -> StoreResult<u64> {
+        let n: i64 = self
+            .conn
+            .prepare_cached("SELECT count(*) FROM job WHERE module = ?1 AND queued_at >= ?2 AND state IN ('running', 'done', 'failed')")?
+            .query_row(params![module, ts(since)], |r| r.get(0))?;
+        Ok(u64::try_from(n).unwrap_or(0))
+    }
+
     pub fn jobs_for_run(&self, run: PlaybookRunId) -> StoreResult<Vec<JobRow>> {
         let mut stmt = self.conn.prepare_cached(&format!(
             "SELECT {JOB_COLS} FROM job WHERE run_id = ?1 ORDER BY queued_at, id"
