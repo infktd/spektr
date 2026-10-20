@@ -13,7 +13,10 @@ use spektr_store::{CaseInit, OpenOptions, Store};
 use tokio::sync::{broadcast, mpsc};
 
 use crate::capture::CaptureService;
-use crate::correlate::{Correlator, IpCorrelator};
+use crate::correlate::{
+    AnalyticsIdCorrelator, AvatarPhashCorrelator, CertSanCorrelator, Correlator, FaviconCorrelator,
+    IpCorrelator, RegistrantEmailCorrelator, SamePersonCandidates,
+};
 use crate::error::{EngineError, EngineResult};
 use crate::events::{EngineEvent, EventKind};
 use crate::exec::ExecModule;
@@ -233,7 +236,15 @@ impl Engine {
             exec_names: RwLock::new(BTreeSet::new()),
             profiles: RwLock::new(profiles),
             capture: RwLock::new(None),
-            correlators: vec![Box::new(IpCorrelator)],
+            correlators: vec![
+                Box::new(AvatarPhashCorrelator),
+                Box::new(AnalyticsIdCorrelator),
+                Box::new(FaviconCorrelator),
+                Box::new(RegistrantEmailCorrelator),
+                Box::new(CertSanCorrelator),
+                Box::new(IpCorrelator),
+                Box::new(SamePersonCandidates),
+            ],
             events,
             sched,
             ingest,

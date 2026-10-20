@@ -26,6 +26,9 @@ pub struct PlanRequest {
     pub trigger: Trigger,
     pub run_id: Option<PlaybookRunId>,
     pub rerun: bool,
+    /// A re-plan (an entity gained an attribute): record nothing when the
+    /// cache or the rules already decided, only queue what can now run.
+    pub quiet: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -237,6 +240,7 @@ pub(crate) async fn plan(
                             Some(summary),
                         ));
                     }
+                    Verdict::Blocked(_) | Verdict::Cached(_) if req.quiet => {}
                     Verdict::Blocked(reason) => {
                         let job = tx.add_job(
                             &actor,
@@ -356,6 +360,7 @@ pub(crate) fn auto_requests(
                     trigger: Trigger::Auto,
                     run_id: None,
                     rerun: false,
+                    quiet: false,
                 });
             }
         }
