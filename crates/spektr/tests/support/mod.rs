@@ -108,6 +108,46 @@ impl Home {
         std::fs::write(dir.join("recent.toml"), t).unwrap();
     }
 
+    /// `<config>` (XDG_CONFIG_HOME/spektr).
+    pub fn config_dir(&self) -> PathBuf {
+        self.dir.path().join("home/.config/spektr")
+    }
+
+    /// `<state>/opened.jsonl`: what test mode would have opened.
+    pub fn opened(&self) -> String {
+        std::fs::read_to_string(
+            self.dir
+                .path()
+                .join("home/.local/state/spektr/opened.jsonl"),
+        )
+        .unwrap_or_default()
+    }
+
+    /// Audit rows with this action (`edge.confirm`, `launcher.open`): their
+    /// payloads.
+    pub fn audit_action(&self, name: &str, action: &str) -> Vec<String> {
+        let c = rusqlite::Connection::open(self.case(name)).unwrap();
+        let mut st = c
+            .prepare("SELECT payload FROM audit WHERE action = ?1 ORDER BY seq")
+            .unwrap();
+        st.query_map([action], |r| r.get::<_, String>(0))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect()
+    }
+
+    /// Audit payloads matching a SQL LIKE pattern.
+    pub fn audit_like(&self, name: &str, pattern: &str) -> Vec<String> {
+        let c = rusqlite::Connection::open(self.case(name)).unwrap();
+        let mut st = c
+            .prepare("SELECT payload FROM audit WHERE payload LIKE ?1 ORDER BY seq")
+            .unwrap();
+        st.query_map([pattern], |r| r.get::<_, String>(0))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect()
+    }
+
     pub fn case(&self, name: &str) -> PathBuf {
         self.work().join(format!("{name}.spektr"))
     }
