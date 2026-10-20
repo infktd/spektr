@@ -162,7 +162,7 @@ The `same_person` detail (a side-by-side field table with `=` `≠` `·`, and bo
 | `p4-menu-capture/submenu-launchers` | an account's profile page | "no URL or launcher" | `8810434`: Open in browser ▸ and `O` use a url's own URL, an account's profile or an image's source |
 | `p4-checklist/checklist-items` | `avatar · github · jmarlow-wav` (artboard 10) | `1001.png` | `8810434`: items name an image by the account that posted it |
 | `p4-review/review-accepted-one` | the account as displayed | `okru:jmarlow.wav` | `8810434` |
-| `p4-tabs/timeline-kind` | `e kind: created at` | `created_at` | in the PR's last commit |
+| `p4-tabs/timeline-kind` | `e kind: created at` | `created_at` | `b5abe37` |
 | live run | http-fingerprint ok on example.com | `bad URL data:,` (example.com declares `<link rel="icon" href="data:,">`) | `0ddccf2`: a non-http(s) icon means no favicon |
 
 ## Live smoke run (`cargo xtask qa --live`)
