@@ -218,7 +218,7 @@ fn valid_module_name(s: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
-fn valid_semver(s: &str) -> bool {
+pub(crate) fn valid_semver(s: &str) -> bool {
     let core = s.split(['-', '+']).next().unwrap_or("");
     let parts: Vec<&str> = core.split('.').collect();
     parts.len() == 3

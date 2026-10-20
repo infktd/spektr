@@ -1,0 +1,57 @@
+# Built-in pivot launchers (MODULES §8). Opening one in the browser is
+# recorded in the audit log. {value} is the entity's value, URL-encoded;
+# {url} is the entity's URL, or an image's source URL.
+
+[[launcher]]
+id = "google-exact"
+name = "Google"
+for = ["username", "email", "phone", "person", "organization"]
+url = "https://www.google.com/search?q=%22{value}%22"
+
+[[launcher]]
+id = "bing-exact"
+name = "Bing"
+for = ["username", "email", "phone", "person", "organization"]
+url = "https://www.bing.com/search?q=%22{value}%22"
+
+[[launcher]]
+id = "duckduckgo-exact"
+name = "DuckDuckGo"
+for = ["username", "email", "phone", "person", "organization"]
+url = "https://duckduckgo.com/?q=%22{value}%22"
+
+[[launcher]]
+id = "lens"
+name = "Google Lens"
+for = ["image", "url"]
+url = "https://lens.google.com/uploadbyurl?url={url}"
+
+[[launcher]]
+id = "yandex-images"
+name = "Yandex Images"
+for = ["image", "url"]
+url = "https://yandex.com/images/search?rpt=imageview&url={url}"
+
+[[launcher]]
+id = "tineye"
+name = "TinEye"
+for = ["image", "url"]
+url = "https://tineye.com/search?url={url}"
+
+[[launcher]]
+id = "bing-visual"
+name = "Bing Visual Search"
+for = ["image", "url"]
+url = "https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:{url}"
+
+[[launcher]]
+id = "google-site"
+name = "Google: site search"
+for = ["domain", "subdomain"]
+url = "https://www.google.com/search?q=site%3A{value}"
+
+[[launcher]]
+id = "wayback-web"
+name = "Wayback Machine"
+for = ["url", "domain"]
+url = "https://web.archive.org/web/*/{value}"

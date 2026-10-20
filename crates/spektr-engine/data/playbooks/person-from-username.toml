@@ -1,0 +1,36 @@
+[playbook]
+name = "person-from-username"
+version = "1.0.0"
+description = "Find a person's accounts and profile details from one handle"
+seed = ["username"]
+
+[[step]]
+title = "Sweep the handle"
+run = ["username-sweep"]
+on = "seed"
+
+[[step]]
+title = "Profile details"
+run = ["github", "bluesky", "gitlab", "mastodon", "hackernews"]
+on = "seed"
+
+[[step]]
+title = "Avatar hashes"
+run = ["avatar-hash"]
+on = { type = "account" }
+
+[[step]]
+title = "Linked sites"
+run = ["http-fingerprint", "wayback"]
+on = { type = "url", max = 25 }
+
+[[step]]
+title = "Reverse image search"
+check = "Reverse image search each avatar. Look for the same photo on other profiles, shops, forums or news."
+open = ["lens", "yandex-images", "tineye"]
+on = { type = "image" }
+
+[[step]]
+title = "Review unsure sweep hits"
+check = "Review the sites where the sweep couldn't tell whether the account exists."
+screen = "review"

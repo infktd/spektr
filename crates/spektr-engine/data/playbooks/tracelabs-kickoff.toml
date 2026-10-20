@@ -1,0 +1,44 @@
+[playbook]
+name = "tracelabs-kickoff"
+version = "1.0.0"
+description = "Start a Trace Labs case: run the person playbooks on everything known about the subject, then work the scoring categories"
+seed = ["person"]
+requires_profile = "tracelabs"
+
+[[step]]
+title = "Known handles"
+playbook = "person-from-username"
+on = { type = "username", from = "seed-links" }
+
+[[step]]
+title = "Known emails"
+playbook = "person-from-email"
+on = { type = "email", from = "seed-links" }
+
+[[step]]
+title = "Known phones"
+playbook = "person-from-phone"
+on = { type = "phone", from = "seed-links" }
+
+[[step]]
+title = "Employment"
+check = "Employment: search for the subject's name with likely employers, schools and job titles. Record workplaces, supervisors and dates."
+open = ["google-exact"]
+on = "seed"
+
+[[step]]
+title = "Family and friends"
+check = "Family and friends: look for obituaries, public family trees, tagged photos and meaningful interactions. Explain each connection."
+open = ["google-exact"]
+on = "seed"
+
+[[step]]
+title = "Day last seen"
+check = "Day last seen: look for posts and activity around the last-seen date. News articles are leads only; Trace Labs doesn't accept them as evidence."
+open = ["google-exact"]
+on = "seed"
+
+[[step]]
+title = "Advancing the timeline"
+check = "Look for any activity dated after the last-seen date (timeline tab, ▲ markers)."
+on = "seed"

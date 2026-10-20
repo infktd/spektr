@@ -1,0 +1,31 @@
+[playbook]
+name = "person-from-email"
+version = "1.0.0"
+description = "Profiles, linked accounts and breach exposure for one email address"
+seed = ["email"]
+
+[[step]]
+title = "Email basics"
+run = ["email-check", "gravatar", "hibp"]
+on = "seed"
+
+[[step]]
+title = "Avatar hashes"
+run = ["avatar-hash"]
+on = { type = "account" }
+
+[[step]]
+title = "Linked sites"
+run = ["http-fingerprint"]
+on = { type = "url", max = 25 }
+
+[[step]]
+title = "Search the exact address"
+check = "Search the exact address in quotes. Note forum posts, documents and profiles that mention it."
+open = ["google-exact", "bing-exact", "duckduckgo-exact"]
+on = "seed"
+
+[[step]]
+title = "Handle from the local part"
+check = "If the part before the @ looks like a handle, seed it as a username and run person-from-username."
+on = "seed"

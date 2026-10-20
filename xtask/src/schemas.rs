@@ -1,12 +1,13 @@
 //! `cargo xtask schemas [--check]`: generate `schemas/exec-protocol.v1.json`
-//! and `schemas/manifest.v1.json` from the Rust types (MODULES §3).
+//! `schemas/manifest.v1.json` and `schemas/playbook.v1.json` from the Rust
+//! types (MODULES §3, PLAYBOOKS §2).
 
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use spektr_protocol::{HostMessage, ManifestFile, ModuleMessage};
+use spektr_protocol::{HostMessage, ManifestFile, ModuleMessage, PlaybookFile};
 
 /// One line of the exec protocol, in either direction.
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -40,6 +41,13 @@ pub fn run(root: &Path, check: bool) -> Result<()> {
             render::<ManifestFile>(
                 "spektr module manifest v1",
                 "module.toml. See docs/MODULES.md §2.",
+            )?,
+        ),
+        (
+            "schemas/playbook.v1.json",
+            render::<PlaybookFile>(
+                "spektr playbook v1",
+                "A playbook TOML file. See docs/PLAYBOOKS.md §1.",
             )?,
         ),
     ];

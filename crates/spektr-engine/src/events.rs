@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use jiff::Timestamp;
 use serde::Serialize;
-use spektr_model::{ArtifactKind, EdgeId, JobId, Predicate, ReviewItemId};
+use spektr_model::{ArtifactKind, EdgeId, JobId, PlaybookRunId, Predicate, ReviewItemId};
 use spektr_protocol::LogLevel;
 use spektr_store::{EntitySummary, JobState, ReviewKind, Trigger};
 
@@ -112,5 +112,36 @@ pub enum EventKind {
     /// Something changed that views should re-query (merge, scope, meta).
     CaseChanged {
         what: String,
+    },
+    PlaybookStarted {
+        run: PlaybookRunId,
+        playbook: String,
+        seed: EntitySummary,
+        parent: Option<PlaybookRunId>,
+    },
+    /// A step started (`running`) or finished (`done`, `stopped`).
+    PlaybookStep {
+        run: PlaybookRunId,
+        playbook: String,
+        /// 1-based.
+        step: u32,
+        of: u32,
+        title: String,
+        state: String,
+    },
+    PlaybookFinished {
+        run: PlaybookRunId,
+        playbook: String,
+        state: String,
+    },
+    ChecklistAdded {
+        run: PlaybookRunId,
+        count: u32,
+    },
+    /// A launcher was opened (recorded in the audit log).
+    LauncherOpened {
+        launcher: String,
+        entity: EntitySummary,
+        url: String,
     },
 }

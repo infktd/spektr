@@ -1,0 +1,71 @@
+// Fictional infrastructure for kestrel.example (documentation ranges, `.example` names). Domain-recon's story:
+// a certificate also covering kestrel-cdn.example, both registered by ops@kestrel.example, one analytics id and favicon.
+{"kind": "http", "method": "GET", "url": "https://kestrel.example/", "status": 200, "headers": {"content-type": "text/html", "server": "nginx"}, "body": "<!doctype html><html><head><title>Kestrel Labs</title><link rel=\"icon\" href=\"/favicon.png\"><script>gtag('config','G-K3STR3L01');</script></head><body><a href=\"mailto:ops@kestrel.example\">ops</a></body></html>"}
+{"kind": "http", "method": "GET", "url": "https://kestrel.example/favicon.png", "status": 200, "headers": {"content-type": "image/png"}, "body_b64": "iVBORw0KGgprZXN0cmVsLWZhdmljb24tZml4dHVyZYlQTkcNChoKa2VzdHJlbC1mYXZpY29uLWZpeHR1cmWJUE5HDQoaCmtlc3RyZWwtZmF2aWNvbi1maXh0dXJl"}
+{"kind": "http", "method": "GET", "url": "https://kestrel-cdn.example/", "status": 200, "headers": {"content-type": "text/html", "server": "nginx"}, "body": "<!doctype html><html><head><title>Kestrel CDN</title><link rel=\"icon\" href=\"/favicon.png\"><script>gtag('config','G-K3STR3L01');</script></head><body></body></html>"}
+{"kind": "http", "method": "GET", "url": "https://kestrel-cdn.example/favicon.png", "status": 200, "headers": {"content-type": "image/png"}, "body_b64": "iVBORw0KGgprZXN0cmVsLWZhdmljb24tZml4dHVyZYlQTkcNChoKa2VzdHJlbC1mYXZpY29uLWZpeHR1cmWJUE5HDQoaCmtlc3RyZWwtZmF2aWNvbi1maXh0dXJl"}
+{"kind": "dns", "name": "www.kestrel.example", "rtype": "A", "answers": ["203.0.113.24"]}
+{"kind": "dns", "name": "www.kestrel.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "www.kestrel.example", "rtype": "MX", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://www.kestrel.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=www.kestrel.example/*&output=json&fl=timestamp,original&limit=1", "status": 200, "headers": {"content-type": "application/json"}, "body": []}
+{"kind": "http", "method": "GET", "url": "https://vpn.kestrel.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=vpn.kestrel.example/*&output=json&fl=timestamp,original&limit=1", "status": 200, "headers": {"content-type": "application/json"}, "body": []}
+{"kind": "dns", "name": "dev.kestrel.example", "rtype": "A", "answers": ["203.0.113.40"]}
+{"kind": "dns", "name": "dev.kestrel.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "dev.kestrel.example", "rtype": "MX", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://dev.kestrel.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=dev.kestrel.example/*&output=json&fl=timestamp,original&limit=1", "status": 200, "headers": {"content-type": "application/json"}, "body": []}
+{"kind": "dns", "name": "git.kestrel.example", "rtype": "A", "answers": ["203.0.113.41"]}
+{"kind": "dns", "name": "git.kestrel.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "git.kestrel.example", "rtype": "MX", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://git.kestrel.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=git.kestrel.example/*&output=json&fl=timestamp,original&limit=1", "status": 200, "headers": {"content-type": "application/json"}, "body": []}
+{"kind": "dns", "name": "mail.kestrel.example", "rtype": "A", "answers": ["203.0.113.42"]}
+{"kind": "dns", "name": "mail.kestrel.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "mail.kestrel.example", "rtype": "MX", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://mail.kestrel.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=mail.kestrel.example/*&output=json&fl=timestamp,original&limit=1", "status": 200, "headers": {"content-type": "application/json"}, "body": []}
+{"kind": "dns", "name": "kestrel-cdn.example", "rtype": "A", "answers": ["203.0.113.30"]}
+{"kind": "dns", "name": "kestrel-cdn.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "kestrel-cdn.example", "rtype": "MX", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://crt.sh/?q=%25.kestrel.example&output=json", "status": 200, "headers": {"content-type": "application/json"}, "body": [{"id": 8100001, "issuer_name": "C=US, O=Let's Encrypt, CN=R11", "common_name": "kestrel.example", "name_value": "kestrel.example\nwww.kestrel.example\nvpn.kestrel.example\nkestrel-cdn.example", "not_before": "2026-07-01T00:00:00", "not_after": "2026-09-29T00:00:00"}, {"id": 8100002, "issuer_name": "C=US, O=Let's Encrypt, CN=E6", "common_name": "*.kestrel.example", "name_value": "*.kestrel.example\ndev.kestrel.example\ngit.kestrel.example\nmail.kestrel.example", "not_before": "2026-08-01T00:00:00", "not_after": "2026-10-30T00:00:00"}]}
+{"kind": "http", "method": "GET", "url": "https://crt.sh/?q=%25.kestrel-cdn.example&output=json", "status": 200, "headers": {"content-type": "application/json"}, "body": []}
+{"kind": "http", "method": "GET", "url": "https://crt.sh/?q=%25.mailhost.example&output=json", "status": 200, "headers": {"content-type": "application/json"}, "body": []}
+{"kind": "http", "method": "GET", "url": "https://rdap.example/domain/kestrel.example", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "domain", "handle": "KESTREL_EXAMPLE", "ldhName": "kestrel.example", "events": [{"eventAction": "registration", "eventDate": "2018-02-14T00:00:00Z"}, {"eventAction": "expiration", "eventDate": "2027-02-14T00:00:00Z"}], "entities": [{"objectClassName": "entity", "handle": "KL-1", "roles": ["registrant"], "vcardArray": ["vcard", [["version", {}, "text", "4.0"], ["fn", {}, "text", "Kestrel Labs LLC"], ["kind", {}, "text", "org"], ["email", {}, "text", "ops@kestrel.example"]]]}]}}
+{"kind": "http", "method": "GET", "url": "https://rdap.example/domain/kestrel-cdn.example", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "domain", "handle": "KESTREL-CDN_EXAMPLE", "ldhName": "kestrel-cdn.example", "events": [{"eventAction": "registration", "eventDate": "2018-02-14T00:00:00Z"}, {"eventAction": "expiration", "eventDate": "2027-02-14T00:00:00Z"}], "entities": [{"objectClassName": "entity", "handle": "KL-1", "roles": ["registrant"], "vcardArray": ["vcard", [["version", {}, "text", "4.0"], ["fn", {}, "text", "Kestrel Labs LLC"], ["kind", {}, "text", "org"], ["email", {}, "text", "ops@kestrel.example"]]]}]}}
+{"kind": "http", "method": "GET", "url": "https://rdap.example/domain/mailhost.example", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "domain", "handle": "MAILHOST_EXAMPLE", "ldhName": "mailhost.example", "events": [{"eventAction": "registration", "eventDate": "2018-02-14T00:00:00Z"}, {"eventAction": "expiration", "eventDate": "2027-02-14T00:00:00Z"}], "entities": []}}
+{"kind": "dns", "name": "24.113.0.203.in-addr.arpa", "rtype": "PTR", "answers": ["kestrel.example"]}
+{"kind": "dns", "name": "24.113.0.203.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64500 | 203.0.113.0/24 | US | arin | 2015-06-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/203.0.113.24", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-203-0-113-24", "name": "KESTREL-NET", "events": [], "entities": []}}
+{"kind": "dns", "name": "25.113.0.203.in-addr.arpa", "rtype": "PTR", "answers": []}
+{"kind": "dns", "name": "25.113.0.203.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64500 | 203.0.113.0/24 | US | arin | 2015-06-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/203.0.113.25", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-203-0-113-25", "name": "KESTREL-NET", "events": [], "entities": []}}
+{"kind": "dns", "name": "30.113.0.203.in-addr.arpa", "rtype": "PTR", "answers": []}
+{"kind": "dns", "name": "30.113.0.203.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64500 | 203.0.113.0/24 | US | arin | 2015-06-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/203.0.113.30", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-203-0-113-30", "name": "KESTREL-NET", "events": [], "entities": []}}
+{"kind": "dns", "name": "40.113.0.203.in-addr.arpa", "rtype": "PTR", "answers": []}
+{"kind": "dns", "name": "40.113.0.203.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64500 | 203.0.113.0/24 | US | arin | 2015-06-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/203.0.113.40", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-203-0-113-40", "name": "KESTREL-NET", "events": [], "entities": []}}
+{"kind": "dns", "name": "41.113.0.203.in-addr.arpa", "rtype": "PTR", "answers": []}
+{"kind": "dns", "name": "41.113.0.203.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64500 | 203.0.113.0/24 | US | arin | 2015-06-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/203.0.113.41", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-203-0-113-41", "name": "KESTREL-NET", "events": [], "entities": []}}
+{"kind": "dns", "name": "42.113.0.203.in-addr.arpa", "rtype": "PTR", "answers": []}
+{"kind": "dns", "name": "42.113.0.203.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64500 | 203.0.113.0/24 | US | arin | 2015-06-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/203.0.113.42", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-203-0-113-42", "name": "KESTREL-NET", "events": [], "entities": []}}
+{"kind": "dns", "name": "7.100.51.198.in-addr.arpa", "rtype": "PTR", "answers": ["mx1.mailhost.example"]}
+{"kind": "dns", "name": "7.100.51.198.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64501 | 198.51.100.0/24 | US | arin | 2015-06-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/198.51.100.7", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-198-51-100-7", "name": "MAILHOST-NET", "events": [], "entities": []}}
+{"kind": "dns", "name": "4.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", "rtype": "PTR", "answers": []}
+{"kind": "dns", "name": "4.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.origin6.asn.cymru.com", "rtype": "TXT", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/2001:db8::24", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://mx1.mailhost.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://mailhost.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=kestrel.example/*&output=json&fl=timestamp,original&limit=1", "status": 200, "headers": {"content-type": "application/json"}, "body": [["timestamp", "original"], ["20180301000000", "https://kestrel.example/"]]}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=kestrel.example/*&output=json&fl=timestamp,original&limit=-1", "status": 200, "headers": {"content-type": "application/json"}, "body": [["timestamp", "original"], ["20261001000000", "https://kestrel.example/"]]}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/cdx/search/cdx?url=kestrel.example/*&output=json&fl=timestamp,original&collapse=urlkey&limit=50", "status": 200, "headers": {"content-type": "application/json"}, "body": [["timestamp", "original"], ["20180301000000", "https://kestrel.example/"], ["20220510000000", "https://kestrel.example/careers"]]}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/web/20180301000000/https://kestrel.example/", "status": 200, "headers": {"content-type": "text/html"}, "body": "<!doctype html><title>Kestrel Labs (2018)</title>"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/web/20220510000000/https://kestrel.example/careers", "status": 200, "headers": {"content-type": "text/html"}, "body": "<!doctype html><title>Kestrel Labs (2022)</title>"}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/autnum/64500", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "autnum", "handle": "AS64500", "name": "EXAMPLE-NET-64500", "entities": [{"objectClassName": "entity", "handle": "ORG-64500", "roles": ["registrant"], "vcardArray": ["vcard", [["version", {}, "text", "4.0"], ["fn", {}, "text", "Example Hosting 64500"]]]}]}}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/autnum/64501", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "autnum", "handle": "AS64501", "name": "EXAMPLE-NET-64501", "entities": [{"objectClassName": "entity", "handle": "ORG-64501", "roles": ["registrant"], "vcardArray": ["vcard", [["version", {}, "text", "4.0"], ["fn", {}, "text", "Example Hosting 64501"]]]}]}}
+{"kind":"http","method":"GET","url":"https://api.gravatar.com/v3/profiles/c32a1533ae716e749e405385b9c81a4444353e4830edd7efb8204c654e84811b","status":404,"headers":{"content-type":"application/json"},"body":{"error":"Profile not found"}}

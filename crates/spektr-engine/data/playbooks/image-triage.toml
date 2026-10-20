@@ -1,0 +1,21 @@
+[playbook]
+name = "image-triage"
+version = "1.0.0"
+description = "Metadata, location and reverse image search for one image"
+seed = ["image"]
+
+[[step]]
+title = "Metadata"
+run = ["exif"]
+on = "seed"
+
+[[step]]
+title = "Reverse image search"
+check = "Reverse image search the image and note earlier or larger copies."
+open = ["lens", "yandex-images", "tineye", "bing-visual"]
+on = "seed"
+
+[[step]]
+title = "Geolocate if no GPS"
+check = "If EXIF has no GPS, geolocate from visible landmarks, signs, terrain and shadows."
+on = "seed"

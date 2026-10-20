@@ -558,6 +558,37 @@ impl<'a> Reader<'a> {
             .collect::<Result<_, _>>()?)
     }
 
+    /// Runs started by `parent` (nested playbook steps).
+    pub fn child_runs(&self, parent: PlaybookRunId) -> StoreResult<Vec<PlaybookRunRow>> {
+        let mut stmt = self.conn.prepare_cached(&format!(
+            "SELECT {RUN_COLS} FROM playbook_run WHERE parent_run = ?1 ORDER BY started_at, rowid"
+        ))?;
+        Ok(stmt
+            .query_map([idb(parent)], PlaybookRunRow::from_row)?
+            .collect::<Result<_, _>>()?)
+    }
+
+    /// Observations that jobs of these runs produced, hit in the cache, or
+    /// joined (PLAYBOOKS §2.3, run membership). A cache hit stands for the
+    /// whole job that produced the cached observation.
+    pub fn run_observations(&self, runs: &[PlaybookRunId]) -> StoreResult<BTreeSet<ObservationId>> {
+        let mut out = BTreeSet::new();
+        for run in runs {
+            let mut stmt = self.conn.prepare_cached(
+                "SELECT o.id FROM observation o JOIN job j ON o.job_id = j.id WHERE j.run_id = ?1
+                 UNION SELECT j.cached_observation FROM job j WHERE j.run_id = ?1 AND j.cached_observation IS NOT NULL
+                 UNION SELECT o.id FROM job j JOIN observation c ON c.id = j.cached_observation
+                       JOIN observation o ON o.job_id = c.job_id WHERE j.run_id = ?1
+                 UNION SELECT o.id FROM observation o JOIN job j ON o.job_id = j.joined_job WHERE j.run_id = ?1",
+            )?;
+            let rows = stmt.query_map([idb(*run)], |r| uuid_col(r, 0))?;
+            for row in rows {
+                out.insert(ObservationId(row?));
+            }
+        }
+        Ok(out)
+    }
+
     pub fn playbook_run(&self, id: PlaybookRunId) -> StoreResult<Option<PlaybookRunRow>> {
         Ok(self
             .conn

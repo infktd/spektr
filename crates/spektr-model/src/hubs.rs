@@ -81,11 +81,18 @@ impl KnownHubs {
     pub fn is_hub(&self, ty: &EntityType, key: &str, value: &str) -> bool {
         match ty.core() {
             Some(CoreType::Domain) => self.domains.contains(key),
-            Some(CoreType::Subdomain) => self.host_suffixes.iter().any(|s| {
-                key.len() > s.len()
-                    && key.ends_with(s.as_str())
-                    && key.as_bytes()[key.len() - s.len() - 1] == b'.'
-            }),
+            // A host under a listed platform domain (`web.archive.org`) is a
+            // hub too, as is any host under a listed suffix.
+            Some(CoreType::Subdomain) => {
+                self.host_suffixes
+                    .iter()
+                    .chain(self.domains.iter())
+                    .any(|s| {
+                        key.len() > s.len()
+                            && key.ends_with(s.as_str())
+                            && key.as_bytes()[key.len() - s.len() - 1] == b'.'
+                    })
+            }
             Some(CoreType::Ip) => key
                 .parse::<IpAddr>()
                 .is_ok_and(|ip| self.ip_ranges.iter().any(|c| c.contains(ip))),
