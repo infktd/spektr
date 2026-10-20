@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  # fmt, clippy, deps-check and cargo-deny run once, on Linux x86_64.
+  lint:
+    name: lint (x86_64-unknown-linux-gnu)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Install toolchain from rust-toolchain.toml
+        run: rustup toolchain install && rustc --version
+      - uses: Swatinem/rust-cache@v2.9.2
+      - name: cargo fmt --check
+        run: cargo fmt --check
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: cargo xtask deps-check
+        run: cargo xtask deps-check
+      - uses: taiki-e/install-action@v2.87.29
+        with:
+          tool: cargo-deny@0.20.2
+      - name: cargo deny check
+        run: cargo deny check
+
+  # Build + nextest natively on every shipping target (ARCHITECTURE §9).
+  test:
+    name: test (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+          - target: x86_64-apple-darwin
+            runner: macos-26-intel
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Install toolchain from rust-toolchain.toml
+        run: rustup toolchain install && rustc --version --verbose
+      - name: Check host triple
+        run: test "$(rustc --print host-tuple)" = "${{ matrix.target }}"
+      - uses: Swatinem/rust-cache@v2.9.2
+        with:
+          key: ${{ matrix.target }}
+      - uses: taiki-e/install-action@v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - name: cargo build --timings
+        run: cargo build --workspace --all-targets --locked --timings
+      - name: cargo nextest run
+        run: cargo nextest run --workspace --locked
+      - name: Upload build timings
+        if: matrix.target == 'aarch64-apple-darwin'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: cargo-timings-${{ matrix.target }}
+          path: target/cargo-timings/
+          if-no-files-found: error
