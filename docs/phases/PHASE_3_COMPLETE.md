@@ -174,7 +174,15 @@ all                                p50   0.60 ms  p95   4.37 ms  max   4.96 ms  
 
 The slowest path is paging the seed's 420-member `has_account` group, which re-runs the ego query: about 4.2 ms.
 
-CI: see PR #4; the run is recorded below once it finishes.
+CI for PR #4 is [run 39400419757](https://github.com/infktd/spektr/actions/runs/39400419757) on `8f875ed`. All five jobs passed:
+
+```
+lint (x86_64-unknown-linux-gnu): success (09:24:22Z → 09:24:55Z)
+test (x86_64-unknown-linux-gnu): success (09:24:21Z → 09:25:28Z)
+test (aarch64-unknown-linux-gnu): success (09:24:24Z → 09:25:26Z)
+test (aarch64-apple-darwin):     success (09:24:29Z → 09:26:47Z)
+test (x86_64-apple-darwin):      success (09:24:24Z → 09:28:21Z)
+```
 
 ## How Jay can test it
 
