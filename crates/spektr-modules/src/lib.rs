@@ -6,10 +6,12 @@
 //! the engine or the TUI never recompiles it.
 
 pub mod builtins;
+pub mod capture;
 pub mod media;
 pub mod net;
 
 pub use builtins::{BuiltinOptions, builtins, builtins_with};
+pub use capture::{Capture, find_browser};
 pub use net::{Fixtures, Net, NetError, Transport, install_crypto_provider};
 
 /// Name of this crate, for diagnostics.

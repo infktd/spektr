@@ -30,16 +30,7 @@ fn check(name: &str, level: Level, detail: impl Into<String>) -> Check {
     }
 }
 
-/// `~/…` for paths under the home directory.
-fn tilde(p: &std::path::Path) -> String {
-    match std::env::var_os("HOME").map(std::path::PathBuf::from) {
-        Some(home) if p.starts_with(&home) => match p.strip_prefix(&home) {
-            Ok(rest) => format!("~/{}", rest.display()),
-            Err(_) => p.display().to_string(),
-        },
-        _ => p.display().to_string(),
-    }
-}
+use crate::paths::tilde;
 
 pub fn run(ctx: &Ctx, a: DoctorArgs) -> Result<()> {
     let out = checks(ctx);
