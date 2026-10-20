@@ -54,13 +54,15 @@ fn mime_for(name: &str, b: &[u8]) -> &'static str {
     }
 }
 
-/// Capture a page for an entity (`c`, `spektr capture`).
+/// Capture a page for an entity (`c`, `spektr capture`). Without one, the
+/// capture is evidence for the URL's own entity (added if new, not seeded).
 pub(crate) async fn capture(
     shared: &Arc<Shared>,
-    entity: EntityId,
+    entity: Option<EntityId>,
     url: String,
     screenshot: bool,
 ) -> EngineResult<ObservationId> {
+    let vocab = shared.vocab();
     let svc = read!(shared.capture)
         .clone()
         .ok_or_else(|| EngineError::Invalid("web capture isn't available".into()))?;
@@ -81,7 +83,10 @@ pub(crate) async fn capture(
         .store
         .write(move |tx| {
             let act = Actor::Analyst;
-            let root = tx.reader().resolve(entity)?;
+            let root = match entity {
+                Some(e) => Some(tx.reader().resolve(e)?),
+                None => None,
+            };
             let html = tx.put_blob(&act, &got.html)?;
             let shot = match &got.screenshot {
                 Some(png) => Some(tx.put_blob(&act, png)?),
@@ -92,14 +97,14 @@ pub(crate) async fn capture(
                 .iter()
                 .map(|(k, v)| (k.clone(), json!(v)))
                 .collect();
-            tx.add_observation(
+            let obs = tx.add_observation(
                 &act,
                 NewObservation {
                     job: None,
                     module: "capture".into(),
                     module_version: env!("CARGO_PKG_VERSION").into(),
                     manifest_hash: "builtin".into(),
-                    input_entity: Some(root),
+                    input_entity: root,
                     source_url: Some(got.final_url.clone()),
                     content_type: Some("text/html".into()),
                     blob: Some(html),
@@ -110,7 +115,20 @@ pub(crate) async fn capture(
                     }),
                     kind: ObservationKind::Capture,
                 },
-            )
+            )?;
+            if root.is_none() {
+                let n = normalize(
+                    &CoreType::Url.into(),
+                    &url,
+                    KeyHint::None,
+                    NormalizeCtx {
+                        vocab: &vocab,
+                        default_region: None,
+                    },
+                )?;
+                tx.ingest_entity(&act, &n, 0, Some((obs, "capture")))?;
+            }
+            Ok(obs)
         })
         .await?;
     shared.emit(EventKind::CaseChanged {

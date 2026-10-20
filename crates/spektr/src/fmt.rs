@@ -102,6 +102,40 @@ pub fn event_line(ev: &EngineEvent) -> Option<String> {
         EventKind::MessageRejected { module, reason, .. } => {
             row("!", module, format!("rejected: {reason}"))
         }
+        EventKind::PlaybookStarted { playbook, seed, .. } => {
+            row("▸", "playbook", format!("{playbook}  on {}", entity(seed)))
+        }
+        EventKind::PlaybookStep {
+            playbook,
+            step,
+            of,
+            title,
+            state,
+            ..
+        } if state != "running" => row(
+            if state == "done" { "✓" } else { "⊘" },
+            "playbook",
+            format!("{playbook} · step {step}/{of}  {title}"),
+        ),
+        EventKind::PlaybookFinished {
+            playbook, state, ..
+        } => row(
+            if state == "done" { "✓" } else { "⊘" },
+            "playbook",
+            format!("{playbook}  {state}"),
+        ),
+        EventKind::ChecklistAdded { count, .. } => row("!", "checklist", format!("+{count} items")),
         _ => None,
+    }
+}
+
+/// Truncate to `n` characters with `…`.
+pub fn trunc(s: &str, n: usize) -> String {
+    if s.chars().count() <= n {
+        s.to_string()
+    } else {
+        let mut t: String = s.chars().take(n.saturating_sub(1)).collect();
+        t.push('…');
+        t
     }
 }

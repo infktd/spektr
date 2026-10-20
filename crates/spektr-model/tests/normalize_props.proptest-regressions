@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc a624c08ded393162b173d662cb3b9a5f45c7d77186eaabc4c791b2027604c473 # shrinks to s = "\u{10d69}"
+cc b8c1a2652c9f7c15cee7743a8e4a81ffc41a4ab1771b355277568b14102b237a # shrinks to l = "xn--0", path = "", mask = [false], port = false, frag = ""

@@ -98,9 +98,10 @@ pub enum EngineAction {
         id: ReviewItemId,
         decision: ReviewState,
     },
-    /// Web capture (`c`, `spektr capture`).
+    /// Web capture (`c`, `spektr capture`). Without an entity, the URL's
+    /// own entity.
     Capture {
-        entity: EntityId,
+        entity: Option<EntityId>,
         url: String,
         screenshot: bool,
     },
@@ -396,6 +397,21 @@ pub struct EngineHandle {
 impl EngineHandle {
     pub(crate) fn new(shared: Arc<Shared>) -> Self {
         Self { shared }
+    }
+
+    /// Check a playbook against this engine's modules, launchers and
+    /// playbooks (`spektr playbook check`).
+    pub fn check_playbook(
+        &self,
+        file: &spektr_protocol::PlaybookFile,
+    ) -> crate::playbook::Problems {
+        crate::workflow::check_playbook(&self.shared, file)
+    }
+
+    /// Whether web capture is set up, and can take screenshots.
+    pub fn capture_status(&self) -> (bool, bool) {
+        let c = crate::engine::read!(self.shared.capture);
+        (c.is_some(), c.as_ref().is_some_and(|c| c.screenshots()))
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<EngineEvent> {

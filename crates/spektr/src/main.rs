@@ -90,6 +90,22 @@ fn main() -> ExitCode {
                 }
             }),
             Command::Doctor(a) => commands::doctor::run(&ctx, a).map(|()| ExitCode::SUCCESS),
+            Command::Playbook(cmd) => commands::playbook::run(&ctx, cmd).await.map(|ok| {
+                if ok {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::from(EXIT_ERROR)
+                }
+            }),
+            Command::Capture(a) => commands::evidence::capture(&ctx, a)
+                .await
+                .map(|()| ExitCode::SUCCESS),
+            Command::Attach(a) => commands::evidence::attach(&ctx, a)
+                .await
+                .map(|()| ExitCode::SUCCESS),
+            Command::Setup(crate::cli::SetupCmd::Capture) => {
+                commands::setup::capture(&ctx).map(|()| ExitCode::SUCCESS)
+            }
         }
     });
     match result {
