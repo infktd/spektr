@@ -48,7 +48,7 @@ spektr/
 | `spektr-protocol` | Third-party Rust modules depend on this alone | `serde_json`, `schemars` (behind the `schema` feature) |
 | `spektr-store` | Keeps the bundled-SQLite C build and the persistence logic separate from the engine | `rusqlite` (bundled), `zstd`, `sha2` |
 | `spektr-engine` | Core logic that changes often. It must not pull in HTTP, image or UI stacks | `tokio`, `tokio-util`, `futures`, `toml` (rules profiles, exec `module.toml`) |
-| `spektr-modules` | All network-, image- and parsing-heavy code lives here: built-ins, `net` (shared `Http`/`Dns` with rate limiting and record/replay), `media` (EXIF, dHash, mmh3), `capture` (web capture, Chrome subprocess) | `reqwest` (rustls + ring), `hickory-resolver`, `governor`, `scraper`, `nom-exif`, `image`, `image_hasher`, `which` |
+| `spektr-modules` | All network-, image- and parsing-heavy code lives here: built-ins, `net` (shared `Http`/`Dns` with rate limiting and record/replay), `media` (EXIF, dHash, mmh3), `capture` (web capture, Chrome subprocess) | `reqwest` (rustls + ring), `hickory-proto`, `governor`, `scraper`, `nom-exif`, `image`, `image_hasher`, `which` |
 | `spektr-tui` | The other fast-changing area. Must not pull in network or storage stacks | `ratatui`, `crossterm`, `ratatui-image`, `ratatui-textarea`, `nucleo-matcher`, `image`, `open` (the `o`/`O` keys) |
 | `spektr` (bin) | Wiring: constructs the store, engine and modules, registers modules and capture into the engine, runs the TUI or headless commands | `clap`, `toml`, `dirs`, `tracing-subscriber`, `tracing-appender`, `anyhow`, `open` |
 
