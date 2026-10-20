@@ -351,10 +351,21 @@ impl Term {
             .with_context(|| format!("waiting for {text:?}"))
     }
 
+    /// Write input. Input to a process that has already exited is discarded,
+    /// as a real terminal would (macOS reports EIO for it).
     pub fn write(&mut self, bytes: &[u8]) -> Result<()> {
-        self.writer.write_all(bytes)?;
-        self.writer.flush()?;
-        Ok(())
+        let r = self
+            .writer
+            .write_all(bytes)
+            .and_then(|()| self.writer.flush());
+        match r {
+            Ok(()) => Ok(()),
+            Err(e) if self.child.try_wait()?.is_some() => {
+                let _ = e;
+                Ok(())
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 
     /// The key DSL: whitespace-separated keys. Named keys: `↵`/`enter`,
