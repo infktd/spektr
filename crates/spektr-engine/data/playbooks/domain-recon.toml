@@ -1,0 +1,30 @@
+[playbook]
+name = "domain-recon"
+version = "1.0.0"
+description = "Registration, DNS, certificates and web fingerprint for a domain"
+seed = ["domain"]
+
+[[step]]
+title = "Registration, DNS and certificates"
+run = ["rdap", "dns", "crtsh"]
+on = "seed"
+
+[[step]]
+title = "Subdomain DNS"
+run = ["dns"]
+on = { type = "subdomain", max = 50 }
+
+[[step]]
+title = "Web fingerprint and history"
+run = ["http-fingerprint", "wayback"]
+on = { type = "subdomain", max = 25 }
+
+[[step]]
+title = "Web fingerprint of the domain"
+run = ["http-fingerprint", "wayback"]
+on = "seed"
+
+[[step]]
+title = "Reverse DNS and ASN"
+run = ["rdns"]
+on = { type = "ip", max = 50 }

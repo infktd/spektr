@@ -306,6 +306,7 @@ pub fn workspace(mode: ColorMode, size: (u16, u16)) -> AppState {
                 "2c7100000000000000000000000000000000000000000000000000000000aeae",
             ),
         ],
+        checklist: Vec::new(),
         findings: vec![FindingView {
             id: 3,
             title: "Advancing the Timeline".into(),

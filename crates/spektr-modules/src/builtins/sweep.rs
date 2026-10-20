@@ -312,6 +312,7 @@ impl Module for Sweep {
                         .await?;
                         out.review("sweep_unsure", json!({
                             "site": site.id, "name": name, "username": username, "platform": site.platform,
+                            "handle": site.handle_for(&username),
                             "url": site.profile_url(&username), "reason": format!("network error: {err}"),
                         }), &id).await?;
                     }
@@ -338,6 +339,7 @@ impl Module for Sweep {
                             out.response(&id, &url, &resp).await?;
                             out.review("sweep_unsure", json!({
                                 "site": site.id, "name": name, "username": username, "platform": site.platform,
+                                "handle": site.handle_for(&username),
                                 "url": site.profile_url(&username), "reason": reason,
                             }), &id).await?;
                         }

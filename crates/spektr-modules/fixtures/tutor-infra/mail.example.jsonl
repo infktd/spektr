@@ -1,0 +1,20 @@
+// Fictional infrastructure around the tutor's mail provider and archived pages (documentation ranges).
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/web/20190405120000/https://jmarlow.example/", "status": 200, "headers": {"content-type": "text/html"}, "body": "<!doctype html><html><head><title>jmarlow \u00b7 archived 2019</title></head><body>archived page</body></html>"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/web/20240611083000/https://jmarlow.example/notes/tapes", "status": 200, "headers": {"content-type": "text/html"}, "body": "<!doctype html><html><head><title>jmarlow \u00b7 archived 2024</title></head><body>archived page</body></html>"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/web/20261014090000/https://jmarlow.example/now", "status": 200, "headers": {"content-type": "text/html"}, "body": "<!doctype html><html><head><title>jmarlow \u00b7 archived 2026</title></head><body>archived page</body></html>"}
+{"kind": "http", "method": "GET", "url": "https://web.archive.org/favicon.ico", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "dns", "name": "10.100.51.198.in-addr.arpa", "rtype": "PTR", "answers": ["mail.example"]}
+{"kind": "dns", "name": "10.100.51.198.origin.asn.cymru.com", "rtype": "TXT", "answers": ["64500 | 198.51.100.0/24 | US | arin | 2010-01-01"]}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/198.51.100.10", "status": 200, "headers": {"content-type": "application/rdap+json"}, "body": {"objectClassName": "ip network", "handle": "NET-198-51-100-0-1", "startAddress": "198.51.100.0", "endAddress": "198.51.100.255", "name": "EXAMPLE-MAIL-NET", "events": [{"eventAction": "registration", "eventDate": "2010-01-01T00:00:00Z"}], "entities": []}}
+{"kind": "http", "method": "GET", "url": "https://rdap.nic.example/ip/2001:db8::10", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "dns", "name": "0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa", "rtype": "PTR", "answers": []}
+{"kind": "dns", "name": "0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.origin6.asn.cymru.com", "rtype": "TXT", "answers": []}
+{"kind": "dns", "name": "mx1.mail.example", "rtype": "A", "answers": []}
+{"kind": "dns", "name": "mx1.mail.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "mx1.mail.example", "rtype": "MX", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://mx1.mail.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "dns", "name": "mx2.mail.example", "rtype": "A", "answers": []}
+{"kind": "dns", "name": "mx2.mail.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "mx2.mail.example", "rtype": "MX", "answers": []}
+{"kind": "http", "method": "GET", "url": "https://mx2.mail.example/", "status": 404, "headers": {"content-type": "text/plain"}, "body": "not found"}
+{"kind": "http", "method": "GET", "url": "https://api.gravatar.com/v3/profiles/add09d459201d9dfee5e8143bcf2a9fc6a141f4593e1aecb4d13807b85b3e5dd", "status": 404, "headers": {"content-type": "application/json"}, "body": {"error": "Profile not found"}}

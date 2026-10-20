@@ -235,6 +235,8 @@ pub struct Workspace {
     pub queued: u64,
     pub done: u64,
     pub failed: u64,
+    /// `playbook person-from-username · step 4/6` while a run is going.
+    pub playbook_line: Option<String>,
 
     pub pane: Pane,
     pub tab: Tab,
@@ -276,6 +278,7 @@ impl Workspace {
             queued: 0,
             done: 0,
             failed: 0,
+            playbook_line: None,
             pane: Pane::Graph,
             tab: Tab::Ego,
             fresh: BTreeSet::new(),

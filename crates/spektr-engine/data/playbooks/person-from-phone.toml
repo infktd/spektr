@@ -1,0 +1,21 @@
+[playbook]
+name = "person-from-phone"
+version = "1.0.0"
+description = "Parse a phone number and search for where it is published"
+seed = ["phone"]
+
+[[step]]
+title = "Parse the number"
+run = ["phone-parse"]
+on = "seed"
+
+[[step]]
+title = "Search common formats"
+check = "Search the number in its common formats: E.164, national, and with separators."
+open = ["google-exact", "bing-exact"]
+on = "seed"
+
+[[step]]
+title = "Listings"
+check = "Check business listings, classifieds and community boards for the number. Do not call, text or add it to a messaging app."
+on = "seed"

@@ -1851,6 +1851,110 @@ fn engine_event(s: &mut AppState, ev: EngineEvent, fx: &mut Vec<Effect>) {
             );
         }
         EventKind::CaseChanged { .. } => w.stale = Stale::all(),
+        EventKind::PlaybookStarted {
+            playbook,
+            seed,
+            parent,
+            ..
+        } => {
+            let mut spans = vec![
+                (format!("{playbook}  "), Token::Fg),
+                ("on ".into(), Token::FgMuted),
+            ];
+            spans.extend(ent_span(&seed, g));
+            if parent.is_some() {
+                spans.push(("  (nested)".into(), Token::FgMuted));
+            }
+            push_row(
+                w,
+                row(
+                    Marker::Running,
+                    Token::Accent,
+                    "playbook",
+                    Token::Accent,
+                    spans,
+                ),
+            );
+            w.stale.entities = true;
+        }
+        EventKind::PlaybookStep {
+            playbook,
+            step,
+            of,
+            title,
+            state,
+            ..
+        } => {
+            if state == "running" {
+                w.playbook_line = Some(format!("{playbook} {} step {step}/{of}", g.m(Marker::Dot)));
+            } else {
+                let (m, t) = if state == "done" {
+                    (Marker::Ok, Token::Ok)
+                } else {
+                    (Marker::Blocked, Token::FgMuted)
+                };
+                let spans = vec![
+                    (
+                        format!("{playbook} {} step {step}/{of}  ", g.m(Marker::Dot)),
+                        Token::Fg,
+                    ),
+                    (title, Token::FgMuted),
+                ];
+                push_row(w, row(m, t, "playbook", Token::Fg, spans));
+            }
+            w.stale.ego = true;
+        }
+        EventKind::PlaybookFinished {
+            playbook, state, ..
+        } => {
+            w.playbook_line = None;
+            let (m, t) = match state.as_str() {
+                "done" => (Marker::Ok, Token::Ok),
+                "failed" => (Marker::Failed, Token::Hostile),
+                _ => (Marker::Blocked, Token::FgMuted),
+            };
+            push_row(
+                w,
+                row(
+                    m,
+                    t,
+                    "playbook",
+                    Token::Fg,
+                    vec![(format!("{playbook}  {state}"), Token::Fg)],
+                ),
+            );
+        }
+        EventKind::ChecklistAdded { count, .. } => {
+            let spans = vec![(
+                format!(
+                    "+{count} checklist item{}",
+                    if count == 1 { "" } else { "s" }
+                ),
+                Token::Fg,
+            )];
+            push_row(
+                w,
+                row(
+                    Marker::Attention,
+                    Token::Warn,
+                    "checklist",
+                    Token::Fg,
+                    spans,
+                ),
+            );
+            w.stale.detail = true;
+        }
+        EventKind::LauncherOpened {
+            launcher, entity, ..
+        } => {
+            let mut spans = vec![(format!("{launcher}  "), Token::Fg)];
+            spans.extend(ent_span(&entity, g));
+            spans.push(("  (recorded)".into(), Token::FgMuted));
+            push_row(
+                w,
+                row(Marker::Link, Token::Accent, "launcher", Token::Fg, spans),
+            );
+        }
     }
     if w.stale.any() {
         schedule(w, fx);
@@ -2123,6 +2227,30 @@ fn acted(s: &mut AppState, what: &str, r: Result<ActionOutcome, String>, fx: &mu
                     }
                 }
                 ActionOutcome::Merged { .. } => "merged".into(),
+                ActionOutcome::PlaybookStarted { .. } => format!("{what}: started"),
+                ActionOutcome::Launch { url } => {
+                    fx.push(Effect::OpenUrl(url.clone()));
+                    format!("{what}: opened in the browser")
+                }
+                ActionOutcome::Reloaded { warnings } => {
+                    if warnings.is_empty() {
+                        "reloaded".into()
+                    } else {
+                        format!("reloaded · {}", warnings.join(" · "))
+                    }
+                }
+                ActionOutcome::Captured { .. } => "captured".into(),
+                ActionOutcome::Attached { image, .. } => {
+                    if image.is_some() {
+                        "attached · image added".into()
+                    } else {
+                        "attached".into()
+                    }
+                }
+                ActionOutcome::Decided { added } => match added {
+                    Some(a) => format!("accepted · {} added", a.value),
+                    None => format!("{what} ✓"),
+                },
                 ActionOutcome::Done => format!("{what} ✓"),
             };
             toast(s, &msg, Token::Fg);
