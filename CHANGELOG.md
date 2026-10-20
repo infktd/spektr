@@ -17,4 +17,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `spektr-engine`: scheduler, eligibility, rules profiles, scope, ingestion, the `ip` correlator, the review queue and the exec runtime (per-job and serve).
 - `spektr-modules`: HTTP and a DNS stub resolver with record/replay; built-in `dns`, `github` and `username-sweep` (307 sites).
 - `spektr new`, `run`, `query`, `verify`, `export --format json`, `doctor`.
+- The TUI: launcher, workspace (entities, ego view, inspector, activity rail), command palette, context menus, help, dialogs and mouse support; `spektr` (launcher) and `spektr open`.
 - CI on `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-gnu` and `aarch64-unknown-linux-gnu`.
