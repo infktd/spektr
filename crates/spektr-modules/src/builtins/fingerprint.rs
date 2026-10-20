@@ -65,6 +65,9 @@ pub fn analytics_ids(html: &str) -> Vec<String> {
 struct Page {
     title: Option<String>,
     icon: Option<String>,
+    /// The page declares an icon that isn't fetchable (`data:,` means "no
+    /// favicon"), so `/favicon.ico` isn't tried either.
+    no_icon: bool,
     social: Vec<String>,
     mailto: Vec<String>,
 }
@@ -106,12 +109,15 @@ fn parse(html: &str, base: &str) -> Page {
             .and_then(|b| b.join(h).ok())
             .map(|u| u.to_string())
     };
-    let icon = sel("link[rel~=icon]")
+    let declared = sel("link[rel~=icon]")
         .and_then(|s| {
             doc.select(&s)
                 .find_map(|l| l.value().attr("href").map(str::to_string))
         })
         .and_then(|h| abs(&h));
+    let fetchable = |u: &str| u.starts_with("https://") || u.starts_with("http://");
+    let no_icon = declared.as_deref().is_some_and(|u| !fetchable(u));
+    let icon = declared.filter(|u| fetchable(u));
     let mut social = Vec::new();
     let mut mailto = Vec::new();
     if let Some(s) = sel("a[href]") {
@@ -136,6 +142,7 @@ fn parse(html: &str, base: &str) -> Page {
     Page {
         title,
         icon,
+        no_icon,
         social,
         mailto,
     }
@@ -184,7 +191,10 @@ impl Module for Fingerprint {
                 out.edge("$input", "has_email", &r, "o1", Default::default())
                     .await?;
             }
-            let icon_url = page.icon.clone().or_else(|| {
+            let icon_url = page.icon.clone().filter(|_| !page.no_icon).or_else(|| {
+                if page.no_icon {
+                    return None;
+                }
                 url::Url::parse(&resp.final_url)
                     .ok()
                     .and_then(|u| u.join("/favicon.ico").ok())
@@ -245,5 +255,17 @@ mod tests {
         );
         assert_eq!(p.social, ["https://github.com/jmarlow-wav"]);
         assert_eq!(p.mailto, ["hello@jmarlow.example"]);
+        assert!(!p.no_icon);
+    }
+
+    #[test]
+    fn a_data_url_icon_means_no_favicon() {
+        // example.com declares `<link rel="icon" href="data:,">` (seen live).
+        let p = parse(
+            r#"<html><head><link rel="icon" href="data:,"><title>Example</title></head></html>"#,
+            "https://site.example/",
+        );
+        assert_eq!(p.icon, None);
+        assert!(p.no_icon);
     }
 }

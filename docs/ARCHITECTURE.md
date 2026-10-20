@@ -235,6 +235,7 @@ Expect clean builds to be several times faster on a modern 8–12 core laptop. C
 | `SPEKTR_TRANSPORT=replay:<fixture-dir>` (or `record:<dir>`) | Replaces live network for every built-in module and for capture |
 | `SPEKTR_CLOCK=<RFC 3339 timestamp>` | Fixed clock, for status line, audit timestamps and job times |
 | `SPEKTR_SEED=<u64>` | Deterministic UUIDv7 randomness |
+| `SPEKTR_TEST_KEYS=<keys>` | Keys the TUI types after the case opens (`wait:<ms>`, `enter`, `esc`, `tab`, `space`, arrows, single characters); the real-terminal QA uses it to reach the image previews |
 
 While `SPEKTR_TEST_MODE=1` (and always inside the tutor), **nothing is handed to the OS**: launchers, `O`, `o`, `$PAGER` and `$EDITOR` are not opened. Instead, each request is appended as a JSON line to `$XDG_STATE_HOME/spektr/opened.jsonl` (kind, target, entity) and shown in the activity rail as `↗ would open <target>`. E2E tests assert against that file.
 
