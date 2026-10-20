@@ -16,6 +16,7 @@ tasks:
   schemas [--check]        regenerate (or check) schemas/exec-protocol.v1.json and schemas/manifest.v1.json
   record <module> <input>  record live fixtures for one module (targets in qa/live-targets.toml only)
   qa [--live]              run the QA scenarios and save frames to qa/out/ (--live: approved targets only)
+  qa --real-terminal       screenshot the TUI in Ghostty on the fixture case (macOS; QA.md §5)
   qa-shots                 render qa/out frames and docs/design artboards to PNG with headless Chrome
 
 `demos` arrives with the demo suite (Phase 5).";
@@ -28,6 +29,7 @@ fn main() -> ExitCode {
         Some("deps-check") => deps_check::run(&root),
         Some("schemas") => schemas::run(&root, rest.contains(&"--check")),
         Some("record") => record::run(&root, &rest),
+        Some("qa") if rest.contains(&"--real-terminal") => qa::real_terminal(&root),
         Some("qa") => qa::run(&root, rest.contains(&"--live")),
         Some("qa-shots") => qa::shots(&root),
         Some("-h" | "--help" | "help") => {
