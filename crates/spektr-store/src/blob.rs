@@ -15,6 +15,17 @@ pub const ZSTD_LEVEL: i32 = 3;
 pub struct Sha256(pub [u8; 32]);
 
 impl Sha256 {
+    pub fn from_hex(h: &str) -> Option<Self> {
+        if h.len() != 64 {
+            return None;
+        }
+        let mut out = [0u8; 32];
+        for (i, o) in out.iter_mut().enumerate() {
+            *o = u8::from_str_radix(h.get(i * 2..i * 2 + 2)?, 16).ok()?;
+        }
+        Some(Self(out))
+    }
+
     pub fn from_slice(b: &[u8]) -> Option<Self> {
         b.try_into().ok().map(Self)
     }

@@ -11,20 +11,26 @@ pub mod eligibility;
 mod engine;
 mod error;
 pub mod events;
+mod evidence;
 pub mod exec;
 mod handle;
 mod ingest;
+pub mod launcher;
 pub mod module;
 mod plan;
+pub mod playbook;
 pub mod profile;
 mod quiesce;
+mod runner;
 mod scheduler;
 pub mod scope;
+mod workflow;
 
-pub use capture::{CaptureError, CaptureRequest, CaptureService};
+pub use capture::{CaptureError, CaptureRequest, CaptureService, Captured, MAX_CAPTURE};
 pub use engine::{CaseSettings, Engine, EngineConfig};
 pub use error::{EngineError, EngineResult};
 pub use events::{EngineEvent, EventKind};
+pub use evidence::{RawView, is_image};
 pub use handle::{
     ActionOutcome, CaseStatus, EngineAction, EngineHandle, EntityDetail, EntityRowView,
     FindingView, JobView, ModuleInfo, NoteView, ObservationView, Query, QueryResult, ReviewView,
@@ -34,6 +40,7 @@ pub use module::{
 };
 pub use plan::{PlanOutcome, PlanResult};
 pub use profile::{Profiles, RulesProfile};
+pub use workflow::{ItemView, LauncherView, PlaybookInfo, RunView, StepInfo, StepView};
 
 // Manifest vocabulary the TUI shows (cost, technique, runtime).
 pub use spektr_protocol::{CostClass, LogLevel, Runtime, Technique};
@@ -42,7 +49,8 @@ pub use spektr_protocol::{CostClass, LogLevel, Runtime, Technique};
 // the store crate directly (ARCHITECTURE §2, rule 2).
 pub use spektr_store::{
     CaseInit, Degree, Direction, EgoGroup, EgoParams, EgoRow, EgoView, EntitySummary, GroupKey,
-    JobState, OpenOptions, PathStep, PathView, ReviewState, TimelineEvent, Trigger,
+    ItemState, JobState, OpenOptions, PathStep, PathView, ReviewKind, ReviewState, RunState,
+    StepState, TimelineEvent, Trigger,
 };
 
 /// Name of this crate, for diagnostics.

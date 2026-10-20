@@ -6,10 +6,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serde::Serialize;
-use spektr_model::{Actor, EdgeId, EntityId, EntityRef, JobId, MergeId, ScopeRuleId};
+use spektr_model::{
+    Actor, ChecklistItemId, EdgeId, EntityId, EntityRef, JobId, MergeId, ObservationId,
+    PlaybookRunId, ReviewItemId, ScopeRuleId,
+};
 use spektr_protocol::{CostClass, Manifest, Runtime, Technique};
 use spektr_store::{
-    EgoParams, EgoView, EntityRow, EntitySummary, FindingRow, JobRow, JobState, NoteRow,
+    EgoParams, EgoView, EntityRow, EntitySummary, FindingRow, ItemState, JobRow, JobState, NoteRow,
     ObservationRow, PathView, ReviewItemRow, ReviewState, ScopeRuleRow, Store, TimelineEvent,
     Trigger,
 };
@@ -66,6 +69,48 @@ pub enum EngineAction {
         entity: EntityId,
         body: String,
     },
+    /// Start a playbook on an entity (PLAYBOOKS §5).
+    StartPlaybook {
+        name: String,
+        entity: EntityId,
+    },
+    /// `:playbook stop`: the running top-level run and its children.
+    StopPlaybook,
+    /// Mark a checklist item done or skipped (or reopen it), with a note.
+    ResolveItem {
+        item: ChecklistItemId,
+        state: ItemState,
+        note: Option<String>,
+    },
+    ItemNote {
+        item: ChecklistItemId,
+        note: String,
+    },
+    /// Build a launcher's URL and record that it was opened.
+    OpenLauncher {
+        launcher: String,
+        entity: EntityId,
+        item: Option<ChecklistItemId>,
+    },
+    /// `:reload`.
+    Reload,
+    DecideReview {
+        id: ReviewItemId,
+        decision: ReviewState,
+    },
+    /// Web capture (`c`, `spektr capture`).
+    Capture {
+        entity: EntityId,
+        url: String,
+        screenshot: bool,
+    },
+    /// A local file as evidence (`spektr attach`).
+    Attach {
+        entity: Option<EntityId>,
+        name: String,
+        bytes: Vec<u8>,
+        note: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -81,6 +126,27 @@ pub enum ActionOutcome {
     },
     Merged {
         merge: MergeId,
+    },
+    PlaybookStarted {
+        run: PlaybookRunId,
+    },
+    /// A launcher's URL, for the caller to open.
+    Launch {
+        url: String,
+    },
+    Reloaded {
+        warnings: Vec<String>,
+    },
+    Captured {
+        observation: ObservationId,
+    },
+    Attached {
+        observation: ObservationId,
+        image: Option<EntitySummary>,
+    },
+    /// A review decision; an accepted sweep hit adds an account.
+    Decided {
+        added: Option<EntitySummary>,
     },
     Done,
 }
@@ -107,6 +173,17 @@ pub enum Query {
     Scope,
     Status,
     Modules,
+    Playbooks,
+    /// Every playbook run, with its steps.
+    Runs,
+    /// Checklist items, optionally of one state.
+    Checklist(Option<ItemState>),
+    /// The launchers that apply to an entity.
+    Launchers(EntityId),
+    /// An observation's row and bytes (`o`, the raw response).
+    Raw(ObservationId),
+    /// Blob bytes by SHA-256 hex (image previews).
+    Blob(String),
 }
 
 /// The inspector's view of one entity.
@@ -118,6 +195,8 @@ pub struct EntityDetail {
     pub observations: Vec<ObservationView>,
     pub findings: Vec<FindingView>,
     pub notes: Vec<NoteView>,
+    /// Open checklist items for the entity.
+    pub checklist: Vec<crate::workflow::ItemView>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -253,6 +332,12 @@ pub enum QueryResult {
     Scope(Vec<String>),
     Status(Box<CaseStatus>),
     Modules(Vec<ModuleInfo>),
+    Playbooks(Vec<crate::workflow::PlaybookInfo>),
+    Runs(Vec<crate::workflow::RunView>),
+    Checklist(Vec<crate::workflow::ItemView>),
+    Launchers(Vec<crate::workflow::LauncherView>),
+    Raw(Option<Box<crate::evidence::RawView>>),
+    Blob(Option<Vec<u8>>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -511,6 +596,59 @@ impl EngineHandle {
                 });
                 Ok(ActionOutcome::Done)
             }
+            EngineAction::StartPlaybook { name, entity } => Ok(ActionOutcome::PlaybookStarted {
+                run: crate::runner::start(shared, &name, entity).await?,
+            }),
+            EngineAction::StopPlaybook => {
+                if !crate::runner::stop(shared) {
+                    return Err(EngineError::Invalid("no playbook is running".into()));
+                }
+                Ok(ActionOutcome::Done)
+            }
+            EngineAction::ResolveItem { item, state, note } => {
+                crate::runner::resolve_item(shared, item, state, note).await?;
+                Ok(ActionOutcome::Done)
+            }
+            EngineAction::ItemNote { item, note } => {
+                shared
+                    .store
+                    .write(move |tx| tx.set_checklist_note(&Actor::Analyst, item, &note))
+                    .await?;
+                shared.emit(EventKind::CaseChanged {
+                    what: "checklist".into(),
+                });
+                Ok(ActionOutcome::Done)
+            }
+            EngineAction::OpenLauncher {
+                launcher,
+                entity,
+                item,
+            } => Ok(ActionOutcome::Launch {
+                url: crate::workflow::open_launcher(shared, launcher, entity, item).await?,
+            }),
+            EngineAction::Reload => Ok(ActionOutcome::Reloaded {
+                warnings: crate::workflow::reload(shared)?,
+            }),
+            EngineAction::DecideReview { id, decision } => Ok(ActionOutcome::Decided {
+                added: crate::evidence::decide(shared, id, decision).await?,
+            }),
+            EngineAction::Capture {
+                entity,
+                url,
+                screenshot,
+            } => Ok(ActionOutcome::Captured {
+                observation: crate::evidence::capture(shared, entity, url, screenshot).await?,
+            }),
+            EngineAction::Attach {
+                entity,
+                name,
+                bytes,
+                note,
+            } => {
+                let (observation, image) =
+                    crate::evidence::attach(shared, entity, name, bytes, note).await?;
+                Ok(ActionOutcome::Attached { observation, image })
+            }
         }
     }
 
@@ -584,36 +722,45 @@ impl EngineHandle {
                     .await?
                     .map(Into::into),
             ),
-            Query::Detail(id) => QueryResult::Detail(
-                store
-                    .read(move |r| {
-                        let root = r.resolve(id)?;
-                        let Some(e) = r.entity(root)? else {
-                            return Ok(None);
-                        };
-                        Ok(Some(Box::new(EntityDetail {
-                            strength: r.entity_strength(root)?,
-                            degree: r.degree(root)?,
-                            observations: r
-                                .entity_observations(root)?
-                                .into_iter()
-                                .map(Into::into)
-                                .collect(),
-                            findings: r
-                                .findings_for_entity(root)?
-                                .into_iter()
-                                .map(Into::into)
-                                .collect(),
-                            notes: r
-                                .notes_for_entity(root)?
-                                .into_iter()
-                                .map(Into::into)
-                                .collect(),
-                            entity: e.into(),
-                        })))
-                    })
-                    .await?,
-            ),
+            Query::Detail(id) => {
+                let mut res = QueryResult::Detail(
+                    store
+                        .read(move |r| {
+                            let root = r.resolve(id)?;
+                            let Some(e) = r.entity(root)? else {
+                                return Ok(None);
+                            };
+                            Ok(Some(Box::new(EntityDetail {
+                                strength: r.entity_strength(root)?,
+                                degree: r.degree(root)?,
+                                observations: r
+                                    .entity_observations(root)?
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .collect(),
+                                findings: r
+                                    .findings_for_entity(root)?
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .collect(),
+                                notes: r
+                                    .notes_for_entity(root)?
+                                    .into_iter()
+                                    .map(Into::into)
+                                    .collect(),
+                                checklist: Vec::new(),
+                                entity: e.into(),
+                            })))
+                        })
+                        .await?,
+                );
+                if let QueryResult::Detail(Some(d)) = &mut res {
+                    d.checklist =
+                        crate::workflow::checklist(&self.shared, Some(ItemState::Open), Some(id))
+                            .await?;
+                }
+                res
+            }
             Query::Find(er) => {
                 let vocab = self.shared.vocab();
                 let region = self.shared.settings().region;
@@ -678,6 +825,21 @@ impl EngineHandle {
             ),
             Query::Status => QueryResult::Status(Box::new(self.status().await?)),
             Query::Modules => QueryResult::Modules(self.modules()),
+            Query::Playbooks => QueryResult::Playbooks(crate::workflow::playbooks(&self.shared)),
+            Query::Runs => QueryResult::Runs(crate::workflow::runs(&self.shared).await?),
+            Query::Checklist(state) => {
+                QueryResult::Checklist(crate::workflow::checklist(&self.shared, state, None).await?)
+            }
+            Query::Launchers(e) => {
+                QueryResult::Launchers(crate::workflow::launchers_for(&self.shared, e).await?)
+            }
+            Query::Raw(id) => {
+                QueryResult::Raw(crate::evidence::raw(&self.shared, id).await?.map(Box::new))
+            }
+            Query::Blob(hex) => QueryResult::Blob(match spektr_store::Sha256::from_hex(&hex) {
+                Some(sha) => store.read(move |r| r.blob(sha)).await?,
+                None => None,
+            }),
         })
     }
 

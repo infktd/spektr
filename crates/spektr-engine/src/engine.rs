@@ -95,6 +95,10 @@ pub(crate) struct Shared {
     pub case: RwLock<CaseSettings>,
     pub warnings: Mutex<Vec<String>>,
     pub hub_notified: Mutex<BTreeSet<EntityId>>,
+    pub playbooks: RwLock<crate::playbook::Playbooks>,
+    pub launchers: RwLock<crate::launcher::Launchers>,
+    /// The top-level playbook run in progress, if any (PLAYBOOKS §2.6).
+    pub active_run: Mutex<Option<crate::runner::ActiveRun>>,
 }
 
 // Locks here are never held across an await, and a poisoned lock only means
@@ -111,6 +115,11 @@ macro_rules! write {
     };
 }
 pub(crate) use read;
+
+/// A write guard that survives a poisoned lock (see `read!`).
+pub(crate) fn write_lock<T>(l: &RwLock<T>) -> std::sync::RwLockWriteGuard<'_, T> {
+    l.write().unwrap_or_else(|e| e.into_inner())
+}
 
 impl Shared {
     pub fn emit(&self, kind: EventKind) {
@@ -219,9 +228,13 @@ impl Engine {
     async fn with_store(store: Store, config: EngineConfig) -> EngineResult<Self> {
         let case = load_settings(&store).await?;
         let mut profiles = Profiles::builtin()?;
+        let mut playbooks = crate::playbook::Playbooks::builtin().map_err(EngineError::Invalid)?;
+        let mut launchers = crate::launcher::Launchers::builtin().map_err(EngineError::Invalid)?;
         let mut warnings = Vec::new();
         if let Some(dir) = &config.config_dir {
             warnings.extend(profiles.load_dir(&dir.join("profiles"))?);
+            warnings.extend(playbooks.load_dir(&dir.join("playbooks")));
+            warnings.extend(launchers.load_file(&dir.join("launchers.toml")));
         }
         let (events, _) = broadcast::channel(4096);
         let (sched, sched_rx) = mpsc::unbounded_channel();
@@ -252,6 +265,9 @@ impl Engine {
             case: RwLock::new(case),
             warnings: Mutex::new(Vec::new()),
             hub_notified: Mutex::new(BTreeSet::new()),
+            playbooks: RwLock::new(playbooks),
+            launchers: RwLock::new(launchers),
+            active_run: Mutex::new(None),
         });
         for w in warnings {
             shared.warn(w);
@@ -298,6 +314,15 @@ impl Engine {
         } = self;
         tokio::spawn(Scheduler::new(Arc::clone(&shared), sched_rx).run());
         tokio::spawn(Ingestor::new(Arc::clone(&shared), ingest_rx).run());
+        // Playbook runs in progress when spektr last exited resume (§2.7).
+        let s2 = Arc::clone(&shared);
+        shared.work.add(1);
+        tokio::spawn(async move {
+            if let Err(e) = crate::runner::resume(&s2).await {
+                s2.warn(format!("resuming playbook runs: {e}"));
+            }
+            s2.work.done(1);
+        });
         EngineHandle::new(shared)
     }
 }

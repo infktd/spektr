@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "From": {
+      "oneOf": [
+        {
+          "const": "run",
+          "description": "Produced or confirmed by this run's jobs (PLAYBOOKS §2.3).",
+          "type": "string"
+        },
+        {
+          "const": "seed-links",
+          "description": "Directly linked to the seed by any edge.",
+          "type": "string"
+        },
+        {
+          "const": "case",
+          "description": "Anywhere in the case.",
+          "type": "string"
+        }
+      ]
+    },
+    "On": {
+      "anyOf": [
+        {
+          "description": "`\"seed\"`: the run's seed entity.",
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Selector"
+        }
+      ]
+    },
+    "PlaybookMeta": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "description": "`[a-z0-9-]{2,40}`, unique.",
+          "type": "string"
+        },
+        "requires_profile": {
+          "default": "",
+          "description": "Refuse to run unless the case uses this rules profile.",
+          "type": "string"
+        },
+        "seed": {
+          "description": "Entity types (or `account:<platform>`) it can start from.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "version": {
+          "description": "semver.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "description",
+        "seed"
+      ],
+      "type": "object"
+    },
+    "Selector": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/From",
+          "default": "run"
+        },
+        "max": {
+          "default": null,
+          "description": "Cap on entities selected (default 50, never above 200).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "min_strength": {
+          "default": null,
+          "description": "`single`, `corroborated` or `confirmed`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "A type, or `account:<platform>`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "StepDef": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "default": null,
+          "description": "A checklist item's text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "on": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/On"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which entities the step applies to. Omitted on a `check` step: one\nitem for the run."
+        },
+        "open": {
+          "default": [],
+          "description": "Launcher ids attached to the checklist items (`check` steps only).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "playbook": {
+          "default": null,
+          "description": "A playbook to start with each selected entity as its seed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "run": {
+          "default": null,
+          "description": "Modules to queue on each selected entity.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "screen": {
+          "default": null,
+          "description": "`review` or `findings`: the item opens that screen (`check` only).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A playbook TOML file. See docs/PLAYBOOKS.md §1.",
+  "properties": {
+    "playbook": {
+      "$ref": "#/$defs/PlaybookMeta"
+    },
+    "step": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/StepDef"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "playbook"
+  ],
+  "title": "spektr playbook v1",
+  "type": "object"
+}

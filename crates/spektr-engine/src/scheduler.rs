@@ -46,8 +46,7 @@ pub(crate) enum SchedMsg {
         module: String,
     },
     Cancel(JobId),
-    // Sent by the playbook runner's `:playbook stop` (Phase 4).
-    #[allow(dead_code)]
+    /// `:playbook stop`: every job a run started.
     CancelRun(PlaybookRunId),
 }
 
