@@ -32,6 +32,36 @@ impl Home {
         self.dir.path().join("work")
     }
 
+    /// `home/.config/spektr/config.toml`.
+    pub fn write_config(&self, text: &str) {
+        let dir = self.dir.path().join("home/.config/spektr");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("config.toml"), text).unwrap();
+    }
+
+    /// A generated case of about `n` entities in `work/<name>.spektr`
+    /// (fictional data), recorded in recent.toml.
+    pub fn synth_case(&self, name: &str, n: u64) -> spektr_store::synth::SynthCase {
+        let path = self.case(name);
+        let clock = spektr_model::Clock::Fixed(CLOCK.parse().unwrap());
+        let opts = spektr_store::OpenOptions::new(clock, spektr_model::IdGen::seeded(1)).unwrap();
+        let mut init = spektr_store::CaseInit::named(name);
+        init.rules_profile = "tracelabs".into();
+        let mut db = spektr_store::Db::create(&path, &init, opts).unwrap();
+        db.write(|tx| spektr_store::synth::generate(tx, n, 7))
+            .unwrap()
+    }
+
+    /// Break the audit chain of a case (row `seq`'s payload changes).
+    pub fn tamper(&self, name: &str, seq: i64) {
+        let c = rusqlite::Connection::open(self.case(name)).unwrap();
+        c.execute(
+            "UPDATE audit SET payload = payload || ' ' WHERE seq = ?1",
+            [seq],
+        )
+        .unwrap();
+    }
+
     pub fn case(&self, name: &str) -> PathBuf {
         self.work().join(format!("{name}.spektr"))
     }
@@ -60,6 +90,8 @@ impl Home {
             ("SPEKTR_CLOCK".into(), CLOCK.into()),
             ("SPEKTR_SEED".into(), "1".into()),
             ("NO_COLOR".into(), String::new()),
+            ("COLORTERM".into(), "truecolor".into()),
+            ("TERM".into(), "xterm-256color".into()),
         ]
     }
 

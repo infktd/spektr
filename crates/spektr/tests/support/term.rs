@@ -26,10 +26,10 @@ pub struct Size {
     pub rows: u16,
 }
 
-/// Frame colors for cells using the terminal default (the TUI's `bg`/`fg`
-/// tokens, TUI_SPEC §2), so frames match the artboards.
-pub const DEFAULT_FG: (u8, u8, u8) = (0xD8, 0xD5, 0xCE);
-pub const DEFAULT_BG: (u8, u8, u8) = (0x0D, 0x0E, 0x10);
+/// Frame colors for cells using the terminal default: the TUI's `fg` and
+/// `bg` tokens, from `theme.rs`.
+pub const DEFAULT_FG: (u8, u8, u8) = spektr_tui::theme::Token::Fg.values().0;
+pub const DEFAULT_BG: (u8, u8, u8) = spektr_tui::theme::Token::Bg.values().0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Color {
@@ -165,6 +165,9 @@ impl Screen {
             body.push_str("<div class=\"r\">");
             let mut run = String::new();
             let mut style = String::new();
+            // Every span is exactly its cell count wide, so a glyph drawn
+            // from a fallback font can't push the rest of the row.
+            let mut cells = 0usize;
             for c in row {
                 let (mut fg, mut bg) = (c.fg.rgb(DEFAULT_FG), c.bg.rgb(DEFAULT_BG));
                 if c.inverse {
@@ -181,9 +184,13 @@ impl Screen {
                     if c.bold { ";font-weight:700" } else { "" }
                 );
                 if s != style && !run.is_empty() {
-                    body.push_str(&format!("<span style=\"{style}\">{run}</span>"));
+                    body.push_str(&format!(
+                        "<span style=\"{style};width:{cells}ch\">{run}</span>"
+                    ));
                     run.clear();
+                    cells = 0;
                 }
+                cells += 1;
                 style = s;
                 let t = if c.text.is_empty() {
                     " "
@@ -197,7 +204,9 @@ impl Screen {
                 );
             }
             if !run.is_empty() {
-                body.push_str(&format!("<span style=\"{style}\">{run}</span>"));
+                body.push_str(&format!(
+                    "<span style=\"{style};width:{cells}ch\">{run}</span>"
+                ));
             }
             body.push_str("</div>");
         }
@@ -207,8 +216,8 @@ impl Screen {
 <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap\">\
 <style>html,body{{margin:0;background:#{r:02x}{g:02x}{b:02x}}}\
 .t{{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;white-space:pre;padding:0}}\
-.r{{height:20px}}.r span{{display:inline-block;height:20px}}</style></head>\
-<body><div class=\"t\">\n{body}</div></body></html>\n",
+.r{{height:20px;white-space:pre}}.r span{{display:inline-block;height:20px;overflow:hidden;vertical-align:top}}</style></head>\
+<body><div class=\"t\">{body}</div></body></html>\n",
             self.cols, self.rows
         )
     }
@@ -343,6 +352,26 @@ impl Term {
                 bail!("timed out after {timeout:?}; screen:\n{}", s.contents);
             }
             std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+
+    /// Wait until the screen hasn't changed for `quiet`.
+    pub fn settle(&self, quiet: Duration, timeout: Duration) -> Result<Screen> {
+        let start = Instant::now();
+        let mut last = self.screen().formatted;
+        let mut since = Instant::now();
+        loop {
+            std::thread::sleep(Duration::from_millis(20));
+            let now = self.screen().formatted;
+            if now != last {
+                last = now;
+                since = Instant::now();
+            } else if since.elapsed() >= quiet {
+                return Ok(self.screen());
+            }
+            if start.elapsed() > timeout {
+                bail!("screen didn't settle within {timeout:?}");
+            }
         }
     }
 

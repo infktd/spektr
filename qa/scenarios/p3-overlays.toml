@@ -1,0 +1,45 @@
+name = "Overlays: palette, context menu and submenu, help, dialogs"
+size = [170, 48]
+compare = "docs/design/Palette.dc.html"
+checklist = [
+  "Palette ≈ 96×22 at 1/6 of the height, bg_raised, accent border, title `Command`; the workspace behind it is dimmed (muted/faint only)",
+  "Palette prompt `: run` with a caret, `target ◐ …` on the right; grouped matches (Modules, Commands, Recent); detail pane; footer hints and `N of M`",
+  "Context menu (artboard 07): header glyph + value bold, muted `type · N observations`, rule; sections separated by rules; hotkeys right-aligned muted; disabled items muted with a reason",
+  "Submenu opens to the right with `Modules for …`, cost or last run per module, `Run all eligible  A` after a rule",
+  "Status line hints change with the overlay: menu `↑↓ select → open submenu ← back ↵ run esc close`; palette `tab complete ↑↓ select ↵ run esc close`",
+  "Help is generated from the registry, grouped by context, with the shift-drag note; `/` search filters it",
+  "Note dialog: centered, ≤ 64 wide, accent border, caret in the field; reject confirmation asks for `y`",
+  "COMMAND pill (warn) while the palette is open",
+]
+
+[[step]]
+run = ["new", "demo", "--profile", "tracelabs", "--subject", "Jordan Marlow", "--last-seen", "2026-09-28"]
+
+[[step]]
+run = ["run", "demo.spektr", "--seed", "username:jmarlow.wav"]
+
+[[step]]
+run = ["open", "demo.spektr"]
+do = [
+  "wait has_account",
+  "keys :",
+  "frame palette-empty",
+  "keys text:run",
+  "frame palette-run",
+  "keys esc space",
+  "frame menu",
+  "keys ↓ →",
+  "frame submenu",
+  "keys esc",
+  "rclick 120 6",
+  "frame menu-rightclick",
+  "keys esc ?",
+  "frame help",
+  "keys / text:merge",
+  "frame help-search",
+  "keys esc esc n",
+  "frame note-dialog",
+  "keys esc x",
+  "frame reject-dialog",
+  "keys esc q",
+]
