@@ -1,0 +1,24 @@
+[module]
+name        = "fake-serve"
+version     = "0.1.0"
+description = "Fictional Lemmy lookup for the exec protocol tests"
+runtime     = "exec"
+command     = ["python3", "../../fake.py", "fake-serve", "--serve"]
+serve       = true
+concurrency = 2
+timeout     = "20s"
+technique   = "passive"
+auto        = true
+consumes    = ["username"]
+produces    = [["has_account", "account"], ["x.fake-serve.member_of_instance", "x.fake-serve.instance"]]
+optional_secrets = ["FAKE_TOKEN"]
+hosts       = ["lemmy.example"]
+
+[[module.types]]
+name = "x.fake-serve.instance"
+normalize = "lowercase"
+
+[[module.predicates]]
+name = "x.fake-serve.member_of_instance"
+src = ["account"]
+dst = ["x.fake-serve.instance"]
