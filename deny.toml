@@ -1,0 +1,51 @@
+# cargo-deny configuration (DEPENDENCIES.md "Licenses"). Run: cargo deny check
+
+[graph]
+# The four shipping targets (ARCHITECTURE §9).
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+]
+all-features = true
+
+[advisories]
+yanked = "deny"
+
+[licenses]
+allow = [
+    "Apache-2.0",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "MPL-2.0",
+    "CC0-1.0",
+]
+confidence-threshold = 0.93
+
+[licenses.private]
+# xtask is publish = false
+ignore = true
+
+[bans]
+# Report duplicate versions; don't fail on them.
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+# Mirrors `cargo xtask deps-check` rule 4 (DISPATCH "Never").
+deny = [
+    { name = "sqlx" },
+    { name = "async-trait", reason = "use futures::BoxFuture (DEPENDENCIES.md)" },
+    { name = "chromiumoxide" },
+    { name = "headless_chrome" },
+    { name = "aws-lc-rs", reason = "TLS is rustls + ring; reqwest's default TLS pulls aws-lc" },
+    { name = "aws-lc-sys", reason = "TLS is rustls + ring; reqwest's default TLS pulls aws-lc" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
