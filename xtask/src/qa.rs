@@ -269,8 +269,12 @@ fn run_live(root: &Path) -> Result<()> {
     };
     let mut results = Vec::new();
     let mut plan: Vec<(String, String)> = Vec::new();
+    // Phase 2: dns. Phase 4: the domain modules, and capture (below).
     for d in &targets.domains {
-        plan.push(("dns".into(), format!("domain:{d}")));
+        // (wayback is manual-only, so seeding never plans it.)
+        for m in ["dns", "rdap", "crtsh", "http-fingerprint"] {
+            plan.push((m.into(), format!("domain:{d}")));
+        }
     }
     for u in &targets.usernames {
         plan.push(("github".into(), format!("username:{u}")));
@@ -340,6 +344,10 @@ fn run_live(root: &Path) -> Result<()> {
             "dns" => {
                 "no resolves_to edges — compare with crates/spektr-modules/fixtures/dns".to_string()
             }
+            "rdap" if state == "done" => format!("edges: {preds:?} (fixtures: registered_by)"),
+            "crtsh" if state == "done" => {
+                format!("edges: {preds:?} (fixtures: has_subdomain, issued_for)")
+            }
             _ if state == "done" => format!("edges: {preds:?}"),
             _ => "n/a".into(),
         };
@@ -357,6 +365,41 @@ fn run_live(root: &Path) -> Result<()> {
             latency_ms,
             detail,
             shape,
+        });
+    }
+    // capture: one GET and, with a browser installed, a screenshot.
+    for d in &targets.domains {
+        let url = format!("https://{d}/");
+        if !targets.allows(&format!("domain:{d}")) {
+            bail!("refusing {url}: not in qa/live-targets.toml");
+        }
+        let name = format!("live-capture-{d}");
+        if !spektr(&["new", &name, "--profile", "tracelabs"])
+            .status()?
+            .success()
+        {
+            bail!("spektr new failed");
+        }
+        let t = Instant::now();
+        let out = spektr(&["capture", &format!("{name}.spektr"), &url]).output()?;
+        let text = String::from_utf8_lossy(&out.stdout).into_owned();
+        let png = text
+            .lines()
+            .find(|l| l.trim_start().starts_with("png"))
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        results.push(LiveResult {
+            module: "capture".into(),
+            target: url,
+            ok: out.status.success(),
+            latency_ms: t.elapsed().as_millis(),
+            detail: if out.status.success() {
+                text.lines().next().unwrap_or("").to_string()
+            } else {
+                String::from_utf8_lossy(&out.stderr).trim().to_string()
+            },
+            shape: png,
         });
     }
     let mut md = String::from("# Live smoke run\n\n");
@@ -387,7 +430,7 @@ fn run_live(root: &Path) -> Result<()> {
         ));
     }
     if targets.emails.is_empty() {
-        md.push_str("\nNo emails approved; no Phase 2 module consumes email anyway.\n");
+        md.push_str("\nNo emails approved: the email modules (gravatar, hibp, email-check) were not run live.\n");
     }
     if targets.usernames.is_empty() {
         md.push_str("No usernames approved: `github` and `username-sweep` were not run live.\n");
@@ -456,6 +499,7 @@ pub fn real_terminal(root: &Path) -> Result<()> {
     let env = format!(
         "export HOME={h} XDG_CONFIG_HOME={h}/.config XDG_STATE_HOME={h}/.local/state XDG_DATA_HOME={h}/.local/share\n\
          export SPEKTR_TEST_MODE=1 SPEKTR_TRANSPORT=replay:{f} SPEKTR_CLOCK=2026-10-20T18:14:22Z SPEKTR_SEED=1 COLORTERM=truecolor\n\
+         export SPEKTR_TEST_KEYS='wait:6000 j j wait:6000 h h j j'\n\
          cd {w}\n",
         h = home.display(),
         f = fixtures.display(),
@@ -466,6 +510,13 @@ pub fn real_terminal(root: &Path) -> Result<()> {
          {b} run demo-missing-01.spektr --seed username:jmarlow.wav >/dev/null\n",
         b = bin.display()
     );
+    // Images by the terminal's own protocol (test mode defaults to
+    // halfblocks).
+    std::fs::create_dir_all(home.join(".config/spektr"))?;
+    std::fs::write(
+        home.join(".config/spektr/config.toml"),
+        "images = \"auto\"\n",
+    )?;
     let st = Command::new("/bin/sh").arg("-c").arg(&setup).status()?;
     if !st.success() {
         bail!("building the fixture case failed");
@@ -522,16 +573,35 @@ pub fn real_terminal(root: &Path) -> Result<()> {
         let _ = Command::new("kill").arg(pid.to_string()).status();
         bail!("only Ghostty's permission prompt appeared ({w}×{h}); run again and click Allow");
     }
-    std::thread::sleep(std::time::Duration::from_secs(4));
-    let png = out.join("ghostty-workspace.png");
-    let st = Command::new("screencapture")
-        .args(["-x", "-o", "-l", &id.to_string()])
-        .arg(&png)
-        .status()?;
-    let _ = Command::new("kill").arg(pid.to_string()).status();
-    if !st.success() || !png.exists() {
-        bail!("screencapture failed (Screen Recording permission for this terminal?)");
+    // The key script (SPEKTR_TEST_KEYS) moves to an avatar at ~6 s and to
+    // the ≈ same_avatar row at ~12 s.
+    let shots = [
+        (4, "ghostty-workspace.png"),
+        (9, "ghostty-avatar-preview.png"),
+        (16, "ghostty-edge-compare.png"),
+    ];
+    let t0 = std::time::Instant::now();
+    let mut taken = Vec::new();
+    for (at, name) in shots {
+        let wait = std::time::Duration::from_secs(at).saturating_sub(t0.elapsed());
+        std::thread::sleep(wait);
+        let png = out.join(name);
+        let st = Command::new("screencapture")
+            .args(["-x", "-o", "-l", &id.to_string()])
+            .arg(&png)
+            .status()?;
+        if !st.success() || !png.exists() {
+            let _ = Command::new("kill").arg(pid.to_string()).status();
+            bail!("screencapture failed (Screen Recording permission for this terminal?)");
+        }
+        taken.push(png);
     }
-    println!("captured {} ({w}×{h} pt)", png.display());
+    let _ = Command::new("kill").arg(pid.to_string()).status();
+    let png = taken
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    println!("captured {png} ({w}×{h} pt)");
     Ok(())
 }

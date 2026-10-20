@@ -45,6 +45,42 @@ enum Internal {
     Pager(PathBuf),
 }
 
+/// Type a test-mode key script (`Settings::script`) into the loop.
+fn play_script(script: String, tx: mpsc::UnboundedSender<Internal>) {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    tokio::spawn(async move {
+        for tok in script.split_whitespace() {
+            if let Some(ms) = tok
+                .strip_prefix("wait:")
+                .and_then(|m| m.parse::<u64>().ok())
+            {
+                tokio::time::sleep(Duration::from_millis(ms)).await;
+                continue;
+            }
+            let code = match tok {
+                "enter" => KeyCode::Enter,
+                "esc" => KeyCode::Esc,
+                "tab" => KeyCode::Tab,
+                "space" => KeyCode::Char(' '),
+                "up" => KeyCode::Up,
+                "down" => KeyCode::Down,
+                "left" => KeyCode::Left,
+                "right" => KeyCode::Right,
+                t => match t.chars().next() {
+                    Some(c) if t.chars().count() == 1 => KeyCode::Char(c),
+                    _ => continue,
+                },
+            };
+            let mods = match code {
+                KeyCode::Char(c) if c.is_ascii_uppercase() => KeyModifiers::SHIFT,
+                _ => KeyModifiers::NONE,
+            };
+            let _ = tx.send(Internal::Msg(Msg::Key(KeyEvent::new(code, mods))));
+            tokio::time::sleep(Duration::from_millis(120)).await;
+        }
+    });
+}
+
 /// Attachments read from disk stop here (the capture limit).
 const MAX_ATTACH: u64 = spektr_engine::MAX_CAPTURE;
 
@@ -266,6 +302,9 @@ async fn run_loop(
                     engine_rx = Some(h.subscribe());
                     engine = Some(h);
                     host.opened(&path);
+                    if let Some(script) = s.settings.script.take() {
+                        play_script(script, tx.clone());
+                    }
                     Some(Msg::Opened(path, Ok(())))
                 }
                 Internal::Pager(path) => {
