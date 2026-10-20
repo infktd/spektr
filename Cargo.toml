@@ -79,6 +79,7 @@ crossterm    = { version = "0.29.0", features = ["event-stream", "osc52"] }
 ratatui-image = { version = "11.1.0", default-features = false, features = ["crossterm"] }
 ratatui-textarea = "0.9.3"        # default feature `crossterm`; built on ratatui-core / ratatui-widgets, compatible with ratatui 0.30
 nucleo-matcher = "0.3.1"          # fuzzy matching (filter, palette, pickers)
+unicode-width = "0.2.2"           # cell widths for truncation and alignment (already in the graph via ratatui)
 
 # bin
 clap         = { version = "4.6.7", features = ["derive"] }
