@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>spektr design language</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0D0E10}
+a{color:#8EC5FF}a:hover{color:#B9DBFF}
+</style>
+</helmet>
+<div style="width: 1100px; height: 900px; box-sizing: border-box; padding: 40px 44px; background: #0D0E10; color: #D8D5CE; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; gap: 30px; white-space: pre">
+
+<div>
+<div style="font-weight: 700; font-size: 18px; line-height: 26px">Design language</div>
+<div style="color: #8E8A83">One ground, one accent, three signal colors. Color only where it means something.</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="color: #8E8A83">Color tokens                  hex      256  use</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #0D0E10; border: 1px solid #3A3F47"></span>  bg           #0D0E10  233  ground</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #1B2028"></span>  selection    #1B2028  235  cursor row</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #2A2E35"></span>  border       #2A2E35  236  pane edges</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #4A4D53"></span>  faint        #4A4D53  239  tree, rules</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #8E8A83"></span>  fg_muted     #8E8A83  245  metadata</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #D8D5CE"></span>  fg           #D8D5CE  252  content</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #8EC5FF"></span>  accent       #8EC5FF  117  focus, live</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #8FCB9B"></span>  ok           #8FCB9B  114  success</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #E3B467"></span>  warn         #E3B467  179  hub, review</div>
+<div><span style="display: inline-block; width: 26px; height: 14px; vertical-align: -2px; background: #F08A7E"></span>  hostile      #F08A7E  210  failure</div>
+</div>
+<div style="color: #8E8A83; white-space: normal">faint is decoration only, never text. fg_muted is the lightest color allowed for text (5.3:1 on bg).</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="color: #8E8A83">Entity glyphs      type          ascii</div>
+<div style="display: flex; flex-direction: column">
+<div>   ◆               domain        D</div>
+<div>   ◇               subdomain     d</div>
+<div>   ●               ip            I</div>
+<div>   ◈               asn           A</div>
+<div>   ▤               netblock      N</div>
+<div>   @               email         @</div>
+<div>   ~               username      ~</div>
+<div>   ◎               person        P</div>
+<div>   ▣               organization  O</div>
+<div>   +               phone         +</div>
+<div>   ⊟               certificate   C</div>
+<div>   ↗               url           U</div>
+<div>   ✕               breach        B</div>
+</div>
+<div style="color: #8E8A83; white-space: normal">Glyphs are always fg_muted and single-width. Type is never encoded by color.</div>
+</div>
+
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="color: #8E8A83">Markers</div>
+<div style="display: flex; flex-direction: column">
+<div><span style="color: #8EC5FF">▌</span>  cursor row          <span style="color: #8EC5FF">•</span>  new since last view</div>
+<div><span style="color: #8EC5FF">≈</span>  correlated edge     <span style="color: #E3B467">⊛</span>  hub, not expanded</div>
+<div><span style="color: #8E8A83">⊘</span>  out of scope        <span style="color: #8E8A83">⌂</span>  seed</div>
+<div><span style="color: #8FCB9B">✓</span>  done / verified     <span style="color: #8EC5FF">▸</span>  running</div>
+<div><span style="color: #F08A7E">✕</span>  failed              <span style="color: #8E8A83">▰▰▰▱▱</span> confidence</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="color: #8E8A83">Modes</div>
+<div style="display: flex; gap: 10px">
+<span style="background: #8EC5FF; color: #0D0E10; font-weight: 700; padding: 0 8px">NORMAL</span>
+<span style="background: #E3B467; color: #0D0E10; font-weight: 700; padding: 0 8px">COMMAND</span>
+<span style="background: #D8D5CE; color: #0D0E10; font-weight: 700; padding: 0 8px">FILTER</span>
+<span style="background: #8EC5FF; color: #0D0E10; font-weight: 700; padding: 0 8px">REVIEW</span>
+</div>
+<div style="color: #8E8A83; white-space: normal">The mode pill is the only filled block of color on screen.</div>
+</div>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="color: #8E8A83">Panes</div>
+<div style="display: flex; gap: 24px">
+<div style="position: relative; width: 300px; height: 74px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 12px; box-sizing: border-box; color: #8E8A83">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10">Idle</div>
+border · title fg_muted</div>
+<div style="position: relative; width: 300px; height: 74px; border: 1px solid #8EC5FF; border-radius: 6px; padding: 16px 12px; box-sizing: border-box; color: #8E8A83">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8EC5FF">Focused</div>
+accent border + title</div>
+<div style="position: relative; width: 300px; height: 74px; background: #111317; border: 1px solid #8EC5FF; border-radius: 6px; padding: 16px 12px; box-sizing: border-box; color: #8E8A83">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8EC5FF">Overlay</div>
+raised bg · dims backdrop</div>
+</div>
+<div style="color: #8E8A83; white-space: normal">Rounded borders, titles inset in the top edge, 1 cell of inner padding. Bold marks the one thing you are looking at; nothing is underlined or italic.</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

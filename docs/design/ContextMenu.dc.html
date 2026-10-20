@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>spektr context menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0D0E10}
+a{color:#8EC5FF}a:hover{color:#B9DBFF}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; padding: 10px 12px; background: #0D0E10; color: #D8D5CE; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; gap: 8px">
+
+<!-- top bar -->
+<div style="height: 20px; display: flex; justify-content: space-between; align-items: center; white-space: pre">
+<div style="display: flex; gap: 14px">
+<span style="font-weight: 700; color: #8EC5FF">spektr</span>
+<span style="color: #4A4D53">│</span>
+<span>tl-ctf-1019</span>
+<span style="color: #8E8A83">~/cases/tl-ctf-1019.spektr</span>
+</div>
+<div style="display: flex; gap: 18px">
+<span><span style="color: #8E8A83">depth </span>3</span>
+<span><span style="color: #8E8A83">scope </span>2 rules</span>
+<span><span style="color: #8EC5FF">●</span> 4 running <span style="color: #8E8A83">· 12 queued</span></span>
+<span><span style="color: #8E8A83">chain </span><span style="color: #8FCB9B">✓ 418</span></span>
+</div>
+</div>
+
+<!-- main row -->
+<div style="height: 646px; display: flex; gap: 8px">
+
+<!-- entities pane -->
+<div style="position: relative; width: 300px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8E8A83">Entities <span style="color: #D8D5CE">92</span></div>
+<div style="color: #8E8A83">/ filter</div>
+<div>
+<div><span style="color: #8E8A83">▾ ◆ domain</span>              <span style="color: #8E8A83">6</span></div>
+<div>  <span style="color: #8EC5FF">▸</span> kestrel.example</div>
+<div>    kestrel-cdn.example</div>
+<div>    kestrelmail.example     <span style="color: #8EC5FF">•</span></div>
+<div style="color: #8E8A83">    ··· 3 more</div>
+</div>
+<div>
+<div><span style="color: #8E8A83">▾ ◇ subdomain</span>          <span style="color: #8E8A83">23</span></div>
+<div>    vpn.kestrel.example</div>
+<div>    dev.kestrel.example     <span style="color: #8EC5FF">•</span></div>
+<div>    git.kestrel.example</div>
+<div style="color: #8E8A83">    ··· 20 more</div>
+</div>
+<div>
+<div><span style="color: #8E8A83">▾ ● ip</span>                  <span style="color: #8E8A83">9</span></div>
+<div>    203.0.113.24</div>
+<div>    198.51.100.7          <span style="color: #E3B467">⊛ hub</span></div>
+<div style="color: #8E8A83">    ··· 7 more</div>
+</div>
+<div>
+<div><span style="color: #8E8A83">▸ @ email</span>               <span style="color: #8E8A83">4</span></div>
+<div><span style="color: #8E8A83">▸ ◈ asn</span>                 <span style="color: #8E8A83">2</span></div>
+<div><span style="color: #8E8A83">▸ ~ username</span>            <span style="color: #8E8A83">3</span></div>
+<div><span style="color: #8E8A83">▸ ⊟ certificate</span>        <span style="color: #8E8A83">41</span></div>
+</div>
+</div>
+
+<!-- graph pane (focused) -->
+<div style="position: relative; flex: 1; border: 1px solid #8EC5FF; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; flex-direction: column; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8EC5FF">Graph</div>
+<div style="position: absolute; top: -11px; right: 10px; padding: 0 6px; background: #0D0E10; display: flex; gap: 12px">
+<span style="color: #8EC5FF">[1 ego]</span><span style="color: #8E8A83">2 overview</span><span style="color: #8E8A83">3 path</span>
+</div>
+
+<div style="color: #8E8A83">@ ops@kestrel.example  <span style="color: #4A4D53">›</span>  <span style="color: #D8D5CE">◆ kestrel.example</span></div>
+
+<div style="margin-top: 22px; display: flex; gap: 8px; align-items: flex-start">
+<div style="width: 286px; display: flex; flex-direction: column; gap: 18px">
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">subdomain_of <span style="color: #D8D5CE">← 18</span></span><span style="flex: 1; height: 1px; background: #3A3F47"></span></div>
+<div><span style="color: #4A4D53">├ </span>◇ vpn.kestrel.example     <span style="color: #8E8A83">▰▰▰▰▰</span></div>
+<div style="background: #1B2028; box-shadow: inset 0 0 0 1px #3A3F47"><span style="color: #8EC5FF">▌</span>◇ dev.kestrel.example <span style="color: #8EC5FF">•</span>   <span style="color: #8E8A83">▰▰▰▰▰</span></div>
+<div><span style="color: #4A4D53">├ </span>◇ mail.kestrel.example    <span style="color: #8E8A83">▰▰▰▰▰</span></div>
+<div><span style="color: #4A4D53">├ </span>◇ git.kestrel.example     <span style="color: #8E8A83">▰▰▰▰▱</span></div>
+<div style="color: #8E8A83"><span style="color: #4A4D53">└ </span>··· 14 more        <span style="color: #D8D5CE">]</span> 1/4</div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">issued_for <span style="color: #D8D5CE">← 31</span></span><span style="flex: 1; height: 1px; background: #3A3F47"></span></div>
+<div><span style="color: #4A4D53">├ </span>⊟ *.kestrel.example · R11 <span style="color: #8E8A83">▰▰▰▰▰</span></div>
+<div><span style="color: #4A4D53">├ </span>⊟ kestrel.example · E6    <span style="color: #8E8A83">▰▰▰▰▰</span></div>
+<div style="color: #8E8A83"><span style="color: #4A4D53">└ </span>··· 29 more        <span style="color: #D8D5CE">]</span> 1/8</div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8EC5FF">≈ shares_artifact <span style="color: #D8D5CE">↔ 1</span></span><span style="flex: 1; height: 1px; background: #8EC5FF; opacity: 0.55"></span></div>
+<div><span style="color: #4A4D53">└ </span>◆ kestrelmail.example     <span style="color: #8E8A83">0.86</span></div>
+<div style="color: #8E8A83">  registrant email · 2 obs</div>
+</div>
+</div>
+
+<div style="width: 160px; margin-top: 74px; border: 1px solid #8EC5FF; border-radius: 6px; padding: 10px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="color: #8E8A83">◆ domain</div>
+<div style="font-weight: 700">kestrel.example</div>
+<div style="height: 8px"></div>
+<div><span style="color: #8E8A83">in  </span>50</div>
+<div><span style="color: #8E8A83">out </span>5</div>
+<div><span style="color: #8E8A83">obs </span>7</div>
+<div style="height: 8px"></div>
+<div style="color: #8FCB9B">✓ in scope</div>
+<div style="color: #8E8A83">depth 1</div>
+</div>
+
+<div style="flex: 1; display: flex; flex-direction: column; gap: 18px">
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; height: 1px; background: #3A3F47"></span><span style="color: #8E8A83"><span style="color: #D8D5CE">→ 2</span> resolves_to</span></div>
+<div><span style="color: #4A4D53">├ </span>● 203.0.113.24          <span style="color: #8E8A83">▰▰▰▰▰</span></div>
+<div><span style="color: #4A4D53">└ </span>● 203.0.113.25          <span style="color: #8E8A83">▰▰▰▰▰</span></div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; height: 1px; background: #3A3F47"></span><span style="color: #8E8A83"><span style="color: #D8D5CE">→ 2</span> registered_by</span></div>
+<div><span style="color: #4A4D53">├ </span>@ ops@kestrel.example   <span style="color: #8E8A83">⌂ seed</span></div>
+<div><span style="color: #4A4D53">└ </span>▣ Kestrel Labs LLC      <span style="color: #8E8A83">▰▰▰▱▱</span></div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; height: 1px; background: #3A3F47"></span><span style="color: #8E8A83"><span style="color: #D8D5CE">→ 1</span> mail_handled_by</span></div>
+<div><span style="color: #4A4D53">└ </span>◇ mx1.mailhost.example  <span style="color: #E3B467">⊛ hub</span></div>
+</div>
+</div>
+</div>
+
+<div style="margin-top: auto; display: flex; justify-content: space-between; color: #8E8A83">
+<span><span style="color: #D8D5CE">right-click</span> or <span style="color: #D8D5CE">space</span> on any row opens its menu</span>
+<span>▰ confidence   <span style="color: #8EC5FF">•</span> new   <span style="color: #E3B467">⊛</span> hub</span>
+</div>
+</div>
+
+<!-- inspector pane (follows the menu's row) -->
+<div style="position: relative; width: 380px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8E8A83">Inspector</div>
+<div>
+<div style="font-weight: 700">◇ dev.kestrel.example</div>
+<div style="color: #8E8A83">subdomain · new since 14:31</div>
+</div>
+<div>
+<div><span style="color: #8E8A83">first seen   </span>14:31:40</div>
+<div><span style="color: #8E8A83">degree       </span>2 <span style="color: #8E8A83">(in 1 · out 1)</span></div>
+<div><span style="color: #8E8A83">scope        </span><span style="color: #8FCB9B">✓ *.kestrel.example</span></div>
+<div><span style="color: #8E8A83">depth        </span>2</div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">Observations 2</span><span style="flex: 1; height: 1px; background: #2A2E35"></span></div>
+<div> crtsh      0.9.3  14:31:40  <span style="color: #8E8A83">e0c4…5a</span></div>
+<div> dns        1.4.1  14:31:52  <span style="color: #8E8A83">7a10…3e</span></div>
+</div>
+</div>
+
+</div>
+
+<!-- activity rail -->
+<div style="position: relative; height: 170px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; flex-direction: column; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8E8A83">Activity</div>
+<div><span style="color: #8E8A83">14:32:07 </span><span style="color: #8FCB9B">✓</span> crtsh       <span style="color: #8E8A83">+31 ⊟ certificate   ←</span> ◆ kestrel-cdn.example</div>
+<div><span style="color: #8E8A83">14:32:05 </span><span style="color: #8EC5FF">▸</span> subfinder   <span style="color: #8E8A83">running            on</span> ◆ kestrelmail.example</div>
+<div><span style="color: #8E8A83">14:32:04 </span><span style="color: #8EC5FF">≈ correlate   shares_artifact</span>    ◆ kestrel.example ↔ ◆ kestrelmail.example</div>
+<div><span style="color: #8E8A83">14:32:01 </span><span style="color: #E3B467">⊛ hub</span>         ◇ mx1.mailhost.example <span style="color: #8E8A83">auto-expansion suppressed</span></div>
+<div><span style="color: #8E8A83">14:31:58 </span><span style="color: #F08A7E">✕ hibp        429 rate limited</span>   <span style="color: #8E8A83">retry in 32s</span></div>
+<div><span style="color: #8E8A83">14:31:52 </span><span style="color: #8FCB9B">✓</span> dns         <span style="color: #8E8A83">+1 ● ip            ←</span> ◇ dev.kestrel.example</div>
+</div>
+
+<!-- status line -->
+<div style="height: 20px; display: flex; justify-content: space-between; align-items: center; white-space: pre">
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="background: #8EC5FF; color: #0D0E10; font-weight: 700; padding: 0 8px">NORMAL</span>
+<span style="color: #8E8A83"><span style="color: #D8D5CE">↑↓</span> select   <span style="color: #D8D5CE">→</span> open submenu   <span style="color: #D8D5CE">←</span> back   <span style="color: #D8D5CE">↵</span> run   <span style="color: #D8D5CE">esc</span> close</span>
+</div>
+<span style="color: #8E8A83">14:32:12 UTC</span>
+</div>
+
+<!-- context menu -->
+<div style="position: absolute; left: 528px; top: 152px; width: 296px; background: #111317; border: 1px solid #3A3F47; border-radius: 6px; padding: 8px 0; box-sizing: border-box; display: flex; flex-direction: column; white-space: pre; box-shadow: 0 18px 44px rgba(0,0,0,0.6)">
+<div style="padding: 0 12px">
+<div style="font-weight: 700">◇ dev.kestrel.example</div>
+<div style="color: #8E8A83">subdomain · 2 observations</div>
+</div>
+<div style="height: 1px; background: #2A2E35; margin: 8px 0"></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Pivot here</span><span style="color: #8E8A83">↵</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between; background: #1B2028; box-shadow: inset 2px 0 0 #8EC5FF"><span>Run module</span><span style="color: #8E8A83">r  ▸</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Copy value</span><span style="color: #8E8A83">y</span></div>
+<div style="height: 1px; background: #2A2E35; margin: 6px 0"></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Add to scope</span><span style="color: #8E8A83">s</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Exclude from scope</span><span style="color: #8E8A83">S</span></div>
+<div style="height: 1px; background: #2A2E35; margin: 6px 0"></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Mark as finding</span><span style="color: #8E8A83">f</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Add note</span><span style="color: #8E8A83">n</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Merge with…</span><span style="color: #8E8A83">m</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Open raw response</span><span style="color: #8E8A83">o</span></div>
+</div>
+
+<!-- submenu -->
+<div style="position: absolute; left: 828px; top: 210px; width: 280px; background: #111317; border: 1px solid #3A3F47; border-radius: 6px; padding: 8px 0; box-sizing: border-box; display: flex; flex-direction: column; white-space: pre; box-shadow: 0 18px 44px rgba(0,0,0,0.6)">
+<div style="padding: 0 12px; color: #8E8A83">Modules for ◇ subdomain</div>
+<div style="height: 1px; background: #2A2E35; margin: 8px 0"></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between; background: #1B2028; box-shadow: inset 2px 0 0 #8EC5FF"><span>crtsh</span><span style="color: #8E8A83">1 request</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>dns</span><span style="color: #8E8A83">ran 14:31 · rerun</span></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between; color: #8E8A83"><span>whois</span><span>covered by parent</span></div>
+<div style="height: 1px; background: #2A2E35; margin: 6px 0"></div>
+<div style="padding: 0 12px; display: flex; justify-content: space-between"><span>Run all eligible</span><span style="color: #8E8A83">⇧↵</span></div>
+</div>
+
+<!-- pointer at the right-click point -->
+<svg width="14" height="20" viewBox="0 0 14 20" style="position: absolute; left: 520px; top: 146px" aria-hidden="true">
+<path d="M1 1 L1 16 L5 12.5 L8 19 L10.5 18 L7.5 11.5 L12.5 11.5 Z" fill="#D8D5CE" stroke="#0D0E10" stroke-width="1"/>
+</svg>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

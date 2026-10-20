@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>spektr workspace — identity case</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0D0E10}
+a{color:#8EC5FF}a:hover{color:#B9DBFF}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; padding: 10px 12px; background: #0D0E10; color: #D8D5CE; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; gap: 8px">
+
+<!-- top bar -->
+<div style="height: 20px; display: flex; justify-content: space-between; align-items: center; white-space: pre">
+<div style="display: flex; gap: 14px">
+<span style="font-weight: 700; color: #8EC5FF">spektr</span>
+<span style="color: #4A4D53">│</span>
+<span>demo-missing-01</span>
+<span style="color: #8E8A83">subject <span style="color: #D8D5CE">◎ Jordan Marlow</span> · last seen 2026-09-28</span>
+</div>
+<div style="display: flex; gap: 18px">
+<span><span style="color: #8E8A83">rules </span>tracelabs</span>
+<span><span style="color: #8E8A83">findings </span>4</span>
+<span><span style="color: #8EC5FF">●</span> 1 running <span style="color: #8E8A83">· 2 queued</span></span>
+<span><span style="color: #8E8A83">chain </span><span style="color: #8FCB9B">✓ 206</span></span>
+</div>
+</div>
+
+<!-- main row -->
+<div style="height: 646px; display: flex; gap: 8px">
+
+<!-- entities -->
+<div style="position: relative; width: 300px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8E8A83">Entities <span style="color: #D8D5CE">31</span></div>
+<div style="color: #8E8A83">/ filter</div>
+<div>
+<div><span style="color: #8E8A83">▾ ◎ person</span>              <span style="color: #8E8A83">1</span></div>
+<div>    Jordan Marlow         <span style="color: #8E8A83">subject</span></div>
+</div>
+<div>
+<div><span style="color: #8E8A83">▾ ~ username</span>            <span style="color: #8E8A83">3</span></div>
+<div style="background: #1B2028">  <span style="color: #8EC5FF">▸</span> jmarlow.wav           <span style="color: #8E8A83">⌂</span></div>
+<div>    jordanmarlow</div>
+<div>    jm4rlow                 <span style="color: #8EC5FF">•</span></div>
+</div>
+<div>
+<div><span style="color: #8E8A83">▾ ◐ account</span>             <span style="color: #8E8A83">9</span></div>
+<div>    github · jmarlow-wav</div>
+<div>    bluesky · jmarlow.wav</div>
+<div>    soundcloud · jmarlow</div>
+<div style="color: #8E8A83">    ··· 6 more</div>
+</div>
+<div>
+<div><span style="color: #8E8A83">▾ @ email</span>               <span style="color: #8E8A83">2</span></div>
+<div>    jordan.marlow@mail.example</div>
+<div>    jm4rlow@mail.example    <span style="color: #8EC5FF">•</span></div>
+</div>
+<div>
+<div><span style="color: #8E8A83">▸ ▨ image</span>               <span style="color: #8E8A83">4</span></div>
+<div><span style="color: #8E8A83">▸ ⌖ location</span>            <span style="color: #8E8A83">2</span></div>
+<div><span style="color: #8E8A83">▸ ▣ org</span>                 <span style="color: #8E8A83">2</span></div>
+<div><span style="color: #8E8A83">▸ ↗ url</span>                 <span style="color: #8E8A83">6</span></div>
+</div>
+<div style="color: #8E8A83">  ⊘ 288 sites not found · hidden</div>
+</div>
+
+<!-- graph (focused) -->
+<div style="position: relative; flex: 1; border: 1px solid #8EC5FF; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; flex-direction: column; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8EC5FF">Graph</div>
+<div style="position: absolute; top: -11px; right: 10px; padding: 0 6px; background: #0D0E10; display: flex; gap: 12px">
+<span style="color: #8EC5FF">[1 ego]</span><span style="color: #8E8A83">2 timeline</span><span style="color: #8E8A83">3 path</span>
+</div>
+
+<div style="color: #8E8A83">◎ Jordan Marlow  <span style="color: #4A4D53">›</span>  <span style="color: #D8D5CE">~ jmarlow.wav</span></div>
+
+<div style="margin-top: 22px; display: flex; gap: 8px; align-items: flex-start">
+
+<!-- inbound -->
+<div style="width: 286px; display: flex; flex-direction: column; gap: 18px">
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">uses_handle <span style="color: #D8D5CE">← 1</span></span><span style="flex: 1; height: 1px; background: #3A3F47"></span></div>
+<div><span style="color: #4A4D53">└ </span>◎ Jordan Marlow           <span style="color: #D8D5CE">▰▰▱</span></div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">variant_of <span style="color: #D8D5CE">↔ 2</span></span><span style="flex: 1; height: 1px; background: #3A3F47"></span></div>
+<div><span style="color: #4A4D53">├ </span>~ jordanmarlow            <span style="color: #8E8A83">▰▱▱</span></div>
+<div><span style="color: #4A4D53">└ </span>~ jm4rlow <span style="color: #8EC5FF">•</span>                <span style="color: #8E8A83">▰▱▱</span></div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8EC5FF">≈ same_avatar <span style="color: #D8D5CE">↔ 3</span></span><span style="flex: 1; height: 1px; background: #8EC5FF; opacity: 0.55"></span></div>
+<div><span style="color: #4A4D53">├ </span>◐ github · jmarlow-wav</div>
+<div><span style="color: #4A4D53">├ </span>◐ bluesky · jmarlow.wav</div>
+<div><span style="color: #4A4D53">└ </span>◐ soundcloud · jmarlow</div>
+<div style="color: #8E8A83">  avatar hash match · 3 sources</div>
+</div>
+</div>
+
+<!-- focus card -->
+<div style="width: 160px; margin-top: 74px; border: 1px solid #8EC5FF; border-radius: 6px; padding: 10px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="color: #8E8A83">~ username</div>
+<div style="font-weight: 700">jmarlow.wav</div>
+<div style="height: 8px"></div>
+<div><span style="color: #8E8A83">accts </span>7</div>
+<div><span style="color: #8E8A83">vars  </span>2</div>
+<div><span style="color: #8E8A83">obs   </span>4</div>
+<div style="height: 8px"></div>
+<div style="color: #8E8A83">⌂ seed</div>
+</div>
+
+<!-- outbound -->
+<div style="flex: 1; display: flex; flex-direction: column; gap: 18px">
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; height: 1px; background: #3A3F47"></span><span style="color: #8E8A83"><span style="color: #D8D5CE">→ 7</span> has_account</span></div>
+<div style="background: #1B2028"><span style="color: #8EC5FF">▌</span>◐ github      jmarlow-wav  <span style="color: #8FCB9B">▰▰▰</span></div>
+<div><span style="color: #4A4D53">├ </span>◐ bluesky     jmarlow.wav  <span style="color: #D8D5CE">▰▰▱</span></div>
+<div><span style="color: #4A4D53">├ </span>◐ soundcloud  jmarlow      <span style="color: #D8D5CE">▰▰▱</span></div>
+<div><span style="color: #4A4D53">├ </span>◐ reddit      jmarlow_wav  <span style="color: #8E8A83">▰▱▱</span></div>
+<div><span style="color: #4A4D53">├ </span>◐ strava      jmarlow      <span style="color: #8E8A83">▰▱▱</span></div>
+<div style="color: #8E8A83"><span style="color: #4A4D53">└ </span>··· 2 more       <span style="color: #D8D5CE">]</span> 1/2</div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="flex: 1; height: 1px; background: #3A3F47"></span><span style="color: #8E8A83">username-sweep</span></div>
+<div><span style="color: #8E8A83">  300 sites  </span>7 found  <span style="color: #E3B467">5 unsure</span>  <span style="color: #8E8A83">288 none</span></div>
+<div style="color: #8E8A83">  <span style="color: #D8D5CE">u</span> review unsure</div>
+</div>
+</div>
+
+</div>
+
+<div style="margin-top: auto; display: flex; justify-content: space-between; color: #8E8A83">
+<span><span style="color: #D8D5CE">↵</span> pivot   <span style="color: #D8D5CE">⌫</span> back   <span style="color: #D8D5CE">c</span> capture   <span style="color: #D8D5CE">f</span> new finding</span>
+<span><span style="color: #8E8A83">▰▱▱</span> 1 source   <span style="color: #D8D5CE">▰▰▱</span> corroborated   <span style="color: #8FCB9B">▰▰▰</span> confirmed</span>
+</div>
+</div>
+
+<!-- inspector -->
+<div style="position: relative; width: 380px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8E8A83">Inspector</div>
+<div>
+<div style="font-weight: 700">◐ github · jmarlow-wav</div>
+<div style="color: #8E8A83">account · github.com/jmarlow-wav</div>
+</div>
+<div>
+<div><span style="color: #8E8A83">display name  </span>Jordan M.</div>
+<div><span style="color: #8E8A83">joined        </span>2019-03</div>
+<div><span style="color: #8E8A83">last active   </span>2026-10-16</div>
+<div><span style="color: #8E8A83">              </span><span style="color: #E3B467">▲ after last-seen date</span></div>
+<div><span style="color: #8E8A83">bio           </span>synths, trails, coffee</div>
+<div><span style="color: #8E8A83">links         </span>↗ jmarlow.example</div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">Evidence 3</span><span style="flex: 1; height: 1px; background: #2A2E35"></span></div>
+<div style="background: #1B2028"><span style="color: #8EC5FF">▌</span>capture   html+png  18:11  <span style="color: #8E8A83">9a3f…11</span></div>
+<div> github         0.4.0  18:06  <span style="color: #8E8A83">77d0…c4</span></div>
+<div> username-sweep 1.0.0  18:05  <span style="color: #8E8A83">2c71…ae</span></div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">Strength</span><span style="flex: 1; height: 1px; background: #2A2E35"></span></div>
+<div><span style="color: #8FCB9B">▰▰▰ confirmed</span> <span style="color: #8E8A83">by you · 18:14</span></div>
+<div style="color: #8E8A83"> 2 independent sources + avatar match</div>
+</div>
+<div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="color: #8E8A83">Used in</span><span style="flex: 1; height: 1px; background: #2A2E35"></span></div>
+<div> F-3  Advancing the Timeline   <span style="color: #8E8A83">draft</span></div>
+</div>
+<div style="margin-top: auto; color: #8E8A83"><span style="color: #D8D5CE">o</span> open capture   <span style="color: #D8D5CE">y</span> copy url   <span style="color: #D8D5CE">f</span> finding</div>
+</div>
+
+</div>
+
+<!-- activity -->
+<div style="position: relative; height: 170px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 12px 10px; box-sizing: border-box; display: flex; gap: 16px; white-space: pre">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8E8A83">Activity</div>
+<div style="flex: 1; display: flex; flex-direction: column">
+<div><span style="color: #8E8A83">18:12:40 </span><span style="color: #8FCB9B">✓</span> exif            <span style="color: #8E8A83">▨ IMG_2214.jpg  →</span> ⌖ 45.52, -122.68 <span style="color: #E3B467">taken 2026-10-03 · after last seen</span></div>
+<div><span style="color: #8E8A83">18:11:02 </span><span style="color: #8FCB9B">✓</span> capture         <span style="color: #8E8A83">github.com/jmarlow-wav · html + png ·</span> 9a3f…11</div>
+<div><span style="color: #8E8A83">18:09:55 </span><span style="color: #8EC5FF">≈ correlate       same_avatar</span>  ◐ github ↔ ◐ bluesky ↔ ◐ soundcloud</div>
+<div><span style="color: #8E8A83">18:06:12 </span><span style="color: #8FCB9B">✓</span> github          <span style="color: #8E8A83">+1 @ email  +1 ↗ url  ←</span> ◐ github · jmarlow-wav</div>
+<div><span style="color: #8E8A83">18:05:30 </span><span style="color: #8FCB9B">✓</span> username-sweep  <span style="color: #8E8A83">300 sites ·</span> 7 found <span style="color: #8E8A83">· 5 unsure</span></div>
+<div><span style="color: #8E8A83">18:05:01 </span><span style="color: #8E8A83">⊘ rules           email-account-probe blocked · tracelabs forbids account probing</span></div>
+</div>
+<div style="width: 300px; border-left: 1px solid #2A2E35; padding-left: 16px; display: flex; flex-direction: column">
+<div><span style="color: #8E8A83">running  </span>1   <span style="color: #8E8A83">queued </span>2</div>
+<div><span style="color: #8E8A83">done    </span>23   <span style="color: #8E8A83">failed </span>0</div>
+<div style="height: 20px"></div>
+<div><span style="color: #8E8A83">rules    </span>tracelabs</div>
+<div><span style="color: #8E8A83">         </span>passive only · no probing</div>
+<div><span style="color: #8E8A83">blocked  </span>2 modules</div>
+</div>
+</div>
+
+<!-- status -->
+<div style="height: 20px; display: flex; justify-content: space-between; align-items: center; white-space: pre">
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="background: #8EC5FF; color: #0D0E10; font-weight: 700; padding: 0 8px">NORMAL</span>
+<span style="color: #8E8A83"><span style="color: #D8D5CE">:</span> command   <span style="color: #D8D5CE">/</span> filter   <span style="color: #D8D5CE">tab</span> pane   <span style="color: #D8D5CE">F</span> findings   <span style="color: #D8D5CE">space</span> menu   <span style="color: #D8D5CE">?</span> help</span>
+</div>
+<span style="color: #8E8A83">18:14:22 UTC</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

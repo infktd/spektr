@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>spektr launcher</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0D0E10}
+a{color:#8EC5FF}a:hover{color:#B9DBFF}
+</style>
+</helmet>
+<div style="width: 1100px; height: 680px; box-sizing: border-box; padding: 10px 12px; background: #0D0E10; color: #D8D5CE; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; gap: 8px; white-space: pre">
+
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 56px; gap: 34px">
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<div style="font-weight: 700; letter-spacing: 0.6em; padding-left: 0.6em">spektr</div>
+<div style="display: flex; letter-spacing: 0"><span style="color: #F08A7E">▀▀</span><span style="color: #E3B467">▀▀</span><span style="color: #D9D27A">▀▀</span><span style="color: #8FCB9B">▀▀</span><span style="color: #8EC5FF">▀▀</span><span style="color: #B8A4F0">▀▀</span></div>
+<div style="color: #8E8A83">terminal osint workbench · 0.1.0</div>
+</div>
+
+<div style="position: relative; width: 760px; border: 1px solid #8EC5FF; border-radius: 6px; padding: 16px 14px 12px; box-sizing: border-box">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8EC5FF">Recent cases</div>
+<div style="color: #8E8A83">  case                 entities  edges  last opened     chain</div>
+<div style="height: 4px"></div>
+<div style="background: #1B2028"><span style="color: #8EC5FF">▌</span> tl-ctf-1019              92    214  2 min ago       <span style="color: #8FCB9B">✓</span></div>
+<div>  kestrel-recon            61    133  yesterday       <span style="color: #8FCB9B">✓</span></div>
+<div>  tl-ctf-0927             318    901  sep 27          <span style="color: #8FCB9B">✓</span></div>
+<div>  scratch                    4      3  sep 12          <span style="color: #F08A7E">✕ break at #77</span></div>
+<div style="height: 8px"></div>
+<div style="color: #8E8A83">  ~/cases/tl-ctf-1019.spektr · 1.8 MB · seeds: @ ops@kestrel.example</div>
+</div>
+
+<div style="position: relative; width: 760px; border: 1px solid #2A2E35; border-radius: 6px; padding: 16px 14px 12px; box-sizing: border-box; display: flex; gap: 40px">
+<div style="position: absolute; top: -11px; left: 10px; padding: 0 6px; background: #0D0E10; color: #8E8A83">Doctor</div>
+<div style="display: flex; flex-direction: column">
+<div><span style="color: #8FCB9B">✓</span> config     <span style="color: #8E8A83">~/.config/spektr/config.toml</span></div>
+<div><span style="color: #8FCB9B">✓</span> resolver   <span style="color: #8E8A83">9.9.9.9 · 1.1.1.1</span></div>
+<div><span style="color: #8FCB9B">✓</span> crt.sh     <span style="color: #8E8A83">reachable · 412 ms</span></div>
+</div>
+<div style="display: flex; flex-direction: column">
+<div><span style="color: #8FCB9B">✓</span> hibp key   <span style="color: #8E8A83">set · 38/100 today</span></div>
+<div><span style="color: #E3B467">!</span> subfinder  <span style="color: #8E8A83">binary not found · module off</span></div>
+<div><span style="color: #8FCB9B">✓</span> terminal   <span style="color: #8E8A83">truecolor · 168×52</span></div>
+</div>
+</div>
+
+</div>
+
+<div style="height: 20px; display: flex; justify-content: space-between; align-items: center">
+<span style="color: #8E8A83"><span style="color: #D8D5CE">↵</span> open   <span style="color: #D8D5CE">n</span> new case   <span style="color: #D8D5CE">o</span> open path   <span style="color: #D8D5CE">v</span> verify chain   <span style="color: #D8D5CE">q</span> quit</span>
+<span style="color: #8E8A83">spektr --help</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":680}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
