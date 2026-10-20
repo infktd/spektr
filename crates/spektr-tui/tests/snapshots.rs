@@ -162,3 +162,52 @@ fn narrow_inspector_overlay_and_size_floor() {
     let s = ws((99, 30));
     insta::assert_snapshot!("too_small_99x30", text(&s));
 }
+
+fn pbs(size: (u16, u16)) -> AppState {
+    let mut s = ws(size);
+    support::playbook_screens(&mut s);
+    s
+}
+
+#[test]
+fn checklist_screen() {
+    snap("checklist", |size| {
+        let mut s = pbs(size);
+        keys(&mut s, "C tab");
+        s
+    });
+}
+
+#[test]
+fn review_screen() {
+    snap("review", |size| {
+        let mut s = pbs(size);
+        keys(&mut s, "R");
+        s
+    });
+}
+
+#[test]
+fn timeline_and_path_tabs() {
+    snap("timeline", |size| {
+        let mut s = pbs(size);
+        keys(&mut s, "2 j j j");
+        s
+    });
+    snap("path", |size| {
+        let mut s = pbs(size);
+        keys(&mut s, "3");
+        s
+    });
+}
+
+#[test]
+fn inspector_edge_comparison() {
+    snap("edge_compare", |size| {
+        let mut s = pbs(size);
+        if let spektr_tui::state::Screen::Workspace(w) = &mut s.screen {
+            w.inspect_edge = w.edge.as_ref().map(|e| e.edge);
+        }
+        s
+    });
+}

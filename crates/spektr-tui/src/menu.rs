@@ -1,17 +1,17 @@
 //! Context menus (TUI_SPEC §7): built from the action registry, filtered by
 //! the target's type and state.
 
-use spektr_engine::{EntitySummary, ModuleInfo};
+use spektr_engine::{EntitySummary, LauncherView, ModuleInfo, PlaybookInfo};
 use spektr_model::EdgeId;
 
-use crate::keymap::{Action, Ctx, Keymap};
+use crate::keymap::{Action, Ctx as KCtx, Keymap};
 use crate::palette::{NOT_YET, cost_label, module_block};
 use crate::state::{MenuAct, MenuItem, Submenu};
 
 fn item(km: &Keymap, action: Action, disabled: Option<&str>, rule: bool) -> MenuItem {
     let (key, label) = km
-        .hint_for(action, Ctx::Entity)
-        .or_else(|| km.hint_for(action, Ctx::Nav))
+        .hint_for(action, KCtx::Entity)
+        .or_else(|| km.hint_for(action, KCtx::Nav))
         .unwrap_or_default();
     MenuItem {
         label: label.to_string(),
@@ -28,19 +28,31 @@ pub fn has_url(e: &EntitySummary) -> bool {
     e.ty.is(spektr_model::CoreType::Url)
 }
 
+/// What the menu needs to know about its target beyond the entity.
+pub struct Info<'a> {
+    pub edge: Option<EdgeId>,
+    pub is_focus: bool,
+    /// Launchers, once the inspector's detail for the target is loaded.
+    pub launchers: Option<&'a [LauncherView]>,
+    pub playbooks: &'a [PlaybookInfo],
+    pub observations: usize,
+}
+
+/// Playbooks whose seed takes the target's type.
+pub fn playbooks_for<'a>(target: &EntitySummary, all: &'a [PlaybookInfo]) -> Vec<&'a PlaybookInfo> {
+    all.iter()
+        .filter(|p| p.seed.iter().any(|t| t == target.ty.as_str()))
+        .collect()
+}
+
 /// The menu for an entity (and the edge under the cursor, if any).
-pub fn build(
-    km: &Keymap,
-    target: &EntitySummary,
-    edge: Option<EdgeId>,
-    is_focus: bool,
-) -> Vec<MenuItem> {
+pub fn build(km: &Keymap, target: &EntitySummary, c: &Info<'_>) -> Vec<MenuItem> {
     let mut v = Vec::new();
     // navigate
     let mut pivot = item(
         km,
         Action::Activate,
-        is_focus.then_some("already the focus"),
+        c.is_focus.then_some("already the focus"),
         false,
     );
     pivot.label = "Pivot here".into();
@@ -49,16 +61,31 @@ pub fn build(
     run.submenu = true;
     run.right = format!("{} ▸", run.right);
     v.push(run);
-    let mut pb = item(km, Action::RunPlaybook, Some(NOT_YET), false);
+    let pbs = playbooks_for(target, c.playbooks);
+    let mut pb = item(
+        km,
+        Action::RunPlaybook,
+        pbs.is_empty().then_some("none for this type"),
+        false,
+    );
     pb.label = "Run playbook".into();
+    if !pbs.is_empty() {
+        pb.submenu = true;
+        pb.right = format!("{} ▸", pb.right);
+    }
     v.push(pb);
+    let launchers = c.launchers.map_or(0, <[LauncherView]>::len);
     let mut url = item(
         km,
         Action::OpenUrl,
-        (!has_url(target)).then_some("no URL"),
+        (!has_url(target) && launchers == 0).then_some("no URL or launcher"),
         false,
     );
     url.label = "Open in browser".into();
+    if has_url(target) || launchers > 0 {
+        url.submenu = true;
+        url.right = format!("{} ▸", url.right);
+    }
     v.push(url);
     let mut copy = item(km, Action::Copy, None, false);
     copy.label = "Copy value".into();
@@ -72,18 +99,95 @@ pub fn build(
     v.push(finding);
     v.push(item(km, Action::Note, None, false));
     v.push(item(km, Action::Merge, None, false));
-    if edge.is_some() {
-        let mut c = item(km, Action::Confirm, None, false);
-        c.label = "Confirm edge".into();
-        v.push(c);
+    if c.edge.is_some() {
+        let mut e = item(km, Action::Confirm, None, false);
+        e.label = "Confirm edge".into();
+        v.push(e);
         let mut r = item(km, Action::Reject, None, false);
         r.label = "Reject edge".into();
         v.push(r);
     }
-    let mut raw = item(km, Action::OpenEvidence, Some(NOT_YET), false);
+    let mut raw = item(
+        km,
+        Action::OpenEvidence,
+        (c.observations == 0).then_some("no evidence"),
+        false,
+    );
     raw.label = "Open raw response".into();
     v.push(raw);
     v
+}
+
+/// `Run playbook ▸`: playbooks for the target's type; ones needing another
+/// rules profile, or with problems, stay visible but disabled.
+pub fn playbook_submenu(target: &EntitySummary, all: &[PlaybookInfo], profile: &str) -> Submenu {
+    let items = playbooks_for(target, all)
+        .into_iter()
+        .map(|p| {
+            let disabled = if !p.errors.is_empty() {
+                Some(format!("{} problems", p.errors.len()))
+            } else if !p.requires_profile.is_empty() && p.requires_profile != profile {
+                Some(format!("needs {}", p.requires_profile))
+            } else {
+                None
+            };
+            MenuItem {
+                label: p.name.clone(),
+                right: disabled
+                    .clone()
+                    .unwrap_or_else(|| format!("{} steps", p.steps.len())),
+                act: MenuAct::RunPlaybook(p.name.clone()),
+                disabled,
+                submenu: false,
+                rule: false,
+            }
+        })
+        .collect();
+    Submenu {
+        title: format!("Playbooks for {} {}", target.ty.glyph(), target.ty.as_str()),
+        items,
+        sel: 0,
+    }
+}
+
+/// `Open in browser ▸`: the URL itself, then the launchers.
+pub fn launcher_submenu(
+    km: &Keymap,
+    target: &EntitySummary,
+    launchers: &[LauncherView],
+) -> Submenu {
+    let mut items = Vec::new();
+    if has_url(target) {
+        let (key, _) = km
+            .hint_for(Action::OpenUrl, KCtx::Entity)
+            .unwrap_or_default();
+        items.push(MenuItem {
+            label: "This URL".into(),
+            right: key,
+            act: MenuAct::Key(Action::OpenUrl),
+            disabled: None,
+            submenu: false,
+            rule: false,
+        });
+    }
+    for (i, l) in launchers.iter().enumerate() {
+        items.push(MenuItem {
+            label: l.name.clone(),
+            right: l.disabled.clone().unwrap_or_default(),
+            act: MenuAct::Launch {
+                launcher: l.id.clone(),
+                item: None,
+            },
+            disabled: l.disabled.clone(),
+            submenu: false,
+            rule: i == 0 && has_url(target),
+        });
+    }
+    Submenu {
+        title: "Open in browser".into(),
+        items,
+        sel: 0,
+    }
 }
 
 /// `Run module ▸`: modules that take the target's type, with their cost
@@ -124,7 +228,7 @@ pub fn run_submenu(
             rule: false,
         });
     }
-    let (key, label) = km.hint_for(Action::RunAll, Ctx::Menu).unwrap_or_default();
+    let (key, label) = km.hint_for(Action::RunAll, KCtx::Menu).unwrap_or_default();
     items.push(MenuItem {
         label: label.to_string(),
         right: key,

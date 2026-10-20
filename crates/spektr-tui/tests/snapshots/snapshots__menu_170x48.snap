@@ -9,26 +9,26 @@ expression: text(&s)
 │ ▾ ◎ person              1          ││ uses_handle ← 1 ─────────────                      ───────────── → 7 has_account ││                                              │
 │     Jordan Marlow          subject ││ └ ◎ Jordan Marlow         ▰▰▱                      ▌ ◐ github     jmarlow-w… ▰▰▰ ││ bio           synths, trails, coffee         │
 │                                    ││                                                    ├ ◐ bluesky    jmarlow.w… ▰▰▱ ││ display name  Jordan M.                      │
-│ ▾ ~ username            3          ││ variant_of ↔ 2 ─────────── ╭────────────────────────────────────────╮ low    ▰▰▱ ││ joined        2019-03-01                     │
-│   ▸ jmarlow.wav                  ⌂ ││ ├ ~ jordanmarlow           │ ◐ github · jmarlow-wav                 │ low_w… ▰▱▱ ││ last active   2026-10-16 09:12               │
-│     jm4rlow                      • ││ └ ~ jm4rlow •              │ account · 3 observations               │ low    ▰▱▱ ││               ▲ after last-seen date         │
-│     jordanmarlow                   ││                            │────────────────────────────────────────│      ] 1/2 ││ links         ↗ jmarlow.example              │
-│                                    ││ ≈ same_avatar ↔ 3 ──────── │▌Pivot here                           ↵ │            ││                                              │
-│ ▸ ◐ account             7          ││ ├ ◐ github     jmarlow-wav │ Run module                         r ▸ │            ││ Evidence 3 ───────────────────────────────── │
-│ ▾ @ email               2          ││ ├ ◐ bluesky    jmarlow.wav │ Run playbook         not available yet │            ││ capture        html+png 18:11  9a3f…11       │
-│     jm4rlow@mail.example         • ││ └ ◐ soundcloud jmarlow     │ Open in browser                 no URL │            ││ github         0.4.0    18:06  77d0…c4       │
-│     jordan.marlow@mail.example     ││   avatar hash match · 3 so │ Copy value                           y │            ││ username-sweep 1.0.0    18:05  2c71…ae       │
-│                                    ││                            │────────────────────────────────────────│            ││                                              │
-│ ▾ ↗ url                 1          ││                            │ Add to scope                         s │            ││ Strength ─────────────────────────────────── │
-│     https://jmarlow.example        ││                            │ Exclude from scope                   S │            ││ ▰▰▰ confirmed                                │
-│                                    ││                            │────────────────────────────────────────│            ││ 6 edges · in 2 · out 2                       │
-│ ▾ ◆ domain              1          ││                            │ Mark as finding      not available yet │            ││                                              │
-│     mail.example             ⊛ hub ││                            │ Add note                             n │            ││ Used in ──────────────────────────────────── │
-│                                    ││                            │ Merge with…                          m │            ││ F-3  Advancing the Timeline  draft           │
-│                                    ││                            │ Confirm edge                         v │            ││                                              │
-│                                    ││                            │ Reject edge                          x │            ││                                              │
-│                                    ││                            │ Open raw response    not available yet │            ││                                              │
-│                                    ││                            ╰────────────────────────────────────────╯            ││                                              │
+│ ▾ ~ username            3          ││ variant_of ↔ 2 ─────────── ╭───────────────────────────────────────╮ rlow    ▰▰▱ ││ joined        2019-03-01                     │
+│   ▸ jmarlow.wav                  ⌂ ││ ├ ~ jordanmarlow           │ ◐ github · jmarlow-wav                │ rlow_w… ▰▱▱ ││ last active   2026-10-16 09:12               │
+│     jm4rlow                      • ││ └ ~ jm4rlow •              │ account · 3 observations              │ rlow    ▰▱▱ ││               ▲ after last-seen date         │
+│     jordanmarlow                   ││                            │───────────────────────────────────────│       ] 1/2 ││ links         ↗ jmarlow.example              │
+│                                    ││ ≈ same_avatar ↔ 3 ──────── │▌Pivot here                          ↵ │             ││                                              │
+│ ▸ ◐ account             7          ││ ├ ◐ github     jmarlow-wav │ Run module                        r ▸ │             ││ Evidence 3 ───────────────────────────────── │
+│ ▾ @ email               2          ││ ├ ◐ bluesky    jmarlow.wav │ Run playbook       none for this type │             ││ capture        html+png 18:11  9a3f…11       │
+│     jm4rlow@mail.example         • ││ └ ◐ soundcloud jmarlow     │ Open in browser    no URL or launcher │             ││ github         0.4.0    18:06  77d0…c4       │
+│     jordan.marlow@mail.example     ││   avatar hash match · 3 so │ Copy value                          y │             ││ username-sweep 1.0.0    18:05  2c71…ae       │
+│                                    ││                            │───────────────────────────────────────│             ││                                              │
+│ ▾ ↗ url                 1          ││                            │ Add to scope                        s │             ││ Strength ─────────────────────────────────── │
+│     https://jmarlow.example        ││                            │ Exclude from scope                  S │             ││ ▰▰▰ confirmed                                │
+│                                    ││                            │───────────────────────────────────────│             ││ 6 edges · in 2 · out 2                       │
+│ ▾ ◆ domain              1          ││                            │ Mark as finding     not available yet │             ││                                              │
+│     mail.example             ⊛ hub ││                            │ Add note                            n │             ││ Used in ──────────────────────────────────── │
+│                                    ││                            │ Merge with…                         m │             ││ F-3  Advancing the Timeline  draft           │
+│                                    ││                            │ Confirm edge                        v │             ││                                              │
+│                                    ││                            │ Reject edge                         x │             ││                                              │
+│                                    ││                            │ Open raw response                   o │             ││                                              │
+│                                    ││                            ╰───────────────────────────────────────╯             ││                                              │
 │                                    ││                                                                                  ││                                              │
 │                                    ││                                                                                  ││                                              │
 │                                    ││                                                                                  ││                                              │

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use crossterm::event::{KeyEvent, MouseEvent};
 use jiff::Timestamp;
 use spektr_engine::{ActionOutcome, EngineAction, EngineEvent, Query, QueryResult};
-use spektr_model::EntityId;
+use spektr_model::{EdgeId, EntityId, ObservationId, ReviewItemId};
 
 use crate::host::{Chain, DoctorLine, NewCase, RecentCase};
 
@@ -25,6 +25,17 @@ pub enum Tag {
     Detail(EntityId),
     /// Resolve an entity for a pivot or seed.
     Find,
+    /// Resolve the `:path` target.
+    FindPath,
+    Runs,
+    Playbooks,
+    Checklist,
+    Review,
+    /// One side of a `same_person` comparison (`true`: the `a` side).
+    ReviewSide(ReviewItemId, bool),
+    Timeline,
+    Path(EntityId, EntityId),
+    Edge(EdgeId),
 }
 
 #[derive(Debug)]
@@ -52,6 +63,10 @@ pub enum Msg {
         what: String,
         result: Result<ActionOutcome, String>,
     },
+    /// Test mode recorded an open instead of performing it.
+    WouldOpen(String),
+    /// An image finished decoding and encoding (TUI_SPEC §9).
+    Image(crate::images::Key, Result<crate::images::Ready, String>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -73,6 +88,23 @@ pub enum Effect {
     /// OSC 52 clipboard.
     Copy(String),
     OpenUrl(String),
+    /// Write a blob to a temp file and open it in the system viewer, or
+    /// reveal it in the file manager.
+    OpenBlob {
+        sha: String,
+        name: String,
+        reveal: bool,
+    },
+    /// An observation: a capture's screenshot or an image in the viewer,
+    /// anything else in `$PAGER`.
+    OpenEvidence(ObservationId),
+    /// Read a local file and attach it (`:attach <path>`).
+    AttachFile {
+        path: PathBuf,
+        entity: Option<EntityId>,
+    },
+    /// Swap the image protocol (`:images <mode>`).
+    SetImages(crate::images::Mode),
     SetMouse(bool),
     Quit,
 }

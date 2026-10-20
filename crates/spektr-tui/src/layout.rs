@@ -95,3 +95,24 @@ pub fn palette(w: u16, h: u16) -> Rect {
     let ph = 22.min(h.saturating_sub(4));
     Rect::new((w - pw) / 2, (h / 6).min(h.saturating_sub(ph)), pw, ph)
 }
+
+/// The Checklist screen: runs and playbooks on the left (≈ 76 cells),
+/// checklist items on the right (TUI_SPEC §5).
+pub fn checklist(w: u16, h: u16) -> (Rect, Rect) {
+    let main_h = h.saturating_sub(2);
+    let lw = (w * 42 / 100).clamp(50, 78).min(w);
+    (
+        Rect::new(0, 1, lw, main_h),
+        Rect::new(lw + 1, 1, w.saturating_sub(lw + 1), main_h),
+    )
+}
+
+/// The Review screen: the queue on the left, the detail on the right.
+pub fn review(w: u16, h: u16) -> (Rect, Rect) {
+    let main_h = h.saturating_sub(2);
+    let lw = (w * 58 / 100).clamp(56, 112).min(w);
+    (
+        Rect::new(0, 1, lw, main_h),
+        Rect::new(lw + 1, 1, w.saturating_sub(lw + 1), main_h),
+    )
+}
