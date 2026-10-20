@@ -1,0 +1,17 @@
+# {{name}}
+
+A spektr exec module ({{lang}}). It looks up a username and reports the account it finds.
+
+```
+spektr module test ./{{name}} --input username:<a handle you may look up>   # live, validated
+spektr module test ./{{name}} --input username:<handle> --record             # save a fixture
+spektr module test ./{{name}} --fixture fixtures/username_example.jsonl --input username:example
+spektr module check ./{{name}}
+spektr module install ./{{name}}
+```
+
+- `module.toml` declares what it consumes and produces, its hosts and secrets (MODULES §2).
+- Messages follow the exec protocol (MODULES §3): every entity, edge and attr cites an observation.
+- `fixtures/` holds recorded runs; `check` replays every one through validation.
+
+Only look up people and accounts you're allowed to.

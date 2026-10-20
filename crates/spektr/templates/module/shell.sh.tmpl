@@ -1,0 +1,28 @@
+#!/bin/sh
+# {{name}}: a spektr exec module (protocol v1) in shell, for trivial cases.
+# Needs jq and curl. It reads one page per username and reports the account
+# when the page exists. Change PROFILE_URL (and `hosts` in module.toml).
+PROFILE_URL="https://example.com/u/%s"
+NAME="{{name}}"
+
+read -r hello || exit 1
+[ "$(printf '%s' "$hello" | jq -r '.protocol')" = 1 ] || { echo "$NAME: unsupported protocol" >&2; exit 1; }
+while read -r msg; do
+  [ "$(printf '%s' "$msg" | jq -r '.type')" = run ] || continue
+  job=$(printf '%s' "$msg" | jq -r '.job')
+  key=$(printf '%s' "$msg" | jq -r '.input.key')
+  url=$(printf "$PROFILE_URL" "$(printf '%s' "$key" | jq -sRr @uri)")
+  status=$(curl -sS -o /tmp/spektr-$NAME-$$ -w '%{http_code}' --max-time 20 -A "spektr-module/$NAME" "$url") || status=000
+  if [ "$status" = 404 ]; then
+    jq -cn --arg j "$job" '{type:"done",job:$j}'
+  elif [ "$status" != 200 ]; then
+    jq -cn --arg j "$job" --arg m "HTTP $status from $url" '{type:"error",job:$j,code:"upstream",message:$m,retryable:true}'
+  else
+    jq -cn --arg j "$job" --arg u "$url" --rawfile b /tmp/spektr-$NAME-$$ \
+      '{type:"observation",job:$j,id:"o1",source_url:$u,content_type:"text/html",raw:$b}'
+    jq -cn --arg j "$job" --arg v "$NAME:$key" '{type:"entity",job:$j,ref:"a1",entity:{type:"account",value:$v},evidence:["o1"]}'
+    jq -cn --arg j "$job" '{type:"edge",job:$j,src:"$input",predicate:"has_account",dst:"a1",evidence:["o1"]}'
+    jq -cn --arg j "$job" '{type:"done",job:$j}'
+  fi
+  rm -f /tmp/spektr-$NAME-$$
+done

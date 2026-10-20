@@ -1,0 +1,18 @@
+[module]
+name        = "{{name}}"
+version     = "0.1.0"
+description = "Looks a username up on {{name}} and reports the account it finds"
+runtime     = "exec"
+command     = {{command}}
+technique   = "passive"
+auto        = false
+consumes    = ["username"]
+produces    = [["has_account", "account"]]
+hosts       = ["example.com"]
+timeout     = "20s"
+
+# The platform behind the accounts this module reports (`{{name}}:<handle>`).
+[[module.platforms]]
+id = "{{name}}"
+case_sensitive = false
+profile_url = "https://example.com/u/{handle}"

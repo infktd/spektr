@@ -38,6 +38,75 @@ pub enum Command {
     /// Set up optional components.
     #[command(subcommand)]
     Setup(SetupCmd),
+    /// Exec modules: new, test, check, install, list, info, enable, disable.
+    #[command(subcommand)]
+    Module(ModuleCmd),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum ModuleLang {
+    Python,
+    Rust,
+    Shell,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ModuleCmd {
+    /// Scaffold a working exec module in ./<name>/.
+    New {
+        name: String,
+        #[arg(long, value_enum, default_value = "python")]
+        lang: ModuleLang,
+        /// Create it under this directory instead of ./
+        #[arg(long)]
+        dir: Option<PathBuf>,
+    },
+    /// Run a module once and show its validated output.
+    Test {
+        /// A module directory, or an installed module's name.
+        name: String,
+        /// <type>:<value>
+        #[arg(long)]
+        input: String,
+        /// Save the module's messages as fixtures/<type>_<value>.jsonl.
+        #[arg(long, conflicts_with = "fixture")]
+        record: bool,
+        /// Replay a fixture through validation instead of running live.
+        #[arg(long)]
+        fixture: Option<PathBuf>,
+    },
+    /// Lint the manifest, validate the vocabulary, replay the fixtures,
+    /// check for secrets in fixtures and that the process exits.
+    Check {
+        name: String,
+    },
+    /// Install from a directory or a git URL (shows hosts and secrets,
+    /// asks first, pins a tree hash).
+    Install {
+        /// A directory, a git URL, or with --update an installed module.
+        source: String,
+        /// Re-approve an installed module whose files changed.
+        #[arg(long)]
+        update: bool,
+        /// Don't ask (scripts).
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Built-in and installed modules.
+    List,
+    Info {
+        name: String,
+    },
+    Enable {
+        name: String,
+    },
+    Disable {
+        name: String,
+    },
+    #[command(hide = true)]
+    ReplayFixture {
+        file: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]

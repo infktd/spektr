@@ -1,0 +1,4 @@
+{"type":"observation","job":"j_fixture","id":"o1","source_url":"https://example.com/u/example","content_type":"text/html","raw":"<html><title>example</title></html>","summary":{"bytes":35}}
+{"type":"entity","job":"j_fixture","ref":"a1","entity":{"type":"account","value":"{{name}}:example"},"evidence":["o1"]}
+{"type":"edge","job":"j_fixture","src":"$input","predicate":"has_account","dst":"a1","evidence":["o1"]}
+{"type":"done","job":"j_fixture"}
