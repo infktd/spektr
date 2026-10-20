@@ -160,9 +160,23 @@ fn spektr_inside_tmux() {
         command_line(&h, &["doctor"]),
         report.display()
     );
+    // Mouse off explicitly (a runner's tmux may default it on): a holder
+    // session keeps the server, and its setting, alive.
+    assert!(
+        t.cmd(&[
+            "-f",
+            "/dev/null",
+            "new-session",
+            "-d",
+            "-s",
+            "hold",
+            "sleep 120"
+        ])
+        .status
+        .success()
+    );
+    assert!(t.cmd(&["set", "-g", "mouse", "off"]).status.success());
     let out = t.cmd(&[
-        "-f",
-        "/dev/null",
         "new-session",
         "-d",
         "-s",
