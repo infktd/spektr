@@ -11,6 +11,12 @@ use crate::update::{pivot, sync_inspect};
 /// Shortest paths stop here (TUI_SPEC §4.3).
 pub const MAX_HOPS: usize = 6;
 
+/// Whether an event attribute dated after last-seen is activity (`▲`). An
+/// expiry date is set at registration, so it never advances the timeline.
+pub fn marks_activity(attr: &str) -> bool {
+    attr != spektr_model::attrs::names::EXPIRES_AT
+}
+
 /// The query the open tab needs, if any.
 pub fn queries(w: &Workspace) -> Vec<Effect> {
     match w.tab {
@@ -159,6 +165,10 @@ pub fn result(w: &mut Workspace, tag: &Tag, r: QueryResult, fx: &mut Vec<Effect>
     match (tag, r) {
         (Tag::Timeline, QueryResult::Timeline(mut ev)) => {
             ev.sort_by_key(|e| e.at);
+            // One row per (entity, attribute, time), whichever sources
+            // recorded it.
+            let mut seen = std::collections::BTreeSet::new();
+            ev.retain(|e| seen.insert((e.entity.id, e.attr.clone(), e.at)));
             let keep = w.timeline_entity().map(|e| e.id);
             w.timeline.events = Some(ev);
             if let Some(id) = keep
@@ -186,6 +196,9 @@ pub fn result(w: &mut Workspace, tag: &Tag, r: QueryResult, fx: &mut Vec<Effect>
                     .and_then(|v| v.as_ref())
                     .map_or(0, |v| v.steps.len());
                 w.path_tab.cursor = w.path_tab.cursor.min(n.saturating_sub(1));
+                if w.tab == Tab::Path {
+                    sync_inspect(w, fx);
+                }
             }
         }
         _ => return false,

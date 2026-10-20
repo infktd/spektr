@@ -5,8 +5,8 @@ expression: text(&s)
  spektr  │  demo-missing-01  playbooks                                  rules tracelabs   findings 4   review 5   checklist 3 open   ● 1 running · 2 queued   chain ✓ 206
 ╭ Playbooks 3 runs ───────────────────────────────────────────────────╮ ╭ Checklist 3 open ─────────────────────────────────────────────────────────── [open]  done  all ╮
 │  ▸ person-from-username   ~ jmarlow.wav                 step 4/6    │ │ Reverse image search  person-from-username · step 5                                            │
-│  ✓ person-from-email      @ jordan.marlow@mail.example  done 5/5    │ │ ▌○ ▨ avatar-github.png                     lens · yandex · tineye                              │
-│  ✓ image-triage           ▨ IMG_2214.jpg                done 3/3    │ │  ○ ▨ avatar-bluesky.png                    lens · yandex · tineye                              │
+│  ✓ person-from-email      @ jordan.marlow@mail.example  done 5/5    │ │ ▌○ ▨ avatar · github · jmarlow             lens · yandex · tineye                              │
+│  ✓ image-triage           ▨ IMG_2214.jpg                done 3/3    │ │  ○ ▨ avatar · bluesky · jmarlow            lens · yandex · tineye                              │
 │                                                                     │ │                                                                                                │
 │ Steps · person-from-username ────────────────────────────────────── │ │ Review unsure sweep hits  person-from-username · step 6                                        │
 │ ✓ 1  run username-sweep                on seed          1 job       │ │  ○ ~ jmarlow.wav                           opens Review                                        │

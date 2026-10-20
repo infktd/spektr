@@ -90,6 +90,35 @@ pub struct ItemView {
     pub resolved_at: Option<jiff::Timestamp>,
     /// The image file to reveal when every launcher is disabled.
     pub local_image: Option<String>,
+    /// How the list names the entity when its value says little: an avatar
+    /// reads `avatar · github · jmarlow-wav` (artboard 10).
+    pub label: Option<String>,
+}
+
+/// `avatar · <platform> · <handle>` for an image an account posted.
+fn image_label(
+    r: &spektr_store::Reader<'_>,
+    e: &spektr_store::EntityRow,
+) -> spektr_store::StoreResult<Option<String>> {
+    if !e.ty.is(spektr_model::CoreType::Image) {
+        return Ok(None);
+    }
+    let members = r.members(e.id)?;
+    for edge in r.edges_touching(&members)? {
+        if edge.state != spektr_store::EdgeState::Active
+            || edge.predicate.as_str() != "posted"
+            || !members.contains(&edge.dst)
+        {
+            continue;
+        }
+        if let Some(a) = r.entity(r.resolve(edge.src)?)?
+            && a.ty.is(spektr_model::CoreType::Account)
+            && let Some((platform, handle)) = a.value.split_once(':')
+        {
+            return Ok(Some(format!("avatar · {platform} · {handle}")));
+        }
+    }
+    Ok(None)
 }
 
 pub(crate) fn step_info(s: &spektr_protocol::playbook::StepDef) -> StepInfo {
@@ -293,6 +322,10 @@ pub(crate) async fn checklist(
                             && lv.iter().all(|l| l.disabled.is_some())
                     })
                     .map(|e| e.key.clone());
+                let label = match &e {
+                    Some(e) => image_label(r, e)?,
+                    None => None,
+                };
                 out.push(ItemView {
                     id: it.id,
                     run: it.run_id,
@@ -307,6 +340,7 @@ pub(crate) async fn checklist(
                     note: it.note,
                     resolved_at: it.resolved_at,
                     local_image,
+                    label,
                 });
             }
             Ok(out)
