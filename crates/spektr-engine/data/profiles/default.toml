@@ -1,0 +1,20 @@
+[profile]
+name = "default"
+description = "Passive only; one General category; claim and evidence lints"
+techniques = ["passive"]
+blocked_modules = []
+default_depth = 2
+auto = true
+
+categories = [
+  { id = "general", name = "General" },
+]
+
+[lints]
+require_claim = true
+require_relevance = false
+require_url_or_screenshot = true
+no_duplicate_across_categories = false
+
+[export]
+format = "md"

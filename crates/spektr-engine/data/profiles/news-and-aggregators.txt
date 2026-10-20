@@ -1,0 +1,48 @@
+# Sources Trace Labs does not accept as evidence: news outlets (leads only)
+# and people-search aggregators. One registrable domain per line.
+# news
+apnews.com
+reuters.com
+nytimes.com
+washingtonpost.com
+usatoday.com
+cnn.com
+foxnews.com
+nbcnews.com
+cbsnews.com
+abcnews.go.com
+npr.org
+bbc.co.uk
+bbc.com
+theguardian.com
+dailymail.co.uk
+nypost.com
+latimes.com
+chicagotribune.com
+cbc.ca
+ctvnews.ca
+globalnews.ca
+news.yahoo.com
+msn.com
+patch.com
+# people-search and data aggregators
+whitepages.com
+spokeo.com
+beenverified.com
+truepeoplesearch.com
+fastpeoplesearch.com
+peoplefinders.com
+intelius.com
+instantcheckmate.com
+truthfinder.com
+radaris.com
+mylife.com
+peekyou.com
+pipl.com
+thatsthem.com
+familytreenow.com
+zabasearch.com
+ussearch.com
+clustrmaps.com
+addresses.com
+411.com
