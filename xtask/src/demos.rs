@@ -9,7 +9,9 @@ use anyhow::{Context, Result, bail};
 
 pub fn run(root: &Path) -> Result<()> {
     if Command::new("vhs").arg("--version").output().is_err() {
-        bail!("VHS isn't installed (https://github.com/charmbracelet/vhs; it needs ttyd and ffmpeg)");
+        bail!(
+            "VHS isn't installed (https://github.com/charmbracelet/vhs; it needs ttyd and ffmpeg)"
+        );
     }
     let st = Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".into()))
         .current_dir(root)
@@ -36,7 +38,10 @@ pub fn run(root: &Path) -> Result<()> {
         std::env::var("PATH").unwrap_or_default()
     );
     for tape in &tapes {
-        let name = tape.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+        let name = tape
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
         let work = std::env::temp_dir().join(format!("spektr-demo-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&work);
         let home = work.join("home");
@@ -52,7 +57,10 @@ pub fn run(root: &Path) -> Result<()> {
             .env("SPEKTR_TEST_MODE", "1")
             .env(
                 "SPEKTR_TRANSPORT",
-                format!("replay:{}", root.join("crates/spektr-modules/fixtures").display()),
+                format!(
+                    "replay:{}",
+                    root.join("crates/spektr-modules/fixtures").display()
+                ),
             )
             .env("SPEKTR_CLOCK", "2026-10-20T18:14:22Z")
             .env("SPEKTR_SEED", "1")
