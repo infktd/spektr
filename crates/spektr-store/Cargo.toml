@@ -20,7 +20,14 @@ thiserror.workspace = true
 rusqlite.workspace = true
 zstd.workspace = true
 sha2.workspace = true
+jiff.workspace = true
+uuid.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
 proptest.workspace = true
+
+[[bench]]
+name = "ego"
+harness = false
