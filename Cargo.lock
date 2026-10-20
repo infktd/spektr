@@ -3935,6 +3935,7 @@ dependencies = [
  "proptest",
  "psl",
  "serde",
+ "serde_json",
  "thiserror 2.0.21",
  "toml",
  "url",
@@ -3980,6 +3981,7 @@ dependencies = [
 name = "spektr-store"
 version = "0.1.0"
 dependencies = [
+ "jiff",
  "proptest",
  "rusqlite",
  "serde",
@@ -3988,6 +3990,8 @@ dependencies = [
  "spektr-model",
  "tempfile",
  "thiserror 2.0.21",
+ "tokio",
+ "uuid",
  "zstd",
 ]
 
