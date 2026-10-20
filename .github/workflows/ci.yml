@@ -85,3 +85,26 @@ jobs:
           name: cargo-timings-${{ matrix.target }}
           path: target/cargo-timings/
           if-no-files-found: error
+
+  # Render every demos/*.tape with VHS on the fixture case (Phase 5 exit).
+  demos:
+    name: demos (VHS)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Install toolchain from rust-toolchain.toml
+        run: rustup toolchain install && rustc --version
+      - uses: Swatinem/rust-cache@v2.9.2
+        with:
+          key: demos
+      - uses: charmbracelet/vhs-action@v2.1.1
+        with:
+          version: v0.12.1
+          install-fonts: true
+      - name: cargo xtask demos
+        run: cargo xtask demos
+      - name: Upload the demos
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: demos
+          path: demos/out/
