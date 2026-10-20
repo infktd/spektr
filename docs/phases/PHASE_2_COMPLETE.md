@@ -198,7 +198,17 @@ spektr run · tl-ctf-1101 · rules tracelabs · depth 2
 … 0.292 total
 ```
 
-CI: see the PR (#3); the run is recorded below once it finishes.
+CI for PR #3 is [run 39391411924](https://github.com/infktd/spektr/actions/runs/39391411924) on `cb4d943`. All five jobs passed:
+
+```
+lint (x86_64-unknown-linux-gnu): success (08:09:49Z → 08:10:36Z)
+test (x86_64-unknown-linux-gnu): success (08:09:50Z → 08:10:41Z)
+test (aarch64-unknown-linux-gnu): success (08:09:52Z → 08:10:42Z)
+test (aarch64-apple-darwin):     success (08:09:56Z → 08:12:12Z)
+test (x86_64-apple-darwin):      success (08:09:50Z → 08:12:28Z)
+```
+
+The first run, [39391033139](https://github.com/infktd/spektr/actions/runs/39391033139), failed `e2e_pty_smoke` on both macOS runners. macOS returns EIO when you write to a PTY whose child has already exited, and the harness treated that as an error. Fixed in `cb4d943`: input to a process that has exited is now discarded, as a real terminal would do.
 
 ## How Jay can test it
 
