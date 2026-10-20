@@ -244,7 +244,23 @@ The live smoke run (example.com only) is in PHASE_4_QA.
 
 ## CI
 
-_Recorded after the PR's run._
+Run [39419080316](https://github.com/infktd/spektr/actions/runs/39419080316) on PR #5: **success**.
+
+| Job | Result | nextest |
+|---|---|---|
+| lint (x86_64-unknown-linux-gnu): fmt, clippy, deps-check, schemas, cargo-deny | ✓ | — |
+| test (aarch64-apple-darwin) | ✓ | 194 tests run: 194 passed, 2 skipped (26.7 s) |
+| test (x86_64-apple-darwin) | ✓ | 194 tests run: 194 passed, 2 skipped (25.8 s) |
+| test (x86_64-unknown-linux-gnu) | ✓ | 194 tests run: 194 passed, 2 skipped (14.1 s) |
+| test (aarch64-unknown-linux-gnu) | ✓ | 194 tests run: 194 passed, 2 skipped (16.4 s) |
+
+`e2e_tmux` ran for real on every target (`SPEKTR_REQUIRE_TMUX=1`): 4.0 s on arm64 macOS, 4.7 s on Intel macOS, 4.7 s on x86_64 Linux, 3.2 s on arm64 Linux.
+
+Two earlier runs on this PR failed, both on test timing:
+
+- **Run 39417608824, `e2e_tmux` on all targets:** `send-keys Escape C` reads as Alt-C, so Escape is now sent on its own.
+- **Run 39417608824, `e2e_j3_rules` on Intel macOS:** the blocked row scrolled out of the rail before a poll saw it. The test now scrolls back to it.
+- **Run 39418080974, `e2e_tmux` on arm64 macOS:** that runner's tmux defaults the mouse on, so the doctor rightly reported `mouse on`. The test now sets `mouse off` itself.
 
 ## How Jay can test it
 
