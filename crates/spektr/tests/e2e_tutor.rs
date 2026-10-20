@@ -26,23 +26,32 @@ fn drive(t: &mut Term, keys: &str) {
             t.keys(seg).unwrap();
         }
         std::thread::sleep(Duration::from_millis(600));
-        if std::env::var_os("DEBUG_TUTOR").is_some() {
-            let sc = t.screen();
-            let rows: Vec<&str> = sc.contents.lines().collect();
-            eprintln!(
-                "   -- after `{seg}`: {} || {}",
-                rows[rows.len() - 1].trim(),
-                rows.iter()
-                    .find(|r| r.contains("New finding") || r.contains("╭ Filter"))
-                    .unwrap_or(&"")
-            );
-        }
     }
 }
 
 #[test]
 fn the_whole_tutor() {
     let h = Home::new();
+    // J1 step 2: the launcher shows the doctor and points at the tutor
+    let mut t = Term::spawn(
+        &[],
+        Size {
+            cols: 170,
+            rows: 48,
+        },
+        &h.env(),
+        &h.work(),
+    )
+    .unwrap();
+    let s = t.wait_for_text("New to spektr?", T).unwrap();
+    assert!(
+        s.contains("Doctor") && s.contains("spektr tutor"),
+        "{}",
+        s.contents
+    );
+    t.keys("q").unwrap();
+    let _ = t.wait_exit(T);
+
     let mut t = Term::spawn(
         &["tutor"],
         Size {
@@ -69,19 +78,6 @@ fn the_whole_tutor() {
             t.wait_for_text(&head(step.goal), T)
                 .unwrap_or_else(|e| panic!("lesson {} step {} goal: {e:#}", li + 1, si + 1));
             drive(&mut t, step.keys);
-            if std::env::var_os("DEBUG_TUTOR").is_some() {
-                let sc = t.settle(Duration::from_millis(300), T).unwrap();
-                let rows: Vec<&str> = sc.contents.lines().collect();
-                eprintln!(
-                    "== after L{} S{} ({}):\n{}\n{}\n{}",
-                    li + 1,
-                    si + 1,
-                    step.keys,
-                    rows[0],
-                    rows[rows.len() - 3],
-                    rows[rows.len() - 1]
-                );
-            }
         }
     }
     let s = t.wait_for_text("Tutor complete", T).unwrap();
