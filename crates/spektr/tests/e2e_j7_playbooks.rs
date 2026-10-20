@@ -113,7 +113,8 @@ fn j7_playbooks() {
     let s = t.wait_for_text("TinEye", T).unwrap();
     assert!(s.contains("Yandex Images"));
     t.keys("↵").unwrap();
-    t.wait_for_text("would open https://lens.google.com", T).unwrap();
+    t.wait_for_text("would open https://lens.google.com", T)
+        .unwrap();
     assert!(h.opened().contains("\"kind\":\"url\""), "{}", h.opened());
     assert!(h.opened().contains("lens.google.com"), "{}", h.opened());
 
