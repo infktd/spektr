@@ -76,6 +76,10 @@ pub struct Settings {
     pub keys: BTreeMap<String, Vec<String>>,
     pub version: String,
     pub home: Option<PathBuf>,
+    /// Keys typed after the first case opens (test mode only, for the
+    /// real-terminal QA): `wait:<ms>`, `enter`, `esc`, `tab`, `space`,
+    /// arrows, or single characters.
+    pub script: Option<String>,
 }
 
 impl Default for Settings {
@@ -88,6 +92,7 @@ impl Default for Settings {
             keys: BTreeMap::new(),
             version: String::new(),
             home: None,
+            script: None,
         }
     }
 }

@@ -259,6 +259,7 @@ pub fn settings(ctx: &Ctx) -> Settings {
             spektr_tui::ImageMode::Auto
         });
     Settings {
+        script: ctx.test.keys.clone().filter(|_| ctx.test.test_mode),
         mouse: c.mouse.unwrap_or(true),
         images,
         glyphs: c

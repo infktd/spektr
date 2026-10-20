@@ -16,7 +16,9 @@ Testing:
   SPEKTR_TRANSPORT=replay:<fixture-dir> | record:<dir>
                                   replace live network for every built-in module
   SPEKTR_CLOCK=<RFC 3339>         fixed clock for audit timestamps and job times
-  SPEKTR_SEED=<u64>               deterministic UUIDv7 randomness";
+  SPEKTR_SEED=<u64>               deterministic UUIDv7 randomness
+  SPEKTR_TEST_KEYS=<keys>         keys the TUI types after it starts, e.g.
+                                  \"wait:2000 l j j wait:1500\" (real-terminal QA)";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransportSpec {
@@ -31,6 +33,8 @@ pub struct TestEnv {
     pub transport: TransportSpec,
     pub clock: Option<Timestamp>,
     pub seed: Option<u64>,
+    /// Keys the TUI types after it starts (real-terminal QA).
+    pub keys: Option<String>,
 }
 
 impl TestEnv {
@@ -40,7 +44,12 @@ impl TestEnv {
 
     pub fn parse(get: impl Fn(&str) -> Option<String>) -> Result<Self> {
         let test_mode = get("SPEKTR_TEST_MODE").as_deref() == Some("1");
-        let guarded = ["SPEKTR_TRANSPORT", "SPEKTR_CLOCK", "SPEKTR_SEED"];
+        let guarded = [
+            "SPEKTR_TRANSPORT",
+            "SPEKTR_CLOCK",
+            "SPEKTR_SEED",
+            "SPEKTR_TEST_KEYS",
+        ];
         if !test_mode && let Some(v) = guarded.iter().find(|v| get(v).is_some()) {
             bail!("{v} is a testing variable and needs SPEKTR_TEST_MODE=1 (see `spektr --help`)");
         }
@@ -71,6 +80,7 @@ impl TestEnv {
             transport,
             clock,
             seed,
+            keys: get("SPEKTR_TEST_KEYS"),
         })
     }
 }
