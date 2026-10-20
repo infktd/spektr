@@ -1,0 +1,40 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+╭ Help ────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ / search                                                  mouse capture is on: shift-drag selects text in most term… │
+│                                                                                                                      │
+│ Global                                                                                                               │
+│   q               Quit (asks if jobs are running)                                                                    │
+│   ctrl-c          Force quit (press twice)                                                                           │
+│   ?               Help overlay                                                                                       │
+│   :               Command palette                                                                                    │
+│   /               Filter the focused list                                                                            │
+│   tab             Next pane                                                                                          │
+│   shift-tab       Previous pane                                                                                      │
+│   1               Graph tab: ego                                                                                     │
+│   2               Graph tab: timeline                                                                                │
+│   3               Graph tab: path                                                                                    │
+│   F               Findings                                                                                           │
+│   R               Review queue (pending count shown in the top bar)                                                  │
+│   C               Checklist and playbook runs                                                                        │
+│   esc             Close the overlay, clear the filter, or go back to the workspace                                   │
+│                                                                                                                      │
+│ Navigation (lists and ego view)                                                                                      │
+│   j ↓             Move the cursor down                                                                               │
+│   k ↑             Move the cursor up                                                                                 │
+│   h ←             Move between ego columns (inbound · focus card · outbound)                                         │
+│   l →             Move between ego columns                                                                           │
+│   gg              Top                                                                                                │
+│   G               Bottom                                                                                             │
+│   ctrl-d          Half page down                                                                                     │
+│   ctrl-u          Half page up                                                                                       │
+│   [               Previous page of the current group                                                                 │
+│   ]               Next page of the current group                                                                     │
+│   ↵               Pivot to the cursor entity (ego), expand ··· more, or open the item                                │
+│   ⌫               Back in the pivot history                                                                          │
+│   e               Timeline: filter by event kind                                                                     │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  NORMAL   / search   esc close                                                                            18:14:22 UTC

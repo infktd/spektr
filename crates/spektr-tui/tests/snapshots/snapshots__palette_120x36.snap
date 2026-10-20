@@ -1,0 +1,40 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+ spektr  │  demo-missing-01  subject ◎…  rules tracelabs   findings 4   review 5   ● 1 running · 2 queued   chain ✓ 206
+╭ Entities 15 ───────────────╮╭ Graph ──────────────────────────────────────────────────── [1 ego]  2 timeline  3 path ╮
+│ / filter                   ││ ◎ Jordan Marlow  ›  ~ jmarlow.wav                                                      │
+│                            ││                                                                                        │
+│ ▾ ◎ person      1          ││ uses_handle ← 1 ────────────────                      ──────────────── → 7 has_account │
+│     Jordan Marlow  subject ││ └ ◎ Jordan Marlow            ▰▰▱                      ▌ ◐ github     jmarlow-wav   ▰▰▰ │
+│           ╭ Command ─────────────────────────────────────────────────────────────────────────────────────╮ wav   ▰▰▱ │
+│ ▾ ~ usern │ : run                                                          target ◐ github · jmarlow-wav │       ▰▰▱ │
+│   ▸ jmarl │ ──────────────────────────────────────────────────────────────────────────────────────────── │ wav   ▰▱▱ │
+│     jm4rl │                                                                                              │       ▰▱▱ │
+│     jorda │   Modules                                                                                    │     ] 1/2 │
+│           │ ▌ run github              ~ ◐ → ◐           free                                             │           │
+│ ▸ ◐ accou │                                                                                              │           │
+│ ▾ @ email │   Commands                                                                                   │           │
+│     jm4rl │   run                                                                                        │           │
+│     jorda │   rerun                                                                                      │           │
+│           │                                                                                              │           │
+│ ▾ ↗ url   │                                                                                              │           │
+│     https │                                                                                              │           │
+│           │                                                                                              │           │
+│ ▾ ◆ domai │ ──────────────────────────────────────────────────────────────────────────────────────────── │           │
+│     mail. │ github 1.0.0                                                                                 │           │
+│           │ github lookups on github · jmarlow-wav. Results are cached; a rerun ignores the cache. Runs  │           │
+│           │ automatically on new entities.                                                               │           │
+│           │                                                                                              │           │
+│           │                                                                                              │ confirmed │
+╰────────── │ tab complete   ↑↓ select   ↵ run   esc close                                         3 of 34 │ ──────────╯
+╭ Activity  ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ ──────────╮
+│ 18:12:40                                                                                                   2         │
+│ 18:11:02 ✓ capture         github.com/jmarlow-wav · html + png                      │ done     23   failed 0         │
+│ 18:06:12 ✓ github          +1 @ email  +1 ↗ url                                     │ rules    tracelabs             │
+│ 18:05:30 ✓ username-sweep  300 sites · 7 found · 5 unsure                           │          passive only · no     │
+│                                                                                     │          probing               │
+│                                                                                     │ blocked  1 module              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  COMMAND   tab complete   ↑↓ select   ↵ run   esc close                                                   18:14:22 UTC

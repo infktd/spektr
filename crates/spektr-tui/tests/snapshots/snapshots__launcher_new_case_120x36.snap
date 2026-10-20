@@ -1,0 +1,40 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+
+
+
+                                                      s p e k t r
+                                                      ▀▀▀▀▀▀▀▀▀▀▀▀
+
+                                            terminal osint workbench · 0.1.0
+
+
+          ╭ Recent cases ────────────────────────────────────────────────────────────────────────────────────╮
+          │                                                                                                  │
+          │  case                 entities  edges  last opened     chain                                     │
+          │ ▌tl-ctf-1019              92      214  2 min ago       ✓                                         │
+          │  kestrel-recon  ╭ New case ────────────────────────────────────────────────────╮                 │
+          │  tl-ctf-0927    │ name         letters, digits, . _ -                          │                 │
+          │  scratch        │ rules      ‹ default ›                                       │                 │
+          │                 │ subject     optional · a person's name                       │                 │
+          │  ~/cases/tl-ctf │ last seen   optional · YYYY-MM-DD                            │                 │
+          ╰──────────────── │                                                              │ ────────────────╯
+                            │                                                              │
+                            │ ↵ confirm   ↓ field   esc cancel                             │
+          ╭ Doctor ──────── ╰──────────────────────────────────────────────────────────────╯ ────────────────╮
+          │                                                                                                  │
+          │ ✓ config     ~/.config/spektr/config.toml      ! subfinder  binary not found · module off        │
+          │ ✓ resolver   9.9.9.9 · 1.1.1.1                 ✓ python3    /usr/bin/python3                     │
+          │ ✓ hibp key   set · 38/100 today                ✓ terminal   truecolor · 120×36                   │
+          ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+  COMMAND   ↵ confirm   ↓ field   esc cancel                                                               18:14:22 UTC
