@@ -25,6 +25,12 @@ struct Scenario {
     compare: Option<String>,
     #[serde(default)]
     checklist: Vec<String>,
+    /// Written to config.toml before the first step.
+    #[serde(default)]
+    config: Option<String>,
+    /// Generated cases: `[name, entities]`.
+    #[serde(default)]
+    synth: Vec<(String, u64)>,
     #[serde(rename = "step")]
     steps: Vec<Step>,
 }
@@ -50,6 +56,54 @@ struct Step {
     /// Expected exit code (default 0).
     #[serde(default)]
     exit: Option<u32>,
+    /// An interactive session: actions run in order after `wait`/`keys`.
+    /// `wait <text>`, `keys <dsl>`, `settle`, `frame <name>`, `click x y`,
+    /// `dclick x y`, `rclick x y`, `hover x y`, `wheel x y up|down`,
+    /// `resize w h`, `sleep <ms>`.
+    #[serde(default, rename = "do")]
+    actions: Vec<String>,
+    /// Extra environment (an empty value unsets the variable).
+    #[serde(default)]
+    env: std::collections::BTreeMap<String, String>,
+    /// Terminal size for this step (default: the scenario's).
+    #[serde(default)]
+    size: Option<[u16; 2]>,
+    /// Break this case's audit chain (row 1) after the step: `name`.
+    #[serde(default)]
+    tamper: Option<String>,
+}
+
+fn act(t: &mut Term, a: &str, sdir: &std::path::Path, frames: &mut Vec<String>) {
+    let (verb, rest) = a.split_once(' ').unwrap_or((a, ""));
+    let nums: Vec<u16> = rest
+        .split_whitespace()
+        .filter_map(|n| n.parse().ok())
+        .collect();
+    match verb {
+        "wait" => {
+            t.wait_for_text(rest, Duration::from_secs(20))
+                .unwrap_or_else(|e| panic!("{a}: {e:#}"));
+        }
+        "keys" => t.keys(rest).unwrap(),
+        "settle" => {
+            t.settle(Duration::from_millis(400), Duration::from_secs(20))
+                .unwrap_or_else(|e| panic!("{a}: {e:#}"));
+        }
+        "frame" => {
+            t.settle(Duration::from_millis(400), Duration::from_secs(20))
+                .unwrap_or_else(|e| panic!("{a}: {e:#}"));
+            t.save_frame(&sdir.join(rest)).unwrap();
+            frames.push(rest.to_string());
+        }
+        "click" => t.mouse_click(nums[0], nums[1]).unwrap(),
+        "dclick" => t.double_click(nums[0], nums[1]).unwrap(),
+        "rclick" => t.right_click(nums[0], nums[1]).unwrap(),
+        "hover" => t.hover(nums[0], nums[1]).unwrap(),
+        "wheel" => t.wheel(nums[0], nums[1], rest.ends_with("down")).unwrap(),
+        "resize" => t.resize(nums[0], nums[1]).unwrap(),
+        "sleep" => std::thread::sleep(Duration::from_millis(u64::from(nums[0]))),
+        other => panic!("unknown action `{other}`"),
+    }
 }
 
 #[test]
@@ -70,6 +124,12 @@ fn qa_scenarios() {
         let sc: Scenario = toml::from_str(&std::fs::read_to_string(&file).unwrap())
             .unwrap_or_else(|e| panic!("{}: {e}", file.display()));
         let home = Home::new();
+        if let Some(c) = &sc.config {
+            home.write_config(c);
+        }
+        for (name, n) in &sc.synth {
+            home.synth_case(name, *n);
+        }
         let size = Size {
             cols: sc.size[0],
             rows: sc.size[1],
@@ -80,13 +140,20 @@ fn qa_scenarios() {
         let mut frames = Vec::new();
         for (i, step) in sc.steps.iter().enumerate() {
             let args: Vec<&str> = step.run.iter().map(String::as_str).collect();
-            let mut t = Term::spawn(&args, size, &home.env(), &home.work()).unwrap();
+            let mut env = home.env();
+            env.retain(|(k, _)| !step.env.contains_key(k));
+            env.extend(step.env.iter().map(|(k, v)| (k.clone(), v.clone())));
+            let size = step.size.map_or(size, |[cols, rows]| Size { cols, rows });
+            let mut t = Term::spawn(&args, size, &env, &home.work()).unwrap();
             if let Some(w) = &step.wait {
                 t.wait_for_text(w, Duration::from_secs(20))
                     .unwrap_or_else(|e| panic!("{stem} step {i}: {e:#}"));
             }
             if let Some(k) = &step.keys {
                 t.keys(k).unwrap();
+            }
+            for a in &step.actions {
+                act(&mut t, a, &sdir, &mut frames);
             }
             let code = t
                 .wait_exit(Duration::from_secs(60))
@@ -101,6 +168,9 @@ fn qa_scenarios() {
             if let Some(f) = &step.frame {
                 t.save_frame(&sdir.join(f)).unwrap();
                 frames.push(f.clone());
+            }
+            if let Some(c) = &step.tamper {
+                home.tamper(c, 1);
             }
         }
         let mut md = format!(
