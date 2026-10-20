@@ -1929,6 +1929,19 @@ fn query_result(s: &mut AppState, tag: Tag, r: Result<QueryResult, String>, fx: 
             sync_inspect(w, fx);
         }
         (Tag::Detail(id), QueryResult::Detail(d)) => {
+            // A menu opened before the detail arrived gets its count now.
+            if let (Some(Overlay::Menu(m)), Some(d)) = (&mut s.overlay, &d)
+                && m.target.id == id
+            {
+                let n = d.observations.len();
+                m.subtitle = format!(
+                    "{} {} {n} observation{}",
+                    m.target.ty.as_str(),
+                    s.glyphs.m(Marker::Dot),
+                    if n == 1 { "" } else { "s" }
+                );
+            }
+            let Some(w) = s.workspace_mut() else { return };
             if w.inspect == Some(id) {
                 w.detail = d.map(|b| *b);
                 let n = w.detail.as_ref().map_or(0, |d| d.observations.len());

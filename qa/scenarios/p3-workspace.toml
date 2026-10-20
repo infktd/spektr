@@ -28,6 +28,6 @@ do = [
   "keys j j",
   "frame cursor-down",
   "keys tab",
-  "frame entities-focused",
+  "frame inspector-focused",
   "keys q",
 ]

@@ -31,7 +31,7 @@ do = [
   "keys ↓ →",
   "frame submenu",
   "keys esc",
-  "rclick 120 6",
+  "rclick 100 6",
   "frame menu-rightclick",
   "keys esc ?",
   "frame help",

@@ -548,15 +548,16 @@ fn ego_view(buf: &mut Buffer, inner: Rect, s: &AppState, w: &Workspace, hits: &m
         v
     })
     .collect();
-    // The legend stays; hints drop from the end until both fit.
+    // Hints drop from the end until the legend fits; the first two
+    // (pivot, back) outrank the legend.
     let lw = draw::width(&legend);
     let mut hint_runs = super::hint_runs(s, &hints);
-    while !hints.is_empty() && draw::width(&hint_runs) + lw + 3 > inner.width {
+    while hints.len() > 2 && draw::width(&hint_runs) + lw + 3 > inner.width {
         hints.pop();
         hint_runs = super::hint_runs(s, &hints);
     }
     draw::put(buf, inner.x, footer_y, inner.width, &hint_runs);
-    if lw + 2 <= inner.width {
+    if draw::width(&hint_runs) + lw + 3 <= inner.width {
         draw::put_right(buf, inner.right(), footer_y, lw, &legend);
     }
 }
@@ -912,7 +913,8 @@ fn inspector(
             run(display_value(e, g), t.focus_text()),
         ],
     );
-    let sub = if e.key != e.value {
+    // Internal keys (`uuid:…` for people and organizations) aren't shown.
+    let sub = if e.key != e.value && !e.key.starts_with("uuid:") {
         format!("{} {} {}", e.ty.as_str(), g.m(Marker::Dot), e.key)
     } else {
         e.ty.as_str().to_string()
