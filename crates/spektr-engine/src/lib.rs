@@ -35,6 +35,9 @@ pub use module::{
 pub use plan::{PlanOutcome, PlanResult};
 pub use profile::{Profiles, RulesProfile};
 
+// Manifest vocabulary the TUI shows (cost, technique, runtime).
+pub use spektr_protocol::{CostClass, LogLevel, Runtime, Technique};
+
 // View-ready types the TUI and CLI use, re-exported so they never depend on
 // the store crate directly (ARCHITECTURE §2, rule 2).
 pub use spektr_store::{

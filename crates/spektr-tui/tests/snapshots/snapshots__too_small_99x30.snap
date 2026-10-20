@@ -1,0 +1,19 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                             spektr needs at least 100×30 (now 99×30)

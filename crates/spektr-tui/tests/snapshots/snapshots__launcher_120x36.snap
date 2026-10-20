@@ -1,0 +1,40 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+
+
+
+                                                      s p e k t r
+                                                      ▀▀▀▀▀▀▀▀▀▀▀▀
+
+                                            terminal osint workbench · 0.1.0
+
+
+          ╭ Recent cases ────────────────────────────────────────────────────────────────────────────────────╮
+          │                                                                                                  │
+          │  case                 entities  edges  last opened     chain                                     │
+          │ ▌tl-ctf-1019              92      214  2 min ago       ✓                                         │
+          │  kestrel-recon            61      133  yesterday       ✓                                         │
+          │  tl-ctf-0927             318      901  sep 27          ✓                                         │
+          │  scratch                   4        3  sep 12          ✕ break at #77                            │
+          │                                                                                                  │
+          │  ~/cases/tl-ctf-1019.spektr · 1.8 MB · seeds: @ ops@kestrel.example                              │
+          ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+          ╭ Doctor ──────────────────────────────────────────────────────────────────────────────────────────╮
+          │                                                                                                  │
+          │ ✓ config     ~/.config/spektr/config.toml      ! subfinder  binary not found · module off        │
+          │ ✓ resolver   9.9.9.9 · 1.1.1.1                 ✓ python3    /usr/bin/python3                     │
+          │ ✓ hibp key   set · 38/100 today                ✓ terminal   truecolor · 120×36                   │
+          ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+ ↵ open   n new case   o open path   v verify chain   q quit                                              spektr --help
