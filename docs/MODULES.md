@@ -135,6 +135,11 @@ Rules, all enforced by the host:
 - **Error codes:** `rate_limited`, `not_found`, `auth`, `upstream`, `parse`, `timeout`, `internal`. Only `rate_limited` and `upstream` are retried automatically, with backoff and at most 2 retries.
 - **Per-job limits:** 10,000 messages and 50 MiB of raw data, both configurable. Exceeding a limit fails the job, but ingestion up to that point is kept.
 - **Exit codes:** a non-zero exit without `done` marks the job failed.
+- **Optional fields beyond the examples above:**
+  - an `observation` may carry `summary`: a small JSON object of facts about it (counts, status), stored with the observation
+  - an `entity` may carry `key`: for a `certificate` whose `value` is a display label, its identity (`sha256:<fingerprint>` or `crtsh:<id>`)
+  - an `error` is retried only when the module sets `retryable: true` **and** the code is `rate_limited` or `upstream`
+
 
 The protocol is published as JSON Schema (`schemas/exec-protocol.v1.json`, `schemas/manifest.v1.json`), generated from the Rust types with `schemars` via `cargo xtask schemas`.
 

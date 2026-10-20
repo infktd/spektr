@@ -32,6 +32,8 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: cargo xtask deps-check
         run: cargo xtask deps-check
+      - name: cargo xtask schemas --check
+        run: cargo xtask schemas --check
       - uses: taiki-e/install-action@v2.87.29
         with:
           tool: cargo-deny@0.20.2
