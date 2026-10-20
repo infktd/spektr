@@ -210,13 +210,14 @@ pub fn shots(root: &Path) -> Result<()> {
 
 /// The artboards' canvas size: the first `width: Npx; height: Mpx`.
 fn artboard_size(html: &str) -> Option<(u32, u32)> {
-    let i = html.find("<div style=\"width: ")? + "<div style=\"width: ".len();
-    let rest = &html[i..];
-    let w: u32 = rest[..rest.find("px")?].trim().parse().ok()?;
-    let j = rest.find("height: ")? + "height: ".len();
-    let rest = &rest[j..];
-    let h: u32 = rest[..rest.find("px")?].trim().parse().ok()?;
-    Some((w, h))
+    let i = html.find("<div style=\"")? + "<div style=\"".len();
+    let style = &html[i..i + html[i..].find('"')?];
+    let px = |prop: &str| -> Option<u32> {
+        let j = style.find(&format!("{prop}: "))? + prop.len() + 2;
+        let rest = &style[j..];
+        rest[..rest.find("px")?].trim().parse().ok()
+    };
+    Some((px("width")?, px("height")?))
 }
 
 /// The design canvas relies on a `support.js` (not in the repo) that drops
