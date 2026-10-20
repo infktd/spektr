@@ -12,6 +12,10 @@ authors.workspace = true
 [lints]
 workspace = true
 
+[dev-dependencies]
+tempfile.workspace = true
+spektr-store.workspace = true
+
 [features]
 # Opt-in live-network tests. Never enabled in CI.
 live = []
@@ -36,3 +40,5 @@ which.workspace = true
 nom-exif.workspace = true
 image.workspace = true
 image_hasher.workspace = true
+base64.workspace = true
+jiff.workspace = true

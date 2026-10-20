@@ -3951,11 +3951,13 @@ dependencies = [
 name = "spektr-modules"
 version = "0.1.0"
 dependencies = [
+ "base64 0.23.1",
  "futures",
  "governor",
  "hickory-proto",
  "image",
  "image_hasher",
+ "jiff",
  "nom-exif",
  "reqwest",
  "rustls",
@@ -3965,6 +3967,8 @@ dependencies = [
  "spektr-engine",
  "spektr-model",
  "spektr-protocol",
+ "spektr-store",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
