@@ -47,11 +47,13 @@ impl Tmux {
         }
     }
 
+    /// One `send-keys` call. `Escape` must go alone: followed at once by
+    /// another key it reads as Alt-<key>.
     fn keys(&self, keys: &[&str]) {
         let mut args = vec!["send-keys", "-t", "spk"];
         args.extend_from_slice(keys);
         assert!(self.cmd(&args).status.success());
-        std::thread::sleep(Duration::from_millis(150));
+        std::thread::sleep(Duration::from_millis(250));
     }
 }
 
@@ -131,13 +133,16 @@ fn spektr_inside_tmux() {
     t.keys(&["j", "j", "g", "g"]);
     t.keys(&["Space"]);
     t.wait_for("Pivot here");
-    t.keys(&["Escape", "C"]);
+    t.keys(&["Escape"]);
+    t.keys(&["C"]);
     t.wait_for("CHECKLIST");
-    t.keys(&["Escape", "2"]);
+    t.keys(&["Escape"]);
+    t.keys(&["2"]);
     t.wait_for("[2 timeline]");
     t.keys(&["1", ":"]);
     t.wait_for("COMMAND");
-    t.keys(&["Escape", "q"]);
+    t.keys(&["Escape"]);
+    t.keys(&["q"]);
     let end = Instant::now() + Duration::from_secs(10);
     while t.cmd(&["has-session", "-t", "spk"]).status.success() {
         assert!(

@@ -64,15 +64,23 @@ produces    = [["has_email", "email"]]
     t.wait_for_text("NORMAL", T).unwrap();
     t.keys(": text:seed space text:email:jordan.marlow@mail.example ↵")
         .unwrap();
-    let s = t
-        .wait_for_text("email-account-probe blocked · tracelabs forbids probing", T)
-        .unwrap();
-    // the row's glyph and its `rules` source
+    // The blocked row can scroll out of the rail's six rows while the
+    // other email modules report, so wait for idle and scroll back to it.
+    t.wait_for_text("● 0 running · 0 queued", T).unwrap();
+    let wanted = "email-account-probe blocked · tracelabs forbids probing";
+    let mut s = t.settle(std::time::Duration::from_millis(300), T).unwrap();
+    for _ in 0..40 {
+        if s.contains(wanted) {
+            break;
+        }
+        t.wheel(10, 44, true).unwrap();
+        s = t.settle(std::time::Duration::from_millis(100), T).unwrap();
+    }
     let row = s
         .contents
         .lines()
         .find(|l| l.contains("email-account-probe blocked"))
-        .unwrap()
+        .unwrap_or_else(|| panic!("no blocked row in the rail:\n{}", s.contents))
         .to_string();
     assert!(row.contains("⊘ rules"), "{row}");
 
