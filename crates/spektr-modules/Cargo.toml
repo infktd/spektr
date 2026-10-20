@@ -1,0 +1,38 @@
+[package]
+name = "spektr-modules"
+description = "spektr built-in modules, network transports, media and web capture"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# Opt-in live-network tests. Never enabled in CI.
+live = []
+
+[dependencies]
+spektr-model.workspace = true
+spektr-protocol.workspace = true
+spektr-engine.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+futures.workspace = true
+tracing.workspace = true
+url.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+hickory-proto.workspace = true
+governor.workspace = true
+scraper.workspace = true
+which.workspace = true
+nom-exif.workspace = true
+image.workspace = true
+image_hasher.workspace = true
