@@ -56,10 +56,12 @@ zstd         = "0.14.3"
 sha2         = "0.11.1"
 
 # async / engine
-tokio        = { version = "1.54.0", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util", "fs", "signal"] }
+tokio        = { version = "1.54.0", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util", "fs", "signal", "net"] }
 tokio-util   = "0.7.20"           # CancellationToken, codecs
 futures      = "0.3.34"           # BoxFuture, StreamExt
 governor     = "0.10.4"           # per-host rate limiting
+base64       = "0.23.1"           # exec protocol raw_b64 / blob_b64
+regex        = "1.13.1"           # regex: scope rules
 
 # spektr-modules (net · media · capture · built-ins)
 reqwest      = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "json", "gzip", "brotli", "charset", "http2", "system-proxy"] }
