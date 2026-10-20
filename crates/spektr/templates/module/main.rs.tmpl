@@ -1,0 +1,50 @@
+//! {{name}}: a spektr exec module (protocol v1) in Rust, on the
+//! `spektr-protocol` types. It reports the profile URL a username would have
+//! on the platform, without fetching it: add an HTTP client of your choice to
+//! read the page, then emit what it says (see the Python template).
+
+use std::io::{BufRead, Write};
+
+use spektr_protocol::{HostMessage, ModuleMessage};
+
+const NAME: &str = "{{name}}";
+const PROFILE_URL: &str = "https://example.com/u/";
+
+fn send(out: &mut impl Write, m: &ModuleMessage) {
+    // One JSON object per line.
+    let _ = writeln!(out, "{}", serde_json::to_string(m).unwrap_or_default());
+    let _ = out.flush();
+}
+
+fn main() {
+    let stdin = std::io::stdin();
+    let mut out = std::io::stdout().lock();
+    for line in stdin.lock().lines().map_while(Result::ok) {
+        let Ok(msg) = serde_json::from_str::<HostMessage>(&line) else {
+            eprintln!("{NAME}: not a host message: {line}");
+            continue;
+        };
+        match msg {
+            HostMessage::Hello { protocol, .. } if protocol != 1 => {
+                eprintln!("{NAME}: unsupported protocol {protocol}");
+                return;
+            }
+            HostMessage::Run { job, input, .. } => {
+                let url = format!("{PROFILE_URL}{}", input.key);
+                let summary = serde_json::json!({ "candidate": url, "fetched": false });
+                let obs: ModuleMessage = serde_json::from_value(serde_json::json!({
+                    "type": "observation", "job": job, "id": "o1", "source_url": url,
+                    "content_type": "text/plain", "raw": "", "summary": summary,
+                }))
+                .expect("a valid observation");
+                send(&mut out, &obs);
+                let done: ModuleMessage =
+                    serde_json::from_value(serde_json::json!({ "type": "done", "job": job }))
+                        .expect("a valid done");
+                send(&mut out, &done);
+            }
+            HostMessage::Shutdown => return,
+            _ => {}
+        }
+    }
+}

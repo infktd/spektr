@@ -90,10 +90,14 @@ impl Ctx {
 
     /// Register built-ins and exec modules, then start.
     pub fn start(&self, engine: Engine, modules: Modules<'_>) -> Result<EngineHandle> {
-        let wanted = |name: &str| match modules {
-            Modules::All => true,
-            Modules::Only(list) => list.iter().any(|o| o == name),
-            Modules::None => false,
+        let off = spektr_engine::pin::disabled(&self.paths.modules_dir());
+        let wanted = |name: &str| {
+            !off.contains(name)
+                && match modules {
+                    Modules::All => true,
+                    Modules::Only(list) => list.iter().any(|o| o == name),
+                    Modules::None => false,
+                }
         };
         if !matches!(modules, Modules::None) {
             let net = self.net()?;

@@ -19,6 +19,7 @@ mod handle;
 mod ingest;
 pub mod launcher;
 pub mod module;
+pub mod pin;
 mod plan;
 pub mod playbook;
 pub mod profile;

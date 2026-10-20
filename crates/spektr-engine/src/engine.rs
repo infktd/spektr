@@ -396,6 +396,7 @@ pub(crate) fn load_exec_modules(shared: &Arc<Shared>, dir: &Path) -> Vec<String>
         .filter(|p| p.is_dir())
         .collect();
     dirs.sort();
+    let off = crate::pin::disabled(dir);
     for d in dirs {
         let toml_path = d.join("module.toml");
         let src = match std::fs::read_to_string(&toml_path) {
@@ -420,6 +421,15 @@ pub(crate) fn load_exec_modules(shared: &Arc<Shared>, dir: &Path) -> Vec<String>
             continue;
         }
         let name = manifest.name.clone();
+        if off.contains(&name) {
+            continue;
+        }
+        if crate::pin::pin_state(&d) == crate::pin::PinState::Changed {
+            warnings.push(format!(
+                "{name}: its files changed since install; not loaded until `spektr module install --update {name}`"
+            ));
+            continue;
+        }
         let module = ExecModule::new(
             manifest,
             d.clone(),

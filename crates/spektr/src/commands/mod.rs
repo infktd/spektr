@@ -1,6 +1,7 @@
 pub mod doctor;
 pub mod evidence;
 pub mod export;
+pub mod module;
 pub mod new;
 pub mod playbook;
 pub mod query;

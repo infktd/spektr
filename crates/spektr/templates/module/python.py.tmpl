@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""{{name}}: a spektr exec module (protocol v1), standard library only.
+
+It reads one page per username and reports the account when the page exists.
+Change PROFILE_URL (and `hosts` in module.toml) to the site you want, and
+parse() to pull out what the page says. Try it:
+
+    spektr module test {{name}} --input username:<a handle you may look up>
+    spektr module test {{name}} --fixture fixtures/username_example.jsonl --input username:example
+"""
+import json
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+NAME = "{{name}}"
+PROFILE_URL = "https://example.com/u/{key}"
+USER_AGENT = "spektr-module/" + NAME
+
+
+def send(obj):
+    sys.stdout.write(json.dumps(obj) + "\n")
+    sys.stdout.flush()
+
+
+def parse(body):
+    """Facts from the page, stored with the observation."""
+    return {"bytes": len(body)}
+
+
+def run(msg):
+    job = msg["job"]
+    key = msg["input"]["key"]
+    url = PROFILE_URL.format(key=urllib.parse.quote(key, safe=""))
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            body = r.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            send({"type": "done", "job": job})  # no such account: nothing to report
+            return
+        code = "rate_limited" if e.code == 429 else "upstream"
+        send({"type": "error", "job": job, "code": code, "message": f"HTTP {e.code} from {url}",
+              "retryable": e.code == 429 or e.code >= 500})
+        return
+    except (urllib.error.URLError, TimeoutError) as e:
+        send({"type": "error", "job": job, "code": "upstream", "message": str(e), "retryable": True})
+        return
+    # Every entity, edge and attr cites the observation it came from.
+    send({"type": "observation", "job": job, "id": "o1", "source_url": url,
+          "content_type": "text/html", "raw": body, "summary": parse(body)})
+    send({"type": "entity", "job": job, "ref": "a1",
+          "entity": {"type": "account", "value": f"{NAME}:{key}"}, "evidence": ["o1"]})
+    send({"type": "attr", "job": job, "target": "a1", "name": "profile_url",
+          "value": {"url": url}, "evidence": ["o1"]})
+    send({"type": "edge", "job": job, "src": "$input", "predicate": "has_account", "dst": "a1",
+          "evidence": ["o1"]})
+    send({"type": "done", "job": job})
+
+
+def main():
+    hello = json.loads(sys.stdin.readline() or "{}")
+    if hello.get("type") != "hello" or hello.get("protocol") != 1:
+        sys.exit(f"{NAME}: unsupported protocol {hello!r}")
+    for line in sys.stdin:
+        msg = json.loads(line)
+        if msg["type"] == "run":
+            run(msg)
+        elif msg["type"] == "shutdown":
+            break
+
+
+main()

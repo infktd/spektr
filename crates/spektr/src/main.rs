@@ -103,6 +103,13 @@ fn main() -> ExitCode {
             Command::Attach(a) => commands::evidence::attach(&ctx, a)
                 .await
                 .map(|()| ExitCode::SUCCESS),
+            Command::Module(cmd) => commands::module::run(&ctx, cmd).await.map(|ok| {
+                if ok {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::from(EXIT_ERROR)
+                }
+            }),
             Command::Setup(crate::cli::SetupCmd::Capture) => {
                 commands::setup::capture(&ctx).map(|()| ExitCode::SUCCESS)
             }
