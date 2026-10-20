@@ -62,6 +62,52 @@ impl Home {
         .unwrap();
     }
 
+    /// The Phase 2 fixture case (`demo.spektr`): subject Jordan Marlow,
+    /// seed username:jmarlow.wav run to quiescence against the fixtures.
+    pub fn demo_case(&self) {
+        let ok = |args: &[&str]| {
+            assert!(
+                self.cmd(args).output().unwrap().status.success(),
+                "{args:?}"
+            )
+        };
+        ok(&[
+            "new",
+            "demo",
+            "--profile",
+            "tracelabs",
+            "--subject",
+            "Jordan Marlow",
+            "--last-seen",
+            "2026-09-28",
+        ]);
+        ok(&["run", "demo.spektr", "--seed", "username:jmarlow.wav"]);
+    }
+
+    /// Copy `name.spektr` (and any -wal/-shm) from another home.
+    pub fn copy_case(&self, from: &Home, name: &str) {
+        for ext in ["spektr", "spektr-wal", "spektr-shm"] {
+            let src = from.work().join(format!("{name}.{ext}"));
+            if src.exists() {
+                std::fs::copy(&src, self.work().join(format!("{name}.{ext}"))).unwrap();
+            }
+        }
+    }
+
+    /// recent.toml listing these cases (launcher tests).
+    pub fn write_recent(&self, names: &[&str]) {
+        let dir = self.dir.path().join("home/.local/state/spektr");
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut t = String::new();
+        for n in names {
+            t.push_str(&format!(
+                "[[case]]\npath = \"{}\"\nopened = \"{CLOCK}\"\n\n",
+                self.case(n).display()
+            ));
+        }
+        std::fs::write(dir.join("recent.toml"), t).unwrap();
+    }
+
     pub fn case(&self, name: &str) -> PathBuf {
         self.work().join(format!("{name}.spektr"))
     }

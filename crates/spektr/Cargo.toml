@@ -49,4 +49,6 @@ tempfile.workspace = true
 portable-pty.workspace = true
 vt100.workspace = true
 insta.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
 rusqlite.workspace = true
