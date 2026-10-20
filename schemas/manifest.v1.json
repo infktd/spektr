@@ -1,0 +1,339 @@
+{
+  "$defs": {
+    "ConfigField": {
+      "additionalProperties": false,
+      "description": "`[module.config]` entries: user configuration with a type and default.",
+      "properties": {
+        "default": {
+          "default": null
+        },
+        "type": {
+          "$ref": "#/$defs/ConfigType"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "ConfigType": {
+      "enum": [
+        "string",
+        "int",
+        "bool",
+        "list"
+      ],
+      "type": "string"
+    },
+    "Cost": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/CostClass"
+        },
+        "daily_budget": {
+          "description": "keyed/metered: optional jobs-per-day limit.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "per_run": {
+          "description": "metered: units each run uses.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "class"
+      ],
+      "type": "object"
+    },
+    "CostClass": {
+      "oneOf": [
+        {
+          "enum": [
+            "free",
+            "keyed",
+            "metered"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "local",
+          "description": "No network (phone-parse, exif).",
+          "type": "string"
+        }
+      ]
+    },
+    "Manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "auto": {
+          "default": true,
+          "description": "Eligible for automatic expansion.",
+          "type": "boolean"
+        },
+        "cache_ttl": {
+          "default": "24h",
+          "type": "string"
+        },
+        "command": {
+          "description": "exec only; resolved relative to the module dir.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "concurrency": {
+          "default": 4,
+          "description": "Most concurrent jobs for this module.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "config": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ConfigField"
+          },
+          "type": "object"
+        },
+        "consumes": {
+          "description": "Entity types, or `account:<platform>`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "cost": {
+          "$ref": "#/$defs/Cost",
+          "default": {
+            "class": "free"
+          }
+        },
+        "description": {
+          "type": "string"
+        },
+        "hosts": {
+          "default": [],
+          "description": "Declared, informational; shown on install and in the doctor.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "min_spektr": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "`[a-z0-9-]{2,32}`, unique; must not clash with a built-in.",
+          "type": "string"
+        },
+        "optional_secrets": {
+          "default": [],
+          "description": "Used when present.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "platforms": {
+          "items": {
+            "$ref": "#/$defs/PlatformDecl"
+          },
+          "type": "array"
+        },
+        "predicates": {
+          "items": {
+            "$ref": "#/$defs/PredicateDecl"
+          },
+          "type": "array"
+        },
+        "produces": {
+          "default": [],
+          "description": "`[predicate, entity type]` pairs the module may emit.",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "rate_limit": {
+          "description": "Per destination host: `N/s` or `N/min`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime": {
+          "$ref": "#/$defs/Runtime"
+        },
+        "secrets": {
+          "default": [],
+          "description": "Required; the job is ineligible without them.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "serve": {
+          "default": false,
+          "description": "exec only: one long-lived process, many jobs.",
+          "type": "boolean"
+        },
+        "technique": {
+          "$ref": "#/$defs/Technique"
+        },
+        "timeout": {
+          "default": "60s",
+          "type": "string"
+        },
+        "types": {
+          "items": {
+            "$ref": "#/$defs/TypeDecl"
+          },
+          "type": "array"
+        },
+        "version": {
+          "description": "Semver.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "description",
+        "runtime",
+        "technique",
+        "consumes"
+      ],
+      "type": "object"
+    },
+    "PlatformDecl": {
+      "additionalProperties": false,
+      "description": "`[[module.platforms]]`: an account platform this module introduces.",
+      "properties": {
+        "case_sensitive": {
+          "default": false,
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "profile_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "PredicateDecl": {
+      "additionalProperties": false,
+      "description": "`[[module.predicates]]`: an extension predicate.",
+      "properties": {
+        "dst": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "src": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "src",
+        "dst"
+      ],
+      "type": "object"
+    },
+    "Runtime": {
+      "enum": [
+        "native",
+        "exec"
+      ],
+      "type": "string"
+    },
+    "Technique": {
+      "description": "Technique classes (MODULES §7).",
+      "oneOf": [
+        {
+          "const": "passive",
+          "description": "Reads public data the way any visitor would.",
+          "type": "string"
+        },
+        {
+          "const": "probing",
+          "description": "Interacts with a service to learn something it doesn't publish.",
+          "type": "string"
+        },
+        {
+          "const": "active",
+          "description": "Sends traffic a target could notice as reconnaissance.",
+          "type": "string"
+        }
+      ]
+    },
+    "TypeDecl": {
+      "additionalProperties": false,
+      "description": "`[[module.types]]`: an extension entity type.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "normalize": {
+          "description": "`exact`, `trim`, `lowercase`, `casefold` or `url`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "normalize"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "module.toml. See docs/MODULES.md §2.",
+  "properties": {
+    "module": {
+      "$ref": "#/$defs/Manifest"
+    }
+  },
+  "required": [
+    "module"
+  ],
+  "title": "spektr module manifest v1",
+  "type": "object"
+}

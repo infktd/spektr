@@ -199,16 +199,17 @@ impl Screen {
             if !run.is_empty() {
                 body.push_str(&format!("<span style=\"{style}\">{run}</span>"));
             }
-            body.push_str("</div>\n");
+            body.push_str("</div>");
         }
         let (r, g, b) = DEFAULT_BG;
         format!(
-            "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>{title}</title>\
+            "<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"spektr-size\" content=\"{}x{}\"><title>{title}</title>\
 <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap\">\
 <style>html,body{{margin:0;background:#{r:02x}{g:02x}{b:02x}}}\
 .t{{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:20px;white-space:pre;padding:0}}\
 .r{{height:20px}}.r span{{display:inline-block;height:20px}}</style></head>\
-<body><div class=\"t\">\n{body}</div></body></html>\n"
+<body><div class=\"t\">\n{body}</div></body></html>\n",
+            self.cols, self.rows
         )
     }
 }
