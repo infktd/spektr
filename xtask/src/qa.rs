@@ -399,3 +399,139 @@ fn run_live(root: &Path) -> Result<()> {
     }
     Ok(())
 }
+
+/// Window id and owner pid of every on-screen window of `owner`.
+const WINDOWS_SWIFT: &str = r#"
+import CoreGraphics
+if let list = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] {
+  for w in list where (w[kCGWindowOwnerName as String] as? String) == CommandLine.arguments[1] {
+    let b = w[kCGWindowBounds as String] as? [String: Any] ?? [:]
+    print(w[kCGWindowNumber as String] ?? 0, w[kCGWindowOwnerPID as String] ?? 0, b["Width"] ?? 0, b["Height"] ?? 0)
+  }
+}
+"#;
+
+/// `(window id, pid, width, height)` for `owner`'s windows.
+fn windows(script: &Path, owner: &str) -> Vec<(u64, u32, f64, f64)> {
+    let Ok(out) = Command::new("swift").arg(script).arg(owner).output() else {
+        return Vec::new();
+    };
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter_map(|l| {
+            let v: Vec<&str> = l.split_whitespace().collect();
+            Some((
+                v.first()?.parse().ok()?,
+                v.get(1)?.parse().ok()?,
+                v.get(2)?.parse().ok()?,
+                v.get(3)?.parse().ok()?,
+            ))
+        })
+        .collect()
+}
+
+/// QA.md §5: run the TUI in Ghostty on the Phase 2 fixture case and capture
+/// the window with `screencapture -l`. Ghostty asks once whether it may run
+/// the session script; the capture waits for that.
+pub fn real_terminal(root: &Path) -> Result<()> {
+    let app = Path::new("/Applications/Ghostty.app");
+    if !app.exists() {
+        bail!("Ghostty isn't installed in /Applications (iTerm2 support: not yet)");
+    }
+    let bin_status = Command::new("cargo")
+        .args(["build", "-q", "-p", "spektr"])
+        .current_dir(root)
+        .status()?;
+    if !bin_status.success() {
+        bail!("cargo build failed");
+    }
+    let bin = root.join("target/debug/spektr");
+    let out = root.join("qa/out/real-terminal");
+    let _ = std::fs::remove_dir_all(&out);
+    let work = out.join("work");
+    let home = out.join("home");
+    std::fs::create_dir_all(&work)?;
+    std::fs::create_dir_all(&home)?;
+    let fixtures = root.join("crates/spektr-modules/fixtures");
+    let env = format!(
+        "export HOME={h} XDG_CONFIG_HOME={h}/.config XDG_STATE_HOME={h}/.local/state XDG_DATA_HOME={h}/.local/share\n\
+         export SPEKTR_TEST_MODE=1 SPEKTR_TRANSPORT=replay:{f} SPEKTR_CLOCK=2026-10-20T18:14:22Z SPEKTR_SEED=1 COLORTERM=truecolor\n\
+         cd {w}\n",
+        h = home.display(),
+        f = fixtures.display(),
+        w = work.display()
+    );
+    let setup = format!(
+        "{env}{b} new demo-missing-01 --profile tracelabs --subject 'Jordan Marlow' --last-seen 2026-09-28 >/dev/null && \
+         {b} run demo-missing-01.spektr --seed username:jmarlow.wav >/dev/null\n",
+        b = bin.display()
+    );
+    let st = Command::new("/bin/sh").arg("-c").arg(&setup).status()?;
+    if !st.success() {
+        bail!("building the fixture case failed");
+    }
+    let run_sh = out.join("run.sh");
+    std::fs::write(
+        &run_sh,
+        format!("{env}exec {} open demo-missing-01.spektr\n", bin.display()),
+    )?;
+    let swift = out.join("windows.swift");
+    std::fs::write(&swift, WINDOWS_SWIFT)?;
+    let before: Vec<u32> = windows(&swift, "Ghostty")
+        .into_iter()
+        .map(|w| w.1)
+        .collect();
+    Command::new("open")
+        .args([
+            "-na",
+            "/Applications/Ghostty.app",
+            "--args",
+            "--window-width=170",
+            "--window-height=48",
+        ])
+        .args([
+            "--font-family=JetBrains Mono",
+            "--font-size=13",
+            "--window-decoration=false",
+            "-e",
+            "/bin/sh",
+        ])
+        .arg(&run_sh)
+        .status()?;
+    println!(
+        "Ghostty may ask to run /bin/sh: click Allow. Waiting up to 2 minutes for the window…"
+    );
+    let start = std::time::Instant::now();
+    let found = loop {
+        let ours: Vec<_> = windows(&swift, "Ghostty")
+            .into_iter()
+            .filter(|w| !before.contains(&w.1))
+            .collect();
+        if let Some(w) = ours.iter().find(|w| w.2 > 800.0) {
+            break Some(*w);
+        }
+        if start.elapsed() > std::time::Duration::from_secs(120) {
+            break ours.first().copied();
+        }
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    };
+    let Some((id, pid, w, h)) = found else {
+        bail!("no Ghostty window appeared");
+    };
+    if w <= 800.0 {
+        let _ = Command::new("kill").arg(pid.to_string()).status();
+        bail!("only Ghostty's permission prompt appeared ({w}×{h}); run again and click Allow");
+    }
+    std::thread::sleep(std::time::Duration::from_secs(4));
+    let png = out.join("ghostty-workspace.png");
+    let st = Command::new("screencapture")
+        .args(["-x", "-o", "-l", &id.to_string()])
+        .arg(&png)
+        .status()?;
+    let _ = Command::new("kill").arg(pid.to_string()).status();
+    if !st.success() || !png.exists() {
+        bail!("screencapture failed (Screen Recording permission for this terminal?)");
+    }
+    println!("captured {} ({w}×{h} pt)", png.display());
+    Ok(())
+}
