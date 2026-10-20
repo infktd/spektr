@@ -227,7 +227,7 @@ All built-ins are native, `technique = passive`, and recorded as fixtures for te
 | `avatar-hash` | account | image entity (the avatar) + `posted` (account → image, attr `role = avatar`); attr `avatar_phash` (64-bit dHash) on the account | yes | free | Fetches the account's `avatar_url` |
 | `http-fingerprint` | url, domain, subdomain | attrs (title, server, `favicon_mmh3`, `analytics_ids`); `links_to` outbound social URLs; `has_email` for mailto links | yes | free | One GET of the page plus its favicon |
 | `wayback` | url, domain | attrs `archived_first` and `archived_last` (events); `links_to` archived URLs (capped at 50) | no | free | Wayback CDX API |
-| `dns` | domain, subdomain | `resolves_to` ip; `mail_handled_by` | yes | free | System resolver (hickory) |
+| `dns` | domain, subdomain | `resolves_to` ip; `mail_handled_by` | yes | free | System nameservers (`/etc/resolv.conf`, or config `[dns] nameservers`) via spektr's stub resolver in `net` (hickory-proto wire format) |
 | `rdns` | ip | `reverse_resolves_to`; `hosted_in_asn` (origin ASN) | yes | free | PTR lookup, plus Team Cymru's IP-to-ASN DNS service (`origin.asn.cymru.com` TXT); DNS only |
 | `rdap` | domain, ip, asn | `registered_by` (organization/person with `dedup_id` = RDAP handle, or email); `operated_by` (asn → organization); attrs `registered_at`, `expires_at`, network name | yes | free | RDAP bootstrap (IANA). RDAP does not reliably return an IP's origin ASN; `rdns` provides that |
 | `crtsh` | domain | certificate + `issued_for`; new subdomains | yes | free | crt.sh JSON |
