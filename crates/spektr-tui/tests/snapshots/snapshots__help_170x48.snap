@@ -1,0 +1,52 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+╭ Help ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ / search                                                                                                mouse capture is on: shift-drag selects text in most terminals │
+│                                                                                                                                                                        │
+│ Global                                                                                                                                                                 │
+│   q               Quit (asks if jobs are running)                                                                                                                      │
+│   ctrl-c          Force quit (press twice)                                                                                                                             │
+│   ?               Help overlay                                                                                                                                         │
+│   :               Command palette                                                                                                                                      │
+│   /               Filter the focused list                                                                                                                              │
+│   tab             Next pane                                                                                                                                            │
+│   shift-tab       Previous pane                                                                                                                                        │
+│   1               Graph tab: ego                                                                                                                                       │
+│   2               Graph tab: timeline                                                                                                                                  │
+│   3               Graph tab: path                                                                                                                                      │
+│   F               Findings                                                                                                                                             │
+│   R               Review queue (pending count shown in the top bar)                                                                                                    │
+│   C               Checklist and playbook runs                                                                                                                          │
+│   esc             Close the overlay, clear the filter, or go back to the workspace                                                                                     │
+│                                                                                                                                                                        │
+│ Navigation (lists and ego view)                                                                                                                                        │
+│   j ↓             Move the cursor down                                                                                                                                 │
+│   k ↑             Move the cursor up                                                                                                                                   │
+│   h ←             Move between ego columns (inbound · focus card · outbound)                                                                                           │
+│   l →             Move between ego columns                                                                                                                             │
+│   gg              Top                                                                                                                                                  │
+│   G               Bottom                                                                                                                                               │
+│   ctrl-d          Half page down                                                                                                                                       │
+│   ctrl-u          Half page up                                                                                                                                         │
+│   [               Previous page of the current group                                                                                                                   │
+│   ]               Next page of the current group                                                                                                                       │
+│   ↵               Pivot to the cursor entity (ego), expand ··· more, or open the item                                                                                  │
+│   ⌫               Back in the pivot history                                                                                                                            │
+│   e               Timeline: filter by event kind                                                                                                                       │
+│                                                                                                                                                                        │
+│ Entity actions (on the cursor entity)                                                                                                                                  │
+│   space           Context menu                                                                                                                                         │
+│   r               Run module ▸ (A inside it runs all eligible)                                                                                                         │
+│   c               Capture (url, account, or image with a URL)                                                                                                          │
+│   f               New finding from this entity                                                                                                                         │
+│   a               Attach the entity to the current finding (picker if none is open)                                                                                    │
+│   n               Add a note                                                                                                                                           │
+│   y               Copy the value (OSC 52 clipboard)                                                                                                                    │
+│   v               Confirm the edge under the cursor (strength → confirmed)                                                                                             │
+│   V               Un-confirm the edge under the cursor                                                                                                                 │
+│   x               Reject the edge under the cursor (asks first)                                                                                                        │
+│   m               Merge with… (picker)                                                                                                                                 │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  NORMAL   / search   esc close                                                                                                                              18:14:22 UTC
