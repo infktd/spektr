@@ -1,0 +1,80 @@
+# Known hubs (DATA_MODEL §7): entities that connect to too much to be worth
+# expanding automatically. Matching any entry marks the entity as a hub; the
+# analyst can still force expansion with `:expand`.
+#
+# This is product data about public infrastructure, not case data.
+
+# Exact match on `domain` entities: major email providers and platform domains.
+domains = [
+  # email providers
+  "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "msn.com",
+  "yahoo.com", "ymail.com", "aol.com", "icloud.com", "me.com", "mac.com",
+  "proton.me", "protonmail.com", "protonmail.ch", "pm.me", "tutanota.com", "tuta.io",
+  "gmx.com", "gmx.de", "gmx.net", "web.de", "mail.com", "zoho.com", "fastmail.com",
+  "hey.com", "yandex.ru", "yandex.com", "mail.ru", "qq.com", "163.com", "126.com",
+  "naver.com",
+  # platforms
+  "github.com", "gitlab.com", "bitbucket.org", "bsky.app", "twitter.com", "x.com",
+  "facebook.com", "instagram.com", "threads.net", "linkedin.com", "reddit.com",
+  "youtube.com", "tiktok.com", "twitch.tv", "medium.com", "substack.com",
+  "wordpress.com", "blogspot.com", "tumblr.com", "mastodon.social", "soundcloud.com",
+  "gravatar.com", "wikipedia.org", "archive.org", "ycombinator.com", "linktr.ee",
+  "pinterest.com", "telegram.org", "t.me", "discord.com", "spotify.com", "steamcommunity.com",
+  "google.com", "apple.com", "microsoft.com", "amazon.com",
+  # CDNs and clouds
+  "cloudflare.com", "cloudflare.net", "amazonaws.com", "cloudfront.net", "akamai.net",
+  "akamaiedge.net", "akamaitechnologies.com", "fastly.net", "azureedge.net",
+  "googleusercontent.com", "gstatic.com", "googleapis.com", "googlehosted.com",
+]
+
+# Suffix match on `subdomain` entities (MX hosts, CDN and cloud edges).
+host_suffixes = [
+  "google.com", "googlemail.com", "outlook.com", "protection.outlook.com",
+  "yahoodns.net", "icloud.com", "protonmail.ch", "zoho.com", "messagingengine.com",
+  "mimecast.com", "pphosted.com", "amazonaws.com", "cloudfront.net", "akamaiedge.net",
+  "akamai.net", "fastly.net", "cloudflare.net", "azurewebsites.net", "azureedge.net",
+  "googleusercontent.com",
+]
+
+# CIDR match on `ip` entities: major CDN and cloud ranges.
+ip_ranges = [
+  # Cloudflare
+  "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
+  "141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
+  "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+  "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
+  "2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32",
+  "2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32",
+  # Fastly
+  "151.101.0.0/16", "199.232.0.0/16", "146.75.0.0/17", "2a04:4e40::/32",
+  # GitHub Pages
+  "185.199.108.0/22",
+  # Google front ends
+  "142.250.0.0/15", "172.217.0.0/16", "216.58.192.0/19",
+  # Akamai
+  "23.32.0.0/11", "23.192.0.0/11", "2.16.0.0/13", "104.64.0.0/10",
+  # Amazon CloudFront
+  "13.32.0.0/15", "13.224.0.0/14", "54.230.0.0/16", "54.239.128.0/18",
+  "99.84.0.0/16", "205.251.192.0/19", "143.204.0.0/16",
+  # Vercel
+  "76.76.21.0/24",
+]
+
+# Exact match on `asn` entities.
+asns = [
+  "AS13335", "AS15169", "AS396982", "AS16509", "AS14618", "AS8075", "AS54113",
+  "AS20940", "AS16625", "AS32934", "AS36459",
+]
+
+# Exact (case-insensitive) match on a `certificate` entity's value: public CA
+# intermediates, which sign everything and link nothing.
+ca_intermediates = [
+  "R10", "R11", "R12", "R13", "R14", "E5", "E6", "E7", "E8", "E9",
+  "WE1", "WE2", "WR1", "WR2", "WR3", "GTS CA 1C3", "GTS CA 1D4", "GTS CA 1P5",
+  "Sectigo RSA Domain Validation Secure Server CA",
+  "Sectigo ECC Domain Validation Secure Server CA",
+  "DigiCert Global G2 TLS RSA SHA256 2020 CA1", "DigiCert TLS RSA SHA256 2020 CA1",
+  "Amazon RSA 2048 M01", "Amazon RSA 2048 M02", "Amazon RSA 2048 M03", "Amazon RSA 2048 M04",
+  "Amazon ECDSA 256 M01", "Amazon ECDSA 256 M02", "Amazon ECDSA 256 M03",
+  "Cloudflare Inc ECC CA-3", "ZeroSSL RSA Domain Secure Site CA",
+]
