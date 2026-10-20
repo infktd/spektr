@@ -30,23 +30,30 @@ fn check(name: &str, level: Level, detail: impl Into<String>) -> Check {
     }
 }
 
+/// `~/…` for paths under the home directory.
+fn tilde(p: &std::path::Path) -> String {
+    match std::env::var_os("HOME").map(std::path::PathBuf::from) {
+        Some(home) if p.starts_with(&home) => match p.strip_prefix(&home) {
+            Ok(rest) => format!("~/{}", rest.display()),
+            Err(_) => p.display().to_string(),
+        },
+        _ => p.display().to_string(),
+    }
+}
+
 pub fn run(ctx: &Ctx, a: DoctorArgs) -> Result<()> {
     let mut out = Vec::new();
     let cfg = ctx.paths.config_file();
     out.push(if cfg.exists() {
-        check("config", Level::Ok, cfg.display().to_string())
+        check("config", Level::Ok, tilde(&cfg))
     } else {
         check(
             "config",
             Level::Ok,
-            format!("{} (none; defaults)", cfg.display()),
+            format!("{} · not created; using defaults", tilde(&cfg)),
         )
     });
-    out.push(check(
-        "state",
-        Level::Ok,
-        ctx.paths.state.display().to_string(),
-    ));
+    out.push(check("state", Level::Ok, tilde(&ctx.paths.state)));
 
     // DNS
     let net = ctx.net();
@@ -62,12 +69,18 @@ pub fn run(ctx: &Ctx, a: DoctorArgs) -> Result<()> {
         Ok(Err(e)) => out.push(check("resolver", Level::Fail, e.to_string())),
         Err(e) => out.push(check("network", Level::Fail, e.to_string())),
     }
-    if !matches!(ctx.test.transport, crate::testenv::TransportSpec::Live) {
-        out.push(check(
+    match &ctx.test.transport {
+        crate::testenv::TransportSpec::Live => {}
+        crate::testenv::TransportSpec::Replay(d) => out.push(check(
             "transport",
             Level::Warn,
-            format!("{:?} (test mode)", ctx.test.transport),
-        ));
+            format!("replay · {} · test mode", tilde(d)),
+        )),
+        crate::testenv::TransportSpec::Record(d) => out.push(check(
+            "transport",
+            Level::Warn,
+            format!("record · {} · test mode", tilde(d)),
+        )),
     }
 
     // Secrets: names only, never values.

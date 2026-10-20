@@ -1,0 +1,26 @@
+name = "Headless: query tables (accounts, neighbours, path)"
+size = [120, 36]
+checklist = [
+  "Account rows show the ◐ glyph and `platform · handle`, aligned in columns",
+  "Neighbour rows show direction arrows, predicate, entity and a three-segment strength bar (▰▱▱ for single)",
+  "The path view draws entity / │ predicate bar / entity, ending at the domain",
+  "Unicode glyphs (◐ ~ ↗ ◆ ▰ ▱ │) render single-width and don't misalign columns",
+]
+
+[[step]]
+run = ["new", "q"]
+
+[[step]]
+run = ["run", "q.spektr", "--seed", "username:jmarlow.wav", "--module", "username-sweep"]
+
+[[step]]
+run = ["query", "q.spektr", "--type", "account"]
+frame = "accounts"
+
+[[step]]
+run = ["query", "q.spektr", "--neighbors", "username:jmarlow.wav"]
+frame = "neighbors"
+
+[[step]]
+run = ["query", "q.spektr", "--path", "username:jmarlow.wav", "domain:bsky.app"]
+frame = "path"

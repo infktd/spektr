@@ -1,0 +1,7 @@
+# qa/live-targets.toml: targets Jay approves for live testing. Nothing else
+# is ever queried (DISPATCH rule 11). Copy this file to qa/live-targets.toml
+# (git-ignored) and edit it. When the file is missing or empty, live runs
+# cover example.com only.
+domains   = ["example.com"]          # IANA-reserved, always safe
+usernames = []                        # e.g. Jay's own handle, if he chooses to add it
+emails    = []                        # only addresses Jay owns

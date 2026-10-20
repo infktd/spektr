@@ -1,0 +1,36 @@
+name = "Headless: errors and usage"
+size = [100, 30]
+checklist = [
+  "A bad seed names the problem and the input (`invalid email ...`), exit 1",
+  "An unknown profile lists the available profiles, exit 1",
+  "A missing case says `... not found`, exit 1",
+  "Usage errors come from clap with a hint, exit 2",
+  "`--help` lists every Phase 2 command and the Testing section; it fits 100 columns",
+]
+
+[[step]]
+run = ["new", "e"]
+
+[[step]]
+run = ["run", "e.spektr", "--seed", "email:not-an-email"]
+exit = 1
+frame = "bad-seed"
+
+[[step]]
+run = ["new", "x", "--profile", "nope"]
+exit = 1
+frame = "bad-profile"
+
+[[step]]
+run = ["verify", "missing.spektr"]
+exit = 1
+frame = "missing-case"
+
+[[step]]
+run = ["frobnicate"]
+exit = 2
+frame = "usage"
+
+[[step]]
+run = ["--help"]
+frame = "help"
