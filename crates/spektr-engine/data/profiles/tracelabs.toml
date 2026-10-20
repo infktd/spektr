@@ -1,0 +1,29 @@
+[profile]
+name = "tracelabs"
+description = "Trace Labs Search Party: passive only, Trace Labs categories and lints"
+techniques = ["passive"]
+blocked_modules = []
+default_depth = 2
+auto = true
+
+categories = [
+  { id = "friends",    name = "Friends",                points = 10 },
+  { id = "family",     name = "Family",                 points = 10 },
+  { id = "partners",   name = "Romantic Partners",      points = 50 },
+  { id = "employment", name = "Employment",             points = 50 },
+  { id = "basic",      name = "Basic Subject Info",     points = 50 },
+  { id = "advanced",   name = "Advanced Subject Info",  points = 250 },
+  { id = "dls",        name = "Day Last Seen",          points = 250 },
+  { id = "timeline",   name = "Advancing the Timeline", points = 1000, needs_approval = "staff coach" },
+  { id = "location",   name = "Location",               points = 5000, needs_approval = "leadership" },
+]
+
+[lints]
+require_claim = true
+require_relevance = true
+require_url_or_screenshot = true
+no_duplicate_across_categories = true
+blocked_source_domains_file = "news-and-aggregators.txt"   # resolved next to the profile; the built-in copy is embedded from spektr-engine/data/profiles/
+
+[export]
+format = "tracelabs"     # paste-ready: category, claim, relevance, URLs, capture hashes

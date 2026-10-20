@@ -1,0 +1,10 @@
+[module]
+name        = "email-account-probe"
+version     = "0.1.0"
+description = "Checks whether an email has accounts by submitting signup forms (probing; for the J3 test only)"
+runtime     = "exec"
+command     = ["python3", "../../fake.py", "email-account-probe"]
+technique   = "probing"
+auto        = true
+consumes    = ["email"]
+produces    = [["has_email", "email"]]

@@ -3909,7 +3909,10 @@ dependencies = [
 name = "spektr-engine"
 version = "0.1.0"
 dependencies = [
+ "base64 0.23.1",
  "futures",
+ "jiff",
+ "regex",
  "serde",
  "serde_json",
  "spektr-model",
@@ -3921,6 +3924,8 @@ dependencies = [
  "tokio-util",
  "toml",
  "tracing",
+ "url",
+ "uuid",
 ]
 
 [[package]]
