@@ -936,7 +936,22 @@ fn inspector(
     let label_w = 14usize;
     let mut any_field = false;
     for (name, vals) in &d.entity.attrs {
-        for (i, a) in vals.iter().enumerate() {
+        // One line per distinct value; the source shows only when sources
+        // disagree (TUI_SPEC §4.4).
+        let mut distinct: Vec<(&spektr_model::Attr, Vec<String>)> = Vec::new();
+        for a in vals {
+            let m = module_of(a.observation).unwrap_or_default();
+            match distinct.iter_mut().find(|(x, _)| x.value == a.value) {
+                Some((_, mods)) => {
+                    if !mods.contains(&m) {
+                        mods.push(m);
+                    }
+                }
+                None => distinct.push((a, vec![m])),
+            }
+        }
+        let conflict = distinct.len() > 1;
+        for (i, (a, mods)) in distinct.iter().enumerate() {
             let label = if i == 0 {
                 name.replace('_', " ")
             } else {
@@ -946,10 +961,8 @@ fn inspector(
                 run(text::fit(&label, label_w), t.muted()),
                 run(attr_text(&a.value, g), t.text()),
             ];
-            if vals.len() > 1
-                && let Some(m) = module_of(a.observation)
-            {
-                runs.push(run(format!("  {m}"), t.muted()));
+            if conflict {
+                runs.push(run(format!("  {}", mods.join(", ")), t.muted()));
             }
             line(buf, &mut y, &runs);
             any_field = true;

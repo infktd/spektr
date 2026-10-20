@@ -71,14 +71,14 @@ fn j6_headless_run_then_export() {
         .filter(|e| e["type"] == "account")
         .map(|e| e["key"].as_str().unwrap())
         .collect();
-    assert_eq!(accounts.len(), 7, "{accounts:?}");
+    assert_eq!(accounts.len(), 8, "{accounts:?}");
     let has_account: Vec<&Value> = doc["edges"]
         .as_array()
         .unwrap()
         .iter()
         .filter(|e| e["predicate"] == "has_account")
         .collect();
-    assert_eq!(has_account.len(), 7);
+    assert_eq!(has_account.len(), 8);
     assert!(
         has_account
             .iter()
@@ -118,8 +118,7 @@ fn j6_headless_run_then_export() {
             .any(|o| o.get("blob_b64").is_some())
     );
 
-    // re-running is cached: the sweep's observation is reused (github wrote
-    // none for a handle GitHub can't have, so it has nothing to cache)
+    // re-running reuses cached results: the sweep's observation among them
     let out = h
         .cmd(&[
             "run",
@@ -130,7 +129,8 @@ fn j6_headless_run_then_export() {
         .output()
         .unwrap();
     assert!(out.status.success(), "{}", stderr(&out));
-    assert!(stdout(&out).contains("cached 1"), "{}", stdout(&out));
+    assert!(stdout(&out).contains("failed 0"), "{}", stdout(&out));
+    assert!(!stdout(&out).contains("cached 0"), "{}", stdout(&out));
     assert!(
         stderr(&out).contains("✓ username-sweep  cached"),
         "{}",

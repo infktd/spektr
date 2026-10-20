@@ -1,0 +1,7 @@
+// Fictional DNS for the tutor handle's domains (documentation ranges).
+{"kind": "dns", "name": "jmarlow.example", "rtype": "A", "answers": ["198.51.100.42"]}
+{"kind": "dns", "name": "jmarlow.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "jmarlow.example", "rtype": "MX", "answers": ["10 mx.mailhost.example"]}
+{"kind": "dns", "name": "mail.example", "rtype": "A", "answers": ["198.51.100.10"]}
+{"kind": "dns", "name": "mail.example", "rtype": "AAAA", "answers": ["2001:db8::10"]}
+{"kind": "dns", "name": "mail.example", "rtype": "MX", "answers": ["10 mx1.mail.example", "20 mx2.mail.example"]}

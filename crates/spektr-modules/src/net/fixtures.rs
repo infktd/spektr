@@ -1,6 +1,8 @@
 //! Record/replay fixtures (MODULES §10). One JSON object per line:
 //!
-//! - HTTP: `{kind:"http", method, url, status, headers, body_b64, final_url?}`
+//! - HTTP: `{kind:"http", method, url, status, headers, body_b64, final_url?}`.
+//!   Hand-written fixtures may give `body` instead: a string is the body
+//!   text, any other JSON value is serialized as the (JSON) body.
 //! - DNS:  `{kind:"dns", name, rtype, answers, rcode?}`
 //!
 //! Replay matches HTTP by method plus normalized URL, and DNS by name plus
@@ -87,21 +89,60 @@ impl Fixtures {
         self.len() == 0
     }
 
-    /// Add JSON lines. Later entries for the same request win.
+    /// Add JSON lines. Two fixtures answering the same request differently
+    /// are an error, so a response can't be silently overridden.
     pub fn add_jsonl(&mut self, name: &str, text: &str) -> Result<(), FixtureError> {
         for (i, line) in text.lines().enumerate() {
             let line = line.trim();
             if line.is_empty() || line.starts_with("//") {
                 continue;
             }
-            let ex: Exchange = serde_json::from_str(line).map_err(|e| FixtureError::Parse {
+            let err = |e: serde_json::Error| FixtureError::Parse {
                 file: name.into(),
                 line: i + 1,
                 msg: e.to_string(),
-            })?;
+            };
+            let mut v: serde_json::Value = serde_json::from_str(line).map_err(err)?;
+            if let Some(obj) = v.as_object_mut()
+                && let Some(body) = obj.remove("body")
+            {
+                use base64::Engine as _;
+                let bytes = match body {
+                    serde_json::Value::String(s) => s.into_bytes(),
+                    other => serde_json::to_vec(&other).map_err(err)?,
+                };
+                obj.insert(
+                    "body_b64".into(),
+                    base64::engine::general_purpose::STANDARD
+                        .encode(bytes)
+                        .into(),
+                );
+            }
+            let ex: Exchange = serde_json::from_value(v).map_err(err)?;
+            if let Some(prev) = self.get(&ex)
+                && *prev != ex
+            {
+                return Err(FixtureError::Parse {
+                    file: name.into(),
+                    line: i + 1,
+                    msg: format!(
+                        "{} is already answered differently by another fixture",
+                        describe(&ex)
+                    ),
+                });
+            }
             self.insert(ex);
         }
         Ok(())
+    }
+
+    fn get(&self, ex: &Exchange) -> Option<&Exchange> {
+        match ex {
+            Exchange::Http { method, url, .. } => self
+                .http
+                .get(&(method.to_ascii_uppercase(), normalize_url(url))),
+            Exchange::Dns { name, rtype, .. } => self.dns.get(&dns_key(name, rtype)),
+        }
     }
 
     pub fn insert(&mut self, ex: Exchange) {
@@ -160,6 +201,13 @@ impl Fixtures {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clone()
+    }
+}
+
+fn describe(ex: &Exchange) -> String {
+    match ex {
+        Exchange::Http { method, url, .. } => format!("{method} {}", normalize_url(url)),
+        Exchange::Dns { name, rtype, .. } => format!("DNS {rtype} {name}"),
     }
 }
 

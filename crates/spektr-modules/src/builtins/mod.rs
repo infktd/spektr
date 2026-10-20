@@ -1,10 +1,24 @@
 //! Built-in modules (MODULES §6). All native, all `technique = passive`,
-//! all recorded as fixtures for tests and the tutor. Phase 2 ships `dns`,
-//! `github` and `username-sweep`; the remaining 15 arrive in Phase 4.
+//! all recorded as fixtures for tests and the tutor.
 
+mod avatar;
+mod bluesky;
+mod crtsh;
 mod dns;
+mod email_check;
+mod exif;
+mod fingerprint;
 mod github;
+mod gitlab;
+pub mod gravatar;
+mod hackernews;
+mod hibp;
+mod mastodon;
+mod phone;
+mod rdap;
+mod rdns;
 pub mod sweep;
+mod wayback;
 
 use std::path::PathBuf;
 
@@ -27,9 +41,24 @@ pub fn builtins(net: Net) -> Vec<Box<dyn Module>> {
 
 pub fn builtins_with(net: Net, opts: BuiltinOptions) -> Vec<Box<dyn Module>> {
     vec![
-        Box::new(dns::DnsModule::new(net.clone())),
+        Box::new(sweep::Sweep::new(net.clone(), &opts)),
         Box::new(github::Github::new(net.clone())),
-        Box::new(sweep::Sweep::new(net, &opts)),
+        Box::new(bluesky::Bluesky::new(net.clone())),
+        Box::new(gitlab::Gitlab::new(net.clone())),
+        Box::new(mastodon::Mastodon::new(net.clone())),
+        Box::new(hackernews::Hackernews::new(net.clone())),
+        Box::new(gravatar::Gravatar::new(net.clone())),
+        Box::new(email_check::EmailCheck::new(net.clone())),
+        Box::new(hibp::Hibp::new(net.clone())),
+        Box::new(phone::PhoneParse::new()),
+        Box::new(exif::Exif::new()),
+        Box::new(avatar::AvatarHash::new(net.clone())),
+        Box::new(fingerprint::Fingerprint::new(net.clone())),
+        Box::new(wayback::Wayback::new(net.clone())),
+        Box::new(dns::DnsModule::new(net.clone())),
+        Box::new(rdns::Rdns::new(net.clone())),
+        Box::new(rdap::Rdap::new(net.clone())),
+        Box::new(crtsh::Crtsh::new(net)),
     ]
 }
 
@@ -92,6 +121,113 @@ pub(crate) fn host_of(url: &str) -> String {
         .ok()
         .and_then(|u| u.host_str().map(str::to_string))
         .unwrap_or_default()
+}
+
+/// GET `url` and record the response as observation `obs`. `Ok(None)` for
+/// 404 and 410 (nothing there); rate limits and server errors are errors.
+pub(crate) async fn fetch(
+    http: &crate::net::ModuleHttp,
+    out: &Out<'_>,
+    obs: &str,
+    url: &str,
+    headers: &[(&str, &str)],
+) -> Result<Option<HttpResponse>, ModuleError> {
+    let now = jiff::Timestamp::now().as_second();
+    let resp = http.get(url, headers).await.map_err(net_err)?;
+    if let Some(e) = rate_limited(&resp, now) {
+        return Err(e);
+    }
+    out.response(obs, url, &resp).await?;
+    match resp.status {
+        200..=299 => Ok(Some(resp)),
+        404 | 410 => Ok(None),
+        s => Err(ModuleError::code(
+            ErrorCode::Upstream,
+            format!("HTTP {s} from {}", host_of(url)),
+        )),
+    }
+}
+
+/// Parse a JSON body, or fail the job with `parse`.
+pub(crate) fn json_body<T: serde::de::DeserializeOwned>(
+    resp: &HttpResponse,
+    what: &str,
+) -> Result<T, ModuleError> {
+    resp.json()
+        .map_err(|e| ModuleError::code(ErrorCode::Parse, format!("{what} JSON: {e}")))
+}
+
+/// http(s) URLs in free text (bios, about fields), deduplicated, in order.
+pub(crate) fn urls_in(text: &str) -> Vec<String> {
+    static RE: std::sync::OnceLock<Option<regex::Regex>> = std::sync::OnceLock::new();
+    let Some(re) = RE
+        .get_or_init(|| regex::Regex::new(r#"https?://[^\s<>"'()\[\]{}]+"#).ok())
+        .as_ref()
+    else {
+        return Vec::new();
+    };
+    let mut out: Vec<String> = Vec::new();
+    for m in re.find_iter(text) {
+        let u = m
+            .as_str()
+            .trim_end_matches(['.', ',', ';', ':', '!', '?'])
+            .to_string();
+        if !out.contains(&u) {
+            out.push(u);
+        }
+    }
+    out
+}
+
+/// Text content of a small HTML fragment (bios, profile fields): tags
+/// dropped, `<br>`/`</p>` as spaces, common entities decoded.
+pub(crate) fn strip_html(html: &str) -> String {
+    let mut out = String::new();
+    let mut in_tag = false;
+    let mut tag = String::new();
+    for c in html.chars() {
+        match c {
+            '<' => {
+                in_tag = true;
+                tag.clear();
+            }
+            '>' if in_tag => {
+                in_tag = false;
+                let t = tag.to_ascii_lowercase();
+                if t.starts_with("br") || t.starts_with("/p") {
+                    out.push(' ');
+                }
+            }
+            _ if in_tag => tag.push(c),
+            _ => out.push(c),
+        }
+    }
+    let out = out
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&nbsp;", " ");
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// `href` values of `<a>` tags in an HTML fragment.
+pub(crate) fn hrefs(html: &str) -> Vec<String> {
+    let doc = scraper::Html::parse_fragment(html);
+    let Ok(sel) = scraper::Selector::parse("a[href]") else {
+        return Vec::new();
+    };
+    let mut out: Vec<String> = Vec::new();
+    for a in doc.select(&sel) {
+        if let Some(h) = a.value().attr("href")
+            && (h.starts_with("http://") || h.starts_with("https://"))
+            && !out.iter().any(|o| o == h)
+        {
+            out.push(h.to_string());
+        }
+    }
+    out
 }
 
 /// Builder-style helpers over the emitter.
@@ -174,6 +310,24 @@ impl Out<'_> {
             .await
     }
 
+    /// An entity with a display label, a stable dedup id, or image bytes
+    /// held by an observation (`blob`).
+    pub async fn entity_with(
+        &self,
+        r: &str,
+        spec: EntitySpec,
+        ev: &str,
+    ) -> Result<(), ModuleError> {
+        self.0
+            .emit(ModuleMessage::Entity {
+                job: None,
+                reference: r.into(),
+                entity: spec,
+                evidence: vec![ev.into()],
+            })
+            .await
+    }
+
     pub async fn edge(
         &self,
         src: &str,
@@ -250,7 +404,29 @@ mod tests {
         let net = Net::replay(crate::net::Fixtures::default());
         let mods = builtins(net);
         let names: Vec<&str> = mods.iter().map(|m| m.manifest().name.as_str()).collect();
-        assert_eq!(names, ["dns", "github", "username-sweep"]);
+        assert_eq!(
+            names,
+            [
+                "username-sweep",
+                "github",
+                "bluesky",
+                "gitlab",
+                "mastodon",
+                "hackernews",
+                "gravatar",
+                "email-check",
+                "hibp",
+                "phone-parse",
+                "exif",
+                "avatar-hash",
+                "http-fingerprint",
+                "wayback",
+                "dns",
+                "rdns",
+                "rdap",
+                "crtsh",
+            ]
+        );
         for m in &mods {
             assert_eq!(
                 m.manifest().technique,
