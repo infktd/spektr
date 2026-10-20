@@ -1,0 +1,52 @@
+---
+source: crates/spektr-tui/tests/snapshots.rs
+expression: text(&s)
+---
+ spektr  │  demo-missing-01  findings                                                      rules tracelabs   findings 4   review 5   ● 1 running · 2 queued   chain ✓ 206
+╭ Findings 4 ─────────────────────────── [all]  draft  ready  sent ╮ ╭ F-3 ──────────────────────────────────────────────────────────────────────────────────────────────╮
+│   category                                          pts  found   │ │ Advancing the Timeline  · 1,000 pts  · draft  · edited 18:20                                      │
+│                                                                  │ │ GitHub activity after last seen                                                                   │
+│   ▾ Advancing the Timeline                        1,000      2   │ │                                                                                                   │
+│ ▌   F-3  GitHub activity after last seen       draft  ▰▰▰        │ │ Claim                                                                                             │
+│     F-4  Photo taken 2026-10-03 (EXIF)         draft  ▰▰▱        │ │ Subject's GitHub account jmarlow-wav was active on 2026-10-16, 18 days after the last-seen date.  │
+│   ▾ Basic Subject Info                               50      2   │ │                                                                                                   │
+│     F-1  Handle jmarlow.wav + 7 accounts       ✓ sent  ▰▰▰       │ │ Relevance                                                                                         │
+│     F-2  Secondary email jm4rlow@mail.example  ready  ▰▰▱        │ │ The account is the subject's: the same avatar appears on GitHub, Bluesky and SoundCloud, and the  │
+│   ▸ Location                                      5,000      0   │ │ profile links jmarlow.example, which lists the subject's full name. The activity date is after    │
+│   ▸ Advanced Subject Info                           250      0   │ │ 2026-09-28.                                                                                       │
+│   ▸ Day Last Seen                                   250      0   │ │                                                                                                   │
+│   ▸ Romantic Partners                                50      0   │ │ Supporting entities ──────────────────────────    Checks ──────────────────────────────────────── │
+│   ▸ Employment                                       50      0   │ │  ◐ github · jmarlow-wav              ▰▰▰          ✓ claim and relevance written                   │
+│   ▸ Friends                                          10      0   │ │  ~ jmarlow.wav                       ▰▰▱          ✓ 1 capture with URL + screenshot               │
+│   ▸ Family                                           10      0   │ │  ◎ Jordan Marlow                     subject      ✓ no news or aggregator sources                 │
+│                                                                  │ │                                                   ✓ not used in another category                  │
+│                                                                  │ │                                                   ! needs staff coach approval                    │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │ Evidence 2 ────────────────────────────────────────────────────────────────────────────────────── │
+│                                                                  │ │  capture   github.com/jmarlow-wav                                    html+png   18:11  9a3f…11    │
+│                                                                  │ │  github    api.github.example/users/jmarlow-wav/events               text/html  18:06  77d0…c4    │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │ captured  2026-10-20 18:11:02 UTC                                                                 │
+│                                                                  │ │ url       https://github.com/jmarlow-wav                                                          │
+│                                                                  │ │ sha256    9a3f0c…d2e811                                                                           │
+│                                                                  │ │ audit     row #188                                                                                │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │ ↵ open screenshot   · chain verified by spektr verify                                             │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│                                                                  │ │                                                                                                   │
+│ ──────────────────────────────────────────────────────────────── │ │                                                                                                   │
+│ sent 1   ready 1   draft 2   · open value 2,050 pts              │ │ ───────────────────────────────────────────────────────────────────────────────────────────────── │
+│ Categories come from the tracelabs rules profile.                │ │ e edit   a attach evidence   r mark ready   s mark sent   x export ▸                              │
+╰──────────────────────────────────────────────────────────────────╯ ╰───────────────────────────────────────────────────────────────────────────────────────────────────╯
+  FINDINGS   n new finding   ↵ go to entity   d delete   esc back to graph                                                                                   18:14:22 UTC

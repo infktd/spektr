@@ -932,3 +932,141 @@ pub fn playbook_screens(s: &mut AppState) {
         b_sources: Vec::new(),
     });
 }
+
+/// Findings shaped like artboard 09, on top of `workspace`.
+pub fn findings_screen(s: &mut AppState) {
+    use spektr_engine::findings::{
+        CategoryView, Check, CheckLevel, EvidenceItem, FindingDetail, FindingSummary, FindingsView,
+    };
+    let ids = Ids(IdGen::seeded(9));
+    let at = |t: &str| -> Timestamp { format!("2026-10-20T{t}Z").parse().unwrap() };
+    let Screen::Workspace(w) = &mut s.screen else {
+        panic!()
+    };
+    let gh = find(w, "github:jmarlow-wav");
+    let seed = find(w, "jmarlow.wav");
+    let subject = find(w, "Jordan Marlow");
+    let cat = |id: &str, name: &str, points: u32, approval: Option<&str>| CategoryView {
+        id: id.into(),
+        name: name.into(),
+        points: Some(points),
+        needs_approval: approval.map(str::to_string),
+    };
+    let sum =
+        |id: i64, title: &str, category: &str, status: &str, st: Option<Strength>| FindingSummary {
+            id,
+            title: title.into(),
+            category: category.into(),
+            status: status.into(),
+            strength: st,
+            updated_at: at("18:20:00"),
+        };
+    w.findings.view = Some(FindingsView {
+        categories: vec![
+            cat("friends", "Friends", 10, None),
+            cat("family", "Family", 10, None),
+            cat("partners", "Romantic Partners", 50, None),
+            cat("employment", "Employment", 50, None),
+            cat("basic", "Basic Subject Info", 50, None),
+            cat("advanced", "Advanced Subject Info", 250, None),
+            cat("dls", "Day Last Seen", 250, None),
+            cat(
+                "timeline",
+                "Advancing the Timeline",
+                1000,
+                Some("staff coach"),
+            ),
+            cat("location", "Location", 5000, Some("leadership")),
+        ],
+        findings: vec![
+            sum(
+                1,
+                "Handle jmarlow.wav + 7 accounts",
+                "basic",
+                "sent",
+                Some(Strength::Confirmed),
+            ),
+            sum(
+                2,
+                "Secondary email jm4rlow@mail.example",
+                "basic",
+                "ready",
+                Some(Strength::Corroborated),
+            ),
+            sum(
+                3,
+                "GitHub activity after last seen",
+                "timeline",
+                "draft",
+                Some(Strength::Confirmed),
+            ),
+            sum(
+                4,
+                "Photo taken 2026-10-03 (EXIF)",
+                "timeline",
+                "draft",
+                Some(Strength::Corroborated),
+            ),
+        ],
+    });
+    let ov = |module: &str, ver: &str, t: &str, blob: &str| ObservationView {
+        id: ids.obs(),
+        module: module.into(),
+        module_version: ver.into(),
+        kind: if module == "capture" {
+            "capture".into()
+        } else {
+            "http".into()
+        },
+        source_url: None,
+        content_type: Some("text/html".into()),
+        blob: Some(blob.into()),
+        created_at: at(t),
+    };
+    let ev = |o: ObservationView, url: &str, shot: Option<&str>, seq: i64| EvidenceItem {
+        observation: o,
+        url: Some(url.into()),
+        screenshot: shot.map(str::to_string),
+        audit_seq: Some(seq),
+    };
+    let pass = |t: &str| Check {
+        level: CheckLevel::Pass,
+        text: t.into(),
+    };
+    w.findings.detail = Some(FindingDetail {
+        id: 3,
+        title: "GitHub activity after last seen".into(),
+        category: "timeline".into(),
+        claim: "Subject's GitHub account jmarlow-wav was active on 2026-10-16, 18 days after the last-seen date.".into(),
+        relevance: "The account is the subject's: the same avatar appears on GitHub, Bluesky and SoundCloud, and the profile links jmarlow.example, which lists the subject's full name. The activity date is after 2026-09-28.".into(),
+        status: "draft".into(),
+        created_at: at("18:12:00"),
+        updated_at: at("18:20:00"),
+        entities: vec![
+            (gh, Some(Strength::Confirmed)),
+            (seed, Some(Strength::Corroborated)),
+            (subject, None),
+        ],
+        evidence: vec![
+            ev(ov("capture", "0.1.0", "18:11:02", &format!("9a3f{:0>58}11", "")), "https://github.com/jmarlow-wav", Some(&format!("9a3f0c{:0>52}d2e811", "")), 188),
+            ev(ov("github", "0.4.0", "18:06:00", &format!("77d0{:0>58}c4", "")), "https://api.github.example/users/jmarlow-wav/events", None, 141),
+        ],
+        checks: vec![
+            pass("claim and relevance written"),
+            pass("1 capture with URL + screenshot"),
+            pass("no news or aggregator sources"),
+            pass("not used in another category"),
+            Check { level: CheckLevel::Warn, text: "needs staff coach approval".into() },
+        ],
+    });
+    w.findings.sel = w
+        .findings
+        .rows()
+        .iter()
+        .position(|r| *r == spektr_tui::state::FindingRowItem::Finding(3))
+        .unwrap();
+    w.findings.current = Some(3);
+    if let Some(st) = &mut w.status {
+        st.findings = 4;
+    }
+}

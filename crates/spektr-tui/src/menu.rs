@@ -5,7 +5,7 @@ use spektr_engine::{EntitySummary, LauncherView, ModuleInfo, PlaybookInfo};
 use spektr_model::EdgeId;
 
 use crate::keymap::{Action, Ctx as KCtx, Keymap};
-use crate::palette::{NOT_YET, cost_label, module_block};
+use crate::palette::{cost_label, module_block};
 use crate::state::{MenuAct, MenuItem, Submenu};
 
 fn item(km: &Keymap, action: Action, disabled: Option<&str>, rule: bool) -> MenuItem {
@@ -97,7 +97,7 @@ pub fn build(km: &Keymap, target: &EntitySummary, c: &Info<'_>) -> Vec<MenuItem>
     v.push(item(km, Action::ScopeAdd, None, true));
     v.push(item(km, Action::ScopeExclude, None, false));
     // analysis
-    let mut finding = item(km, Action::NewFinding, Some(NOT_YET), true);
+    let mut finding = item(km, Action::NewFinding, None, true);
     finding.label = "Mark as finding".into();
     v.push(finding);
     v.push(item(km, Action::Note, None, false));

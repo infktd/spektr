@@ -22,6 +22,11 @@ pub fn pair_size(width: u16, height: u16) -> (u16, u16) {
     (width.saturating_sub(2) / 2, (height * 2 / 5).clamp(3, 12))
 }
 
+/// A finding's capture screenshot: a third of the detail's width.
+pub fn shot_size(width: u16, height: u16) -> (u16, u16) {
+    ((width / 3).max(12), height.clamp(3, 10))
+}
+
 pub fn key(sha: &str, (w, h): (u16, u16)) -> Key {
     Key {
         sha: sha.to_string(),
@@ -119,6 +124,28 @@ pub fn wanted(s: &AppState) -> Vec<Key> {
                 let size = pair_size(inner.width, inner.height);
                 out.push(key(x, size));
                 out.push(key(y, size));
+            }
+        }
+        View::Findings => {
+            let f = &w.findings;
+            let Some(d) = f
+                .detail
+                .as_ref()
+                .filter(|d| Some(d.id) == f.selected_finding())
+            else {
+                return out;
+            };
+            let base = d.entities.len();
+            let pick = f
+                .dsel
+                .checked_sub(base)
+                .and_then(|i| d.evidence.get(i))
+                .or_else(|| d.evidence.iter().find(|e| e.screenshot.is_some()));
+            if let Some(sha) = pick.and_then(|e| e.screenshot.as_ref()) {
+                // Mirrors view::findings: the block starts below the evidence.
+                let (_, right) = layout::findings(s.size.0, s.size.1);
+                let inner = layout::inner(right);
+                out.push(key(sha, shot_size(inner.width, 10)));
             }
         }
         View::Checklist => {}

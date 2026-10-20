@@ -36,6 +36,12 @@ pub enum Tag {
     Timeline,
     Path(EntityId, EntityId),
     Edge(EdgeId),
+    Findings,
+    Finding(i64),
+    /// Candidates for `a` on a finding.
+    Candidates(i64),
+    /// Export text: to the clipboard (`None`) or a file.
+    Export(Option<PathBuf>),
 }
 
 #[derive(Debug)]
@@ -63,6 +69,10 @@ pub enum Msg {
         what: String,
         result: Result<ActionOutcome, String>,
     },
+    /// An export was written (or failed).
+    Wrote(Result<PathBuf, String>),
+    /// `$EDITOR` closed on a finding's text.
+    Edited(i64, String),
     /// Test mode recorded an open instead of performing it.
     WouldOpen(String),
     /// An image finished decoding and encoding (TUI_SPEC §9).
@@ -103,6 +113,10 @@ pub enum Effect {
         path: PathBuf,
         entity: Option<EntityId>,
     },
+    /// Write text to a file (exports).
+    WriteFile(PathBuf, String),
+    /// Edit a finding's text in `$EDITOR`.
+    EditExternal(i64, String),
     /// Swap the image protocol (`:images <mode>`).
     SetImages(crate::images::Mode),
     SetMouse(bool),

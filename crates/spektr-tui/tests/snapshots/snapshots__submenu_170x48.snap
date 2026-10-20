@@ -22,7 +22,7 @@ expression: text(&s)
 │ ▾ ↗ url                 1          ││                            │ Add to scope                        s │ ╰──────────────────────────╯ ────────────────────────────── │
 │     https://jmarlow.example        ││                            │ Exclude from scope                  S │                                                             │
 │                                    ││                            │───────────────────────────────────────│             ││ 6 edges · in 2 · out 2                       │
-│ ▾ ◆ domain              1          ││                            │ Mark as finding     not available yet │             ││                                              │
+│ ▾ ◆ domain              1          ││                            │ Mark as finding                     f │             ││                                              │
 │     mail.example             ⊛ hub ││                            │ Add note                            n │             ││ Used in ──────────────────────────────────── │
 │                                    ││                            │ Merge with…                         m │             ││ F-3  Advancing the Timeline  draft           │
 │                                    ││                            │ Confirm edge                        v │             ││                                              │

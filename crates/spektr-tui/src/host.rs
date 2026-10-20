@@ -107,6 +107,8 @@ pub enum External {
     Reveal(PathBuf),
     /// A file in `$PAGER`; blocks until the pager exits.
     Pager(PathBuf),
+    /// A file in `$EDITOR`; blocks until the editor exits.
+    Editor(PathBuf),
 }
 
 pub trait Host: Send + Sync + 'static {
@@ -131,8 +133,8 @@ pub trait Host: Send + Sync + 'static {
     /// Open a URL, a file or a pager. Test mode records it instead and
     /// returns the target, which the rail shows as `↗ would open …`.
     fn external(&self, what: &External) -> Result<Option<String>, String>;
-    /// Whether `External::Pager` takes over the terminal (it doesn't in
-    /// test mode).
+    /// Whether `External::Pager` and `External::Editor` take over the
+    /// terminal (they don't in test mode).
     fn pager_takes_terminal(&self) -> bool {
         true
     }

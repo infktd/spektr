@@ -739,6 +739,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Findings,
         "New finding",
     )
+    .hint("new finding", 1)
     .shadows(&["n"]),
     b(
         A::FindingEdit,
@@ -747,6 +748,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Findings,
         "Edit inline",
     )
+    .label("edit")
     .shadows(&["e"]),
     b(
         A::FindingEditExternal,
@@ -754,7 +756,8 @@ pub const BINDINGS: &[Binding] = &[
         &["E"],
         C::Findings,
         "Edit in $EDITOR",
-    ),
+    )
+    .label("$EDITOR"),
     b(
         A::FindingAttach,
         "finding-attach",
@@ -762,6 +765,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Findings,
         "Attach evidence",
     )
+    .label("attach evidence")
     .shadows(&["a"]),
     b(
         A::FindingReady,
@@ -770,6 +774,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Findings,
         "Mark ready",
     )
+    .label("mark ready")
     .shadows(&["r"]),
     b(
         A::FindingSent,
@@ -778,6 +783,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Findings,
         "Mark sent",
     )
+    .label("mark sent")
     .shadows(&["s"]),
     b(
         A::FindingExport,
@@ -786,6 +792,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Findings,
         "Export ▸ (submission text to clipboard, Markdown, JSON)",
     )
+    .label("export ▸")
     .shadows(&["x"]),
     b(
         A::Activate,
@@ -794,6 +801,7 @@ pub const BINDINGS: &[Binding] = &[
         C::Findings,
         "On a supporting-entity row: go to that entity in the workspace",
     )
+    .hint("go to entity", 2)
     .shadows(&["↵"]),
     b(
         A::FindingDelete,
@@ -801,7 +809,8 @@ pub const BINDINGS: &[Binding] = &[
         &["d"],
         C::Findings,
         "Delete (asks first)",
-    ),
+    )
+    .hint("delete", 3),
     // ---- checklist screen (Phase 4)
     b(
         A::ItemDone,

@@ -611,3 +611,72 @@ pub fn dialog(buf: &mut Buffer, area: Rect, s: &AppState, d: &Dialog, hits: &mut
         &runs,
     );
 }
+
+/// The inline finding editor (`e`, mode INSERT): title, claim and relevance
+/// as wrapped text areas in a raised box.
+pub fn editor(
+    buf: &mut Buffer,
+    area: Rect,
+    s: &AppState,
+    ed: &crate::state::Editor,
+    hits: &mut Hits,
+) {
+    use ratatui::widgets::Widget;
+    let t = &s.theme;
+    let raised = |st: ratatui::style::Style| st.bg(t.color(crate::theme::Token::BgRaised));
+    let r = layout::editor(area.width, area.height);
+    draw::shadow(buf, r, t);
+    draw::pane(
+        buf,
+        t,
+        r,
+        true,
+        &[run(format!("Edit F-{}", ed.id), t.title(true))],
+        &[],
+        t.raised(),
+    );
+    hits.push((r, Hit::Overlay));
+    let inner = layout::inner(r);
+    // title 1 row, claim 4, relevance the rest
+    let avail = inner.height.saturating_sub(2 + 3 + 3);
+    let heights = [1u16, 4, avail.saturating_sub(5).max(2)];
+    let mut y = inner.y;
+    for (i, f) in ed.fields.iter().enumerate() {
+        let focus = i == ed.focus;
+        draw::put(
+            buf,
+            inner.x,
+            y,
+            inner.width,
+            &[run(
+                crate::state::Editor::LABELS[i],
+                raised(if focus { t.accent() } else { t.muted() }),
+            )],
+        );
+        y += 1;
+        let h = heights[i].min(inner.bottom().saturating_sub(y + 2));
+        let rect = Rect::new(inner.x, y, inner.width, h);
+        let mut ta = f.clone();
+        ta.set_style(raised(t.text()));
+        ta.set_cursor_line_style(raised(t.text()));
+        ta.set_cursor_style(if focus { t.caret() } else { raised(t.text()) });
+        (&ta).render(rect, buf);
+        hits.push((
+            Rect::new(inner.x, y - 1, inner.width, h + 1),
+            Hit::EditorField(i),
+        ));
+        y += h + 1;
+    }
+    let hints = s.keymap.hints(&[crate::keymap::Ctx::Dialog]);
+    let mut runs = super::hint_runs(s, &hints);
+    for r in &mut runs {
+        r.1 = raised(r.1);
+    }
+    draw::put(
+        buf,
+        inner.x,
+        inner.bottom().saturating_sub(1),
+        inner.width,
+        &runs,
+    );
+}

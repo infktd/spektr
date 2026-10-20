@@ -112,6 +112,35 @@ pub enum EngineAction {
         bytes: Vec<u8>,
         note: Option<String>,
     },
+    /// A new finding; the entities' captures come along as evidence.
+    CreateFinding {
+        category: String,
+        claim: String,
+        relevance: String,
+        title: Option<String>,
+        entities: Vec<EntityId>,
+        evidence: Vec<ObservationId>,
+    },
+    EditFinding {
+        id: i64,
+        edit: crate::findings::FindingEdit,
+    },
+    /// `ready` needs the checks to pass; `sent` needs `ready`.
+    SetFindingStatus {
+        id: i64,
+        status: spektr_store::FindingStatus,
+    },
+    DeleteFinding(i64),
+    FindingEntity {
+        id: i64,
+        entity: EntityId,
+        attach: bool,
+    },
+    FindingEvidence {
+        id: i64,
+        observation: ObservationId,
+        attach: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -148,6 +177,9 @@ pub enum ActionOutcome {
     /// A review decision; an accepted sweep hit adds an account.
     Decided {
         added: Option<EntitySummary>,
+    },
+    FindingCreated {
+        id: i64,
     },
     Done,
 }
@@ -187,6 +219,17 @@ pub enum Query {
     Blob(String),
     /// One edge, for the inspector's comparison view.
     Edge(EdgeId),
+    /// The Findings screen: categories and every finding.
+    Findings,
+    Finding(i64),
+    /// Observations `a` can attach to a finding as evidence.
+    FindingCandidates(i64),
+    /// Export text (`tracelabs`, `md`, `json`) for these findings (all when
+    /// empty).
+    Export {
+        format: crate::export::Format,
+        findings: Vec<i64>,
+    },
 }
 
 /// The inspector's view of one entity.
@@ -349,6 +392,10 @@ pub enum QueryResult {
     Raw(Option<Box<crate::evidence::RawView>>),
     Blob(Option<Vec<u8>>),
     Edge(Option<Box<EdgeDetail>>),
+    Findings(crate::findings::FindingsView),
+    Finding(Option<Box<crate::findings::FindingDetail>>),
+    Observations(Vec<ObservationView>),
+    Export(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -731,6 +778,51 @@ impl EngineHandle {
                     crate::evidence::attach(shared, entity, name, bytes, note).await?;
                 Ok(ActionOutcome::Attached { observation, image })
             }
+            EngineAction::CreateFinding {
+                category,
+                claim,
+                relevance,
+                title,
+                entities,
+                evidence,
+            } => Ok(ActionOutcome::FindingCreated {
+                id: crate::findings::create(
+                    shared,
+                    crate::findings::NewFinding {
+                        category,
+                        claim,
+                        relevance,
+                        title,
+                        entities,
+                        evidence,
+                    },
+                )
+                .await?,
+            }),
+            EngineAction::EditFinding { id, edit } => {
+                crate::findings::edit(shared, id, edit).await?;
+                Ok(ActionOutcome::Done)
+            }
+            EngineAction::SetFindingStatus { id, status } => {
+                crate::findings::set_status(shared, id, status).await?;
+                Ok(ActionOutcome::Done)
+            }
+            EngineAction::DeleteFinding(id) => {
+                crate::findings::delete(shared, id).await?;
+                Ok(ActionOutcome::Done)
+            }
+            EngineAction::FindingEntity { id, entity, attach } => {
+                crate::findings::link_entity(shared, id, entity, attach).await?;
+                Ok(ActionOutcome::Done)
+            }
+            EngineAction::FindingEvidence {
+                id,
+                observation,
+                attach,
+            } => {
+                crate::findings::link_evidence(shared, id, observation, attach).await?;
+                Ok(ActionOutcome::Done)
+            }
         }
     }
 
@@ -978,6 +1070,27 @@ impl EngineHandle {
                     })
                     .await?,
             ),
+            Query::Findings => QueryResult::Findings(crate::findings::list(&self.shared).await?),
+            Query::Finding(id) => QueryResult::Finding(
+                crate::findings::detail(&self.shared, id)
+                    .await?
+                    .map(Box::new),
+            ),
+            Query::FindingCandidates(id) => {
+                QueryResult::Observations(crate::findings::candidates(&self.shared, id).await?)
+            }
+            Query::Export { format, findings } => {
+                let p = self.shared.profile()?;
+                let opts = crate::export::Options {
+                    findings,
+                    with_blobs: false,
+                };
+                QueryResult::Export(
+                    store
+                        .read(move |r| crate::export::render(r, &p, format, &opts))
+                        .await?,
+                )
+            }
             Query::Blob(hex) => QueryResult::Blob(match spektr_store::Sha256::from_hex(&hex) {
                 Some(sha) => store.read(move |r| r.blob(sha)).await?,
                 None => None,

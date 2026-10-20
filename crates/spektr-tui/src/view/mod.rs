@@ -3,6 +3,7 @@
 
 mod checklist;
 mod draw;
+mod findings;
 mod image;
 mod launcher;
 mod overlay;
@@ -62,6 +63,7 @@ pub fn render_buf(buf: &mut Buffer, area: Rect, s: &AppState) -> Hits {
                 crate::state::View::Main => workspace::render(buf, area, s, w, &mut hits),
                 crate::state::View::Checklist => checklist::render(buf, area, s, w, &mut hits),
                 crate::state::View::Review => review::render(buf, area, s, w, &mut hits),
+                crate::state::View::Findings => findings::render(buf, area, s, w, &mut hits),
             }
         }
     }
@@ -73,6 +75,10 @@ pub fn render_buf(buf: &mut Buffer, area: Rect, s: &AppState) -> Hits {
         Some(Overlay::Menu(m)) => overlay::menu(buf, area, s, m, &mut hits),
         Some(Overlay::Help(h)) => overlay::help(buf, area, s, h, &mut hits),
         Some(Overlay::Dialog(d)) => overlay::dialog(buf, area, s, d, &mut hits),
+        Some(Overlay::Editor(e)) => {
+            draw::dim(buf, area, t);
+            overlay::editor(buf, area, s, e, &mut hits);
+        }
         None => {}
     }
     if matches!(s.screen, Screen::Workspace(_)) || s.overlay.is_some() {
@@ -87,11 +93,12 @@ fn hint_ctxs(s: &AppState) -> Vec<Ctx> {
         Some(Overlay::Palette(_)) => vec![Ctx::Palette],
         Some(Overlay::Menu(_)) => vec![Ctx::Menu],
         Some(Overlay::Help(_)) => vec![Ctx::Help],
-        Some(Overlay::Dialog(_)) => vec![Ctx::Dialog],
+        Some(Overlay::Dialog(_) | Overlay::Editor(_)) => vec![Ctx::Dialog],
         None => match s.mode() {
             Mode::Filter => vec![Ctx::Filter],
             Mode::Checklist => vec![Ctx::Checklist],
             Mode::Review => vec![Ctx::Review],
+            Mode::Findings => vec![Ctx::Findings],
             _ => vec![Ctx::Entity, Ctx::Global],
         },
     }
@@ -143,7 +150,7 @@ fn status_line(buf: &mut Buffer, area: Rect, s: &AppState, hits: &mut Hits) {
     }
     let mut hints = s.keymap.hints(&hint_ctxs(s));
     if s.overlay.is_none()
-        && matches!(s.mode(), Mode::Checklist | Mode::Review)
+        && matches!(s.mode(), Mode::Checklist | Mode::Review | Mode::Findings)
         && let Some((k, _)) = s
             .keymap
             .hint_for(crate::keymap::Action::Escape, Ctx::Global)

@@ -30,6 +30,15 @@ pub struct Ctx {
 }
 
 impl Ctx {
+    /// Built-in rules profiles plus `<config>/profiles/` (warnings to stderr).
+    pub fn profiles(&self) -> Result<spektr_engine::Profiles> {
+        let mut p = spektr_engine::Profiles::builtin()?;
+        for w in p.load_dir(&self.paths.config.join("profiles"))? {
+            eprintln!("warning: {w}");
+        }
+        Ok(p)
+    }
+
     pub fn load() -> Result<Self> {
         let test = TestEnv::from_env()?;
         let paths = Paths::resolve()?;
