@@ -421,7 +421,11 @@ fn review_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) -> bool {
             .selected()
             .and_then(|i| i.payload["detail"]["url"].as_str())
         {
-            Some(u) => fx.push(Effect::OpenUrl(u.to_string())),
+            Some(u) => {
+                let u = u.to_string();
+                toast(s, &format!("opening {u}"), Token::FgMuted);
+                fx.push(Effect::OpenUrl(u));
+            }
             None => toast(s, "no URL to open", Token::FgMuted),
         },
         _ => return false,

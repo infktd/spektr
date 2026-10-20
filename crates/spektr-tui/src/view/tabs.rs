@@ -25,7 +25,7 @@ pub fn timeline(buf: &mut Buffer, inner: Rect, s: &AppState, w: &Workspace, hits
         return;
     };
     let ev = tl.visible();
-    let kind = tl.kind.as_deref().unwrap_or("all");
+    let kind = tl.kind.as_deref().unwrap_or("all").replace('_', " ");
     let e_key = s
         .keymap
         .hint_for(crate::keymap::Action::EventFilter, crate::keymap::Ctx::Nav)
@@ -39,7 +39,7 @@ pub fn timeline(buf: &mut Buffer, inner: Rect, s: &AppState, w: &Workspace, hits
         &[
             run(format!("{} of {} events", ev.len(), all.len()), t.muted()),
             run(format!("   {e_key} kind: "), t.muted()),
-            run(kind.to_string(), t.text()),
+            run(kind, t.text()),
         ],
     );
     if ev.is_empty() {
