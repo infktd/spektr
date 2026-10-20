@@ -2,7 +2,10 @@
 
 use std::ops::{BitOr, BitOrAssign};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct EntityFlags(pub u32);
 
 impl EntityFlags {
