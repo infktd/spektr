@@ -519,7 +519,14 @@ pub fn dialog(buf: &mut Buffer, area: Rect, s: &AppState, d: &Dialog, hits: &mut
         )];
         match f {
             Field::Text { value, hint, .. } => {
-                runs.push(run(value.clone(), raised(t.text())));
+                // label (11) + caret: keep the typed end in view
+                let room = usize::from(inner.width).saturating_sub(12);
+                let shown = if focus {
+                    text::tail(value, room)
+                } else {
+                    value.clone()
+                };
+                runs.push(run(shown, raised(t.text())));
                 if focus {
                     runs.push(caret(s));
                 }

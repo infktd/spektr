@@ -1371,6 +1371,8 @@ fn run_cmd(s: &mut AppState, cmd: Cmd, target: Option<&EntitySummary>, fx: &mut 
             );
             fx.push(Effect::StartTutor(reset));
         }
+        // every finding; tracelabs copies the submissions, json/md ask where
+        Cmd::Export(format) => crate::findings::export(s, format, Vec::new(), fx),
         Cmd::FindingNew => match target {
             Some(t) => {
                 let about = Some(display_value(t, s.glyphs));
@@ -2239,6 +2241,7 @@ fn engine_event_in(
             note,
             error,
             retry_in_secs,
+            attempts_left,
             ..
         } => {
             match state {
@@ -2263,11 +2266,22 @@ fn engine_event_in(
                     push_row(w, row(Marker::Ok, Token::Ok, &module, Token::Fg, spans));
                     w.last_run.insert((entity.id, module.clone()), at);
                 }
-                JobState::Failed => {
+                // Failed, or queued again for a retry (rate limit, upstream)
+                JobState::Failed | JobState::Queued
+                    if error.is_some() || state == JobState::Failed =>
+                {
                     let mut spans =
                         vec![(error.unwrap_or_else(|| "failed".into()), Token::Hostile)];
                     if let Some(secs) = retry_in_secs {
-                        spans.push((format!("  retry in {secs}s"), Token::FgMuted));
+                        let left = attempts_left.unwrap_or(0);
+                        let s = if left == 1 { "" } else { "s" };
+                        spans.push((
+                            format!("  retry in {secs}s · {left} attempt{s} left"),
+                            Token::FgMuted,
+                        ));
+                    } else {
+                        spans.push(("  ← ".into(), Token::FgMuted));
+                        spans.extend(ent_span(&entity, g));
                     }
                     push_row(
                         w,

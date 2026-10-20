@@ -1,0 +1,44 @@
+name = "Error states: module failures, a rate limit, a missing secret"
+size = [170, 48]
+compare = "docs/design/Main.dc.html"
+checklist = [
+  "Failed jobs: ✕ rows in the activity rail in the error color with the module's message; `failed N` in the rail's counts",
+  "Rate limit: `rate_limited: HTTP 429 from api.github.com  retry in 3s · N attempts left`, then ✕ after the last retry",
+  "Missing secret: the palette shows `run hibp` disabled with `needs HIBP_KEY`; ↵ on it is refused with the reason in the palette's error line",
+  "The doctor panel in the launcher lists HIBP_KEY as missing",
+  "No crash, no garbled rows; the rest of the case stays usable",
+]
+
+[[step]]
+run = ["new", "errs", "--profile", "default"]
+
+[[step]]
+run = ["open", "errs.spektr"]
+do = [
+  "wait NORMAL",
+  "keys : text:seed space text:username:rl-demo ↵",
+  "wait retry in 3s",
+  "frame rate-limited-retrying",
+  "wait failed",
+  "sleep 8000",
+  "settle",
+  "frame module-failures",
+  "keys : text:seed space text:email:jordan.marlow@mail.example ↵",
+  "wait email-check",
+  "settle",
+  "keys / text:jordan.marlow ↵",
+  "sleep 500",
+  "keys : text:run space text:hibp",
+  "wait needs HIBP_KEY",
+  "frame missing-secret-palette",
+  "keys ↵",
+  "settle",
+  "frame missing-secret",
+  "keys esc",
+  "wait NORMAL",
+  "keys q",
+]
+
+[[step]]
+run = []
+do = ["wait Recent cases", "frame launcher-doctor-secrets", "keys q"]

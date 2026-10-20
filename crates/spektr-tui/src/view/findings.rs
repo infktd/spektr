@@ -289,7 +289,15 @@ fn detail(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace, hits: &mut Hit
     let selected = f.selected_finding();
     let d = f.detail.as_ref().filter(|d| Some(d.id) == selected);
     let title = d.map_or("Finding".to_string(), |d| format!("F-{}", d.id));
-    draw::pane(buf, t, r, true, &[run(title, t.title(true))], &[], t.base());
+    draw::pane(
+        buf,
+        t,
+        r,
+        focused,
+        &[run(title, t.title(focused))],
+        &[],
+        t.base(),
+    );
     let inner = layout::inner(r);
     let footer_y = inner.bottom().saturating_sub(1);
     draw::hrule(
@@ -371,14 +379,20 @@ fn detail(buf: &mut Buffer, r: Rect, s: &AppState, w: &Workspace, hits: &mut Hit
     ));
     draw::put(buf, inner.x, y, inner.width, &head);
     y += 1;
-    draw::put(
-        buf,
-        inner.x,
-        y,
-        inner.width,
-        &[run(d.title.clone(), t.text())],
-    );
-    y += 2;
+    // A title written by hand; the automatic one is the claim's start.
+    let auto =
+        !d.claim.trim().is_empty() && d.claim.trim().starts_with(d.title.trim_end_matches('…'));
+    if !auto {
+        draw::put(
+            buf,
+            inner.x,
+            y,
+            inner.width,
+            &[run(d.title.clone(), t.text())],
+        );
+        y += 1;
+    }
+    y += 1;
     for (label, body) in [("Claim", &d.claim), ("Relevance", &d.relevance)] {
         if y >= stop {
             break;
