@@ -70,8 +70,14 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build --timings
         run: cargo build --workspace --all-targets --locked --timings
+      - name: Install tmux (e2e_tmux)
+        run: |
+          command -v tmux || { if [ "$RUNNER_OS" = macOS ]; then brew install tmux; else sudo apt-get install -y tmux; fi; }
+          tmux -V
       - name: cargo nextest run
         run: cargo nextest run --workspace --locked
+        env:
+          SPEKTR_REQUIRE_TMUX: "1"
       - name: Upload build timings
         if: matrix.target == 'aarch64-apple-darwin'
         uses: actions/upload-artifact@v7.0.2

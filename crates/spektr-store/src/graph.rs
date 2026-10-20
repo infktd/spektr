@@ -143,6 +143,10 @@ fn placeholders(start: usize, n: usize) -> String {
         .join(", ")
 }
 
+/// One neighbour's edges for one artifact kind: the edges, their source
+/// keys, the latest confirmation and the shared value.
+type ClusterAcc = (Vec<EdgeId>, BTreeSet<String>, Option<Timestamp>, String);
+
 impl Reader<'_> {
     /// Stored edges incident to a root (any member), resolved; self-loops
     /// dropped.
@@ -307,6 +311,77 @@ impl Reader<'_> {
         Ok(groups)
     }
 
+    /// Neighbours that share an artifact with each other: one row per
+    /// neighbour per artifact kind, its edges the `shares_artifact` edges to
+    /// other neighbours. Skipped for very wide foci (hubs).
+    fn neighbour_clusters(
+        &self,
+        folded: &BTreeMap<GroupKey, Vec<EgoRow>>,
+    ) -> StoreResult<BTreeMap<GroupKey, Vec<EgoRow>>> {
+        const MAX_NEIGHBOURS: usize = 300;
+        let neighbours: BTreeSet<EntityId> = folded
+            .iter()
+            .filter(|(k, _)| k.artifact.is_none())
+            .flat_map(|(_, rows)| rows.iter().filter(|r| !r.rejected).map(|r| r.entity.id))
+            .collect();
+        let mut out: BTreeMap<GroupKey, Vec<EgoRow>> = BTreeMap::new();
+        if neighbours.len() < 2 || neighbours.len() > MAX_NEIGHBOURS {
+            return Ok(out);
+        }
+        let summaries: HashMap<EntityId, EntitySummary> = folded
+            .values()
+            .flatten()
+            .map(|r| (r.entity.id, r.entity.clone()))
+            .collect();
+        for n in &neighbours {
+            let members = self.members(*n)?;
+            let evidence = self.incident_evidence(&members)?;
+            // per artifact kind: edges, source keys, confirmation, value
+            let mut acc: BTreeMap<ArtifactKind, ClusterAcc> = BTreeMap::new();
+            for inc in self.incident(*n, &members)? {
+                if inc.predicate != Predicate::Core(CorePredicate::SharesArtifact)
+                    || inc.state != EdgeState::Active
+                    || !neighbours.contains(&inc.other.id)
+                {
+                    continue;
+                }
+                let Some((kind, value)) = ArtifactKind::parse_discriminator(&inc.discriminator)
+                else {
+                    continue;
+                };
+                let a = acc
+                    .entry(kind)
+                    .or_insert_with(|| (Vec::new(), BTreeSet::new(), None, value.to_string()));
+                a.0.push(inc.edge);
+                if let Some(ev) = evidence.get(&inc.edge) {
+                    a.1.extend(ev.iter().map(|(_, k)| k.clone()));
+                }
+                a.2 = a.2.max(inc.confirmed_at);
+            }
+            let Some(entity) = summaries.get(n) else {
+                continue;
+            };
+            for (kind, (edges, keys, confirmed_at, value)) in acc {
+                out.entry(GroupKey {
+                    predicate: Predicate::Core(CorePredicate::SharesArtifact),
+                    direction: Direction::Sym,
+                    artifact: Some(kind),
+                })
+                .or_default()
+                .push(EgoRow {
+                    edges,
+                    entity: entity.clone(),
+                    strength: Strength::compute(keys.len(), confirmed_at.is_some()),
+                    confirmed_at,
+                    rejected: false,
+                    sources: keys.len(),
+                    artifact_value: Some(value),
+                });
+            }
+        }
+        Ok(out)
+    }
+
     /// The ego view of `focus` (TUI_SPEC §4.3): inbound and symmetric groups
     /// for the left column, outbound for the right, each paginated.
     pub fn ego(&self, focus: EntityId, params: &EgoParams) -> StoreResult<EgoView> {
@@ -314,8 +389,29 @@ impl Reader<'_> {
         let focus_summary = self
             .summary(root)?
             .ok_or_else(|| StoreError::NotFound(format!("entity {root}")))?;
-        let folded = self.folded(root, params.include_rejected)?;
+        let mut folded = self.folded(root, params.include_rejected)?;
         let degree = degree_of(&folded);
+        // Correlations among the focus's neighbours show as `≈` groups too
+        // (artboard 08: the username's accounts sharing an avatar).
+        for (key, rows) in self.neighbour_clusters(&folded)? {
+            let have: BTreeSet<EntityId> = folded
+                .get(&key)
+                .map(|r| r.iter().map(|x| x.entity.id).collect())
+                .unwrap_or_default();
+            let g = folded.entry(key).or_default();
+            g.extend(rows.into_iter().filter(|r| !have.contains(&r.entity.id)));
+            g.sort_by(|x, y| {
+                y.strength
+                    .cmp(&x.strength)
+                    .then_with(|| {
+                        x.entity
+                            .value
+                            .to_lowercase()
+                            .cmp(&y.entity.value.to_lowercase())
+                    })
+                    .then_with(|| x.entity.id.cmp(&y.entity.id))
+            });
+        }
         let page_size = params.page_size.max(1);
         let mut groups: Vec<EgoGroup> = folded
             .into_iter()
