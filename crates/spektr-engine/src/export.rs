@@ -194,9 +194,47 @@ fn markdown(r: &Reader<'_>, p: &RulesProfile, o: &Options) -> StoreResult<String
     }
     facts.push(format!("audit log {} rows", r.audit_count()?));
     let _ = writeln!(out, "{}\n", facts.join(" · "));
+    // the case at a glance
+    let all: Vec<spektr_store::EntityRow> = r
+        .all_entities()?
+        .into_iter()
+        .filter(|e| e.merged_into.is_none())
+        .collect();
+    let seeds: Vec<String> = all
+        .iter()
+        .filter(|e| e.flags.contains(spektr_model::EntityFlags::SEED))
+        .map(|e| format!("`{}:{}`", e.ty.as_str(), e.value))
+        .collect();
+    let mut by_type: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    for e in &all {
+        *by_type.entry(e.ty.as_str()).or_default() += 1;
+    }
+    out.push_str("## Case\n\n");
+    if !seeds.is_empty() {
+        let _ = writeln!(out, "- **Seeds:** {}", seeds.join(", "));
+    }
+    let _ = writeln!(
+        out,
+        "- **Graph:** {} entities ({}), {} edges, {} observations",
+        all.len(),
+        by_type
+            .iter()
+            .map(|(t, n)| format!("{n} {t}"))
+            .collect::<Vec<_>>()
+            .join(", "),
+        r.edge_count()?,
+        r.observation_count()?
+    );
+    let pending = r
+        .review_items(Some(spektr_store::ReviewState::Pending))?
+        .len();
+    if pending > 0 {
+        let _ = writeln!(out, "- **Review:** {pending} pending");
+    }
+    out.push('\n');
     let list = selected(r, p, o)?;
     if list.is_empty() {
-        out.push_str("No findings.\n");
+        out.push_str("## Findings\n\nNo findings.\n");
         return Ok(out);
     }
     let mut last_cat: Option<String> = None;

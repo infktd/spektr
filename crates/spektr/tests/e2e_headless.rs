@@ -146,6 +146,56 @@ fn j6_headless_run_then_export() {
     );
 }
 
+/// J6 in full (PRD §5): an email seed at depth 2, then a Markdown export,
+/// in a script with no TTY.
+#[test]
+fn j6_email_seed_then_markdown() {
+    let h = Home::new();
+    let ok = |args: &[&str]| {
+        let out = h.cmd(args).output().unwrap();
+        assert!(out.status.success(), "{args:?}: {}", stderr(&out));
+        out
+    };
+    ok(&[
+        "new",
+        "j6",
+        "--profile",
+        "tracelabs",
+        "--subject",
+        "Jordan Marlow",
+    ]);
+    ok(&[
+        "run",
+        "j6.spektr",
+        "--seed",
+        "email:jordan.marlow@mail.example",
+        "--depth",
+        "2",
+    ]);
+    let out = ok(&["export", "j6.spektr", "--format", "md"]);
+    let md = stdout(&out);
+    assert!(md.starts_with("# j6: findings"), "{md}");
+    assert!(md.contains("Rules profile **tracelabs**"), "{md}");
+    assert!(md.contains("subject **Jordan Marlow**"), "{md}");
+    assert!(
+        md.contains("- **Seeds:** `email:jordan.marlow@mail.example`"),
+        "{md}"
+    );
+    assert!(md.contains("- **Graph:** "), "{md}");
+    assert!(md.contains("No findings."), "{md}");
+    // and to a file, with tracelabs text the same way
+    ok(&["export", "j6.spektr", "--format", "md", "-o", "j6.md"]);
+    assert_eq!(std::fs::read_to_string(h.work().join("j6.md")).unwrap(), md);
+    let out = ok(&["export", "j6.spektr", "--format", "tracelabs"]);
+    assert!(stdout(&out).is_empty(), "no findings, no submissions");
+    let out = h
+        .cmd(&["export", "j6.spektr", "--format", "md", "--finding", "9"])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    assert!(stderr(&out).contains("no finding F-9"), "{}", stderr(&out));
+}
+
 #[test]
 fn query_json_lines_parse() {
     let h = Home::new();
