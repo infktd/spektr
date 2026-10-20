@@ -147,6 +147,18 @@ impl IdGen {
         }
     }
 
+    /// Mix `salt` into a seeded generator (no-op when random). The store
+    /// salts with the case's audit length on open, so every process working
+    /// on a case continues on a fresh, still deterministic, sequence instead
+    /// of repeating ids an earlier run already used.
+    pub fn salt(&self, salt: u64) {
+        if let Some(rng) = &self.seeded {
+            let mut rng = rng.lock().unwrap_or_else(|e| e.into_inner());
+            rng.0 ^= salt.wrapping_mul(0x9E37_79B9_7F4A_7C15).rotate_left(17);
+            rng.next_u64();
+        }
+    }
+
     pub fn entity(&self, now: Timestamp) -> EntityId {
         EntityId(self.next(now))
     }
@@ -181,6 +193,18 @@ mod tests {
         assert!(xs.iter().all(|u| u.get_version_num() == 7));
         let set: std::collections::BTreeSet<_> = xs.iter().collect();
         assert_eq!(set.len(), 5);
+    }
+
+    #[test]
+    fn salting_changes_the_sequence_deterministically() {
+        let now: Timestamp = "2026-10-20T18:14:22Z".parse().unwrap();
+        let (a, b, c) = (IdGen::seeded(1), IdGen::seeded(1), IdGen::seeded(1));
+        b.salt(112);
+        c.salt(112);
+        assert_ne!(a.next(now), b.next(now));
+        let b2 = b.next(now);
+        c.next(now);
+        assert_eq!(b2, c.next(now));
     }
 
     #[test]

@@ -157,6 +157,8 @@ impl Db {
         schema::configure(&conn)?;
         schema::quick_check(&conn, path)?;
         schema::migrate(&mut conn, path, false)?;
+        let (seq, _) = audit::load_tip(&conn)?;
+        opts.ids.salt(u64::try_from(seq).unwrap_or(0));
         Ok(Self {
             conn,
             path: path.to_path_buf(),
