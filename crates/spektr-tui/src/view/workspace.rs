@@ -28,7 +28,12 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &AppState, w: &Workspace, hits: &
     activity(buf, l.activity, s, w, hits);
     if l.inspector.width == 0 && w.insp_overlay {
         let r = layout::inspector_overlay(&l);
-        draw::shadow(buf, r, &s.theme);
+        // Docked to the right edge: a one-cell `bg` margin on the left only.
+        draw::fill(
+            buf,
+            Rect::new(r.x.saturating_sub(1), r.y, 1, r.height),
+            s.theme.base(),
+        );
         inspector(buf, r, s, w, hits, true);
     }
 }

@@ -51,7 +51,15 @@ fn handle(s: &mut AppState, msg: Msg) -> Vec<Effect> {
     s.dirty = true;
     match msg {
         Msg::Key(k) => key(s, k, &mut fx),
-        Msg::Mouse(m, ms) => mouse(s, m, ms, &mut fx),
+        Msg::Mouse(m, ms) => {
+            // With capture off a terminal sends no mouse input; ignore any
+            // that still arrives.
+            if s.mouse {
+                mouse(s, m, ms, &mut fx);
+            } else {
+                s.dirty = false;
+            }
+        }
         Msg::Paste(t) => {
             for c in t.chars().filter(|c| !c.is_control()) {
                 type_char(s, c, &mut fx);
@@ -502,6 +510,11 @@ fn workspace_act(s: &mut AppState, a: Action, fx: &mut Vec<Effect>) {
             _ => toast(s, "no URL to open", Token::FgMuted),
         },
         Action::Confirm | Action::Unconfirm | Action::Reject => edge_act(s, a, fx),
+        Action::Note | Action::Merge | Action::ScopeAdd | Action::ScopeExclude
+            if w.cursor_entity().is_none() =>
+        {
+            toast(s, "no entity under the cursor", Token::FgMuted);
+        }
         Action::Note => {
             if let Some(e) = w.cursor_entity() {
                 let title = format!("Note on {}", display_value(e, glyphs));
