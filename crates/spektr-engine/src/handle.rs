@@ -377,6 +377,7 @@ impl EngineHandle {
                         trigger: Trigger::Manual,
                         run_id: None,
                         rerun,
+                        quiet: false,
                     }],
                 )
                 .await?;
@@ -392,6 +393,7 @@ impl EngineHandle {
                         trigger: Trigger::Manual,
                         run_id: None,
                         rerun: false,
+                        quiet: false,
                     })
                     .collect();
                 let jobs = plan(shared, reqs).await?;

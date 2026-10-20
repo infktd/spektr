@@ -173,6 +173,16 @@ impl<'a> Reader<'a> {
         Ok(out)
     }
 
+    /// Root entities carrying attribute `name` (correlators).
+    pub fn entities_with_attr(&self, name: &str) -> StoreResult<Vec<EntityRow>> {
+        let mut stmt = self.conn.prepare_cached(&format!(
+            "SELECT {ENTITY_COLS} FROM entity WHERE merged_into IS NULL AND json_extract(attrs, '$.' || ?1) IS NOT NULL ORDER BY id"
+        ))?;
+        Ok(stmt
+            .query_map([name], EntityRow::from_row)?
+            .collect::<Result<_, _>>()?)
+    }
+
     /// Root entities with a flag set (seeds, subject, hubs, …).
     pub fn entities_with_flag(
         &self,

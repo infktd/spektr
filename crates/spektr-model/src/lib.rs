@@ -29,7 +29,9 @@ pub use ids::{
     ChecklistItemId, EdgeId, EntityId, IdGen, JobId, MergeId, NoteId, ObservationId, PlaybookRunId,
     ReviewItemId, ScopeRuleId,
 };
-pub use normalize::{Derived, KeyHint, NormalizeCtx, NormalizeError, Normalized, normalize};
+pub use normalize::{
+    Derived, KeyHint, NormalizeCtx, NormalizeError, Normalized, has_known_suffix, normalize,
+};
 pub use platforms::{Platform, PlatformRegistry};
 pub use predicates::{ArtifactKind, CorePredicate, Predicate, VocabError};
 pub use strength::Strength;

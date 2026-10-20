@@ -118,6 +118,11 @@ struct Applied {
     created: Vec<(EntityId, String, Option<String>)>,
     /// Entities whose edges or attributes changed, for the correlators.
     touched: BTreeSet<EntityId>,
+    /// Existing entities that gained an attribute name they didn't have:
+    /// auto modules are planned again for them (an `avatar_url` arriving
+    /// after `avatar-hash` already ran with nothing to fetch). The planner's
+    /// cache and dedup keep this to modules that haven't produced anything.
+    gained: Vec<(EntityId, String, Option<String>)>,
     /// Jobs finished for good.
     finished: Vec<JobId>,
     /// Jobs to retry after a delay.
@@ -214,7 +219,7 @@ impl Ingestor {
                 for e in out.events {
                     shared.emit(e);
                 }
-                self.after_batch(out.created, out.touched).await;
+                self.after_batch(out.created, out.gained, out.touched).await;
                 for (q, delay) in out.retries {
                     let mut q = q;
                     q.attempt += 1;
@@ -276,6 +281,7 @@ impl Ingestor {
     async fn after_batch(
         &self,
         created: Vec<(EntityId, String, Option<String>)>,
+        gained: Vec<(EntityId, String, Option<String>)>,
         mut touched: BTreeSet<EntityId>,
     ) {
         let shared = Arc::clone(&self.shared);
@@ -304,7 +310,11 @@ impl Ingestor {
                 }),
             }
         }
-        let reqs = auto_requests(&shared, &created);
+        let mut reqs = auto_requests(&shared, &created);
+        reqs.extend(auto_requests(&shared, &gained).into_iter().map(|mut r| {
+            r.quiet = true;
+            r
+        }));
         if let Err(e) = plan(&shared, reqs).await {
             shared.emit(EventKind::IngestFailed {
                 message: format!("planning follow-up jobs failed: {e}"),
@@ -647,7 +657,13 @@ fn apply_message(
                     return Ok(());
                 }
             };
-            if !ctx.manifest.produces_type(ty.as_str()) && ty != ctx.input_ty {
+            // An entity may be a declared target, the input's type, or a
+            // valid source of a declared predicate (gravatar's account is
+            // the source of its `has_email`).
+            let as_source = ctx.manifest.produces.iter().any(|(p, _)| {
+                matches!(vocab.predicate(p), Ok(Predicate::Core(c)) if c.sources().allows(&ty))
+            });
+            if !ctx.manifest.produces_type(ty.as_str()) && ty != ctx.input_ty && !as_source {
                 reject(
                     out,
                     ctx,
@@ -775,6 +791,10 @@ fn apply_message(
                     return Ok(());
                 }
             };
+            let before = tx.reader().entity(id)?;
+            let new_name = before
+                .as_ref()
+                .is_some_and(|e| !e.attrs.contains_key(&name));
             if tx.add_attr(
                 &actor,
                 id,
@@ -786,6 +806,18 @@ fn apply_message(
                 },
             )? {
                 out.touched.insert(id);
+                if new_name
+                    && let Some(e) = before
+                    && !out.created.iter().any(|c| c.0 == id)
+                    && !out.gained.iter().any(|g| g.0 == id)
+                {
+                    let platform = e
+                        .key
+                        .split_once(':')
+                        .filter(|_| e.ty.is(spektr_model::CoreType::Account))
+                        .map(|(p, _)| p.to_string());
+                    out.gained.push((id, e.ty.as_str().to_string(), platform));
+                }
             }
         }
         ModuleMessage::Edge {
@@ -1015,6 +1047,38 @@ pub(crate) async fn seed(
                 out.created.insert(0, (e.id, e.ty.to_string(), platform));
             }
             let root = tx.reader().resolve(ing.id)?;
+            // A seed in a case with a subject is one of the subject's known
+            // identifiers: link them (`◎ subject → uses_handle → ~ seed`).
+            let subject = tx
+                .reader()
+                .meta("subject_entity")?
+                .and_then(|v| v.as_str().and_then(|s| s.parse::<uuid::Uuid>().ok()))
+                .map(EntityId);
+            let link = match n.ty.core() {
+                Some(spektr_model::CoreType::Username) => Some(CorePredicate::UsesHandle),
+                Some(spektr_model::CoreType::Email) => Some(CorePredicate::HasEmail),
+                Some(spektr_model::CoreType::Phone) => Some(CorePredicate::HasPhone),
+                Some(spektr_model::CoreType::Account) => Some(CorePredicate::HasAccount),
+                _ => None,
+            };
+            if let (Some(subject), Some(pred)) = (subject, link) {
+                let subject = tx.reader().resolve(subject)?;
+                if subject != root {
+                    let (edge, _) = tx.upsert_edge(
+                        &Actor::Analyst,
+                        NewEdge {
+                            src: subject,
+                            predicate: Predicate::Core(pred),
+                            dst: root,
+                            discriminator: String::new(),
+                            attrs: Default::default(),
+                            origin: "analyst".into(),
+                        },
+                    )?;
+                    tx.add_evidence(&Actor::Analyst, edge, obs, "analyst")?;
+                    out.touched.insert(subject);
+                }
+            }
             let summary = tx
                 .reader()
                 .summary(root)?
