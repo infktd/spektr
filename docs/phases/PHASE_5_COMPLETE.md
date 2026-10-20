@@ -105,10 +105,10 @@ Branch `phase-5-release` · 2026-10-20. QA report: [PHASE_5_QA.md](PHASE_5_QA.md
 | **J5** integrity | ✓ | `e2e_verify`: `verify` prints `✓`; it reports the first broken row after an audit row is altered, and catches a corrupted evidence blob (exit 3) |
 | **J6** in full: email seed, `--format md` | ✓ | `e2e_headless j6_email_seed_then_markdown`: `spektr new`, then `run --seed email:jordan.marlow@mail.example --depth 2`, then `export --format md`, with no TTY; the report has `## Case`, the email seed and the graph counts |
 | **J7** in full | ✓ | `e2e_j7_playbooks`, steps 1–7. Step 5's "finding from an item" now passes: `f` on a checklist item opens New finding about the item's entity. |
-| All demo tapes render in CI | see CI | The `demos (VHS)` job, below |
+| All demo tapes render in CI | ✓ | CI run 39433343430, `demos (VHS)`: `tutor.gif` (25 s), `pivot.gif` (24 s), `capture.gif` (17 s), `finding-export.gif` (38 s). I downloaded the artifact and looked at frames from each (below). |
 | `e2e_tutor` passes | ✓ | Output below (25 s) |
 | The QA.md §3 scenario list is fully covered, every frame reviewed | ✓ | The coverage table in PHASE_5_QA: 100 frames over 20 scenarios; the 23 new ones reviewed against artboards 09 and 01; 5 bugs found and fixed |
-| A dry-run release builds artifacts for all four targets | see CI | `dist plan` below. The PR's `Release` run builds and uploads the four targets' tarballs, the installer and the formula without publishing. |
+| A dry-run release builds artifacts for all four targets | ✓ | Release run 39433343419: `build-local-artifacts` succeeded for all four targets, and `build-global-artifacts` produced the installer, the formula, the source tarball and `sha256.sum`. `host`, `publish-homebrew-formula` and `announce` were skipped, as on every PR. The arm64 macOS tarball's checksum verifies, and its binary runs here (`spektr 0.1.0`, 18 MB). |
 | Stranger's-eye review | ⚠ partial | No clean machine is available. Instead: the README's from-source install in an empty root and `HOME`, then the whole tutor in a real PTY with the network denied. PHASE_5_QA § The stranger's-eye pass says what this does and doesn't show. |
 
 ## Deviations from the spec, and why
@@ -136,6 +136,7 @@ Branch `phase-5-release` · 2026-10-20. QA report: [PHASE_5_QA.md](PHASE_5_QA.md
 - **There are no screenshots in the fixture case:** replay never starts a browser. Findings evidence shows `text/html` captures. The image block is covered by snapshots and by Phase 4's live image preview.
 - **A replay miss reads `no fixture for GET …`** in the rail. That's test-only wording; on the network it's the HTTP error.
 - **Toasts don't expire under `SPEKTR_CLOCK`** (unchanged from Phase 4).
+- **The demos' font draws `⌖` as a box.** VHS's default font in CI lacks it. Terminals with a fuller font, and the TUI's width measurement, are unaffected.
 
 ## Command output
 
@@ -216,7 +217,67 @@ warning: aborting upload due to dry run
 
 ## CI
 
-(The PR's run goes here.)
+PR #6. All three workflows succeeded.
+
+```
+$ gh run list --branch phase-5-release
+39433343430 CI success
+39433343368 crates.io success
+39433343419 Release success
+
+$ gh run view 39433343430 --json jobs     # CI
+demos (VHS) success
+lint (x86_64-unknown-linux-gnu) success
+test (aarch64-apple-darwin) success
+test (x86_64-unknown-linux-gnu) success
+test (aarch64-unknown-linux-gnu) success
+test (x86_64-apple-darwin) success
+
+$ gh run view 39433343419 --json jobs     # Release, the dry run
+plan success
+build-local-artifacts (aarch64-unknown-linux-gnu) success
+build-local-artifacts (x86_64-unknown-linux-gnu) success
+build-local-artifacts (x86_64-apple-darwin) success
+build-local-artifacts (aarch64-apple-darwin) success
+build-global-artifacts success
+host skipped
+publish-homebrew-formula skipped
+announce skipped
+```
+
+The `crates.io` run is `cargo publish --dry-run --workspace --locked` on Linux.
+
+**The release artifacts**, downloaded from run 39433343419:
+
+```
+artifacts-build-global/  global-dist-manifest.json  sha256.sum  source.tar.gz(.sha256)  spektr-installer.sh  spektr.rb
+artifacts-build-local-<target>/  spektr-<target>.tar.xz(.sha256)  <target>-dist-manifest.json   × 4 targets
+
+$ shasum -a 256 -c spektr-aarch64-apple-darwin.tar.xz.sha256
+spektr-aarch64-apple-darwin.tar.xz: OK
+$ tar -tJf spektr-aarch64-apple-darwin.tar.xz
+spektr-aarch64-apple-darwin/LICENSE  CHANGELOG.md  README.md  spektr
+$ ./spektr-aarch64-apple-darwin/spektr --version
+spektr 0.1.0
+$ head -8 spektr.rb
+class Spektr < Formula
+  desc "Terminal OSINT workbench: seed what you know, expand it into an evidence-linked graph, export findings"
+  homepage "https://github.com/infktd/spektr"
+  version "0.1.0"
+  if OS.mac?
+    if Hardware::CPU.arm?
+      url "https://github.com/infktd/spektr/releases/download/v0.1.0/spektr-aarch64-apple-darwin.tar.xz"
+      sha256 "5d315ac4…"
+```
+
+**The demos**, downloaded from run 39433343430. I extracted frames at 35%, 75% and 97% of each GIF with `ffmpeg` and looked at them:
+
+- **tutor:** the coach strip at `Lesson 4/10 · Pivot and go back` after the playbook, with the TUTOR pill.
+- **pivot:** the seeded case with `≈ same_avatar ↔ 3` and the correlators in the rail. `↵` on github pivots: the breadcrumb grows to `◐ github · jmarlow-wav` and the ego view re-centers on the account. Then the timeline shows its `last seen 2026-09-28` divider and the `▲` rows after it.
+- **capture:** the inspector's halfblock avatar, `▲ after last-seen date`, and the Capture dialog prefilled with `https://github.com/jmarlow-wav`.
+- **finding-export:** F-1 `ready` with every check `✓`, the export menu, then `spektr export --format tracelabs` printing `Category: Advancing the Timeline (1,000 pts)`, the claim, the relevance, the URL, and `Note: needs staff coach approval`.
+
+The CI font has no `⌖` glyph (location), so it draws a box: the same font gap as the QA PNGs.
 
 ## How Jay can test it
 
