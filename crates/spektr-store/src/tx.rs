@@ -80,6 +80,8 @@ pub struct IngestedEntity {
     pub created: bool,
     /// Entities created or touched through derived edges, with those edges.
     pub derived: Vec<(EdgeId, EntityId)>,
+    /// Every entity this call created, itself included.
+    pub new_entities: Vec<EntityId>,
 }
 
 impl<'a> Tx<'a> {
@@ -289,6 +291,10 @@ impl<'a> Tx<'a> {
     ) -> StoreResult<IngestedEntity> {
         let (id, created) = self.upsert_entity(actor, &n.ty, &n.key, &n.value, depth)?;
         let mut derived = Vec::new();
+        let mut new_entities = Vec::new();
+        if created {
+            new_entities.push(id);
+        }
         for d in &n.derived {
             let (obs, source_key) = evidence.ok_or_else(|| {
                 invalid(format!(
@@ -311,12 +317,14 @@ impl<'a> Tx<'a> {
             self.add_evidence(actor, edge, obs, source_key)?;
             derived.push((edge, target.id));
             derived.extend(target.derived);
+            new_entities.extend(target.new_entities);
         }
         Ok(IngestedEntity {
             id,
             ty: n.ty.clone(),
             created,
             derived,
+            new_entities,
         })
     }
 
