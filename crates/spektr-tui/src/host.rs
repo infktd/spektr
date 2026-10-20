@@ -76,6 +76,8 @@ pub struct Settings {
     pub keys: BTreeMap<String, Vec<String>>,
     pub version: String,
     pub home: Option<PathBuf>,
+    /// Tutor progress `(lesson, step)` when this session is the tutor.
+    pub tutor: Option<(usize, usize)>,
     /// Keys typed after the first case opens (test mode only, for the
     /// real-terminal QA): `wait:<ms>`, `enter`, `esc`, `tab`, `space`,
     /// arrows, or single characters.
@@ -93,6 +95,7 @@ impl Default for Settings {
             version: String::new(),
             home: None,
             script: None,
+            tutor: None,
         }
     }
 }
@@ -138,4 +141,18 @@ pub trait Host: Send + Sync + 'static {
     fn pager_takes_terminal(&self) -> bool {
         true
     }
+    /// Save tutor progress (`$XDG_STATE_HOME/spektr/tutor.toml`).
+    fn save_tutor(&self, _lesson: usize, _step: usize) {}
+    /// Open the tutor's case (fresh with `reset`): its path, engine and the
+    /// saved progress.
+    fn tutor(&self, _reset: bool) -> BoxFuture<'_, Result<TutorStart, String>> {
+        Box::pin(async { Err("the tutor isn't available here".into()) })
+    }
+}
+
+/// What `Host::tutor` hands back.
+pub struct TutorStart {
+    pub path: PathBuf,
+    pub engine: EngineHandle,
+    pub progress: (usize, usize),
 }

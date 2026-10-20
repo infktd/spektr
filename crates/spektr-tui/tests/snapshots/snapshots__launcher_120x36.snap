@@ -35,6 +35,6 @@ expression: text(&s)
 
 
 
-
+                    New to spektr?  spektr tutor  walks through a case in about 15 minutes, offline.
 
  ↵ open   n new case   o open path   v verify chain   q quit                                              spektr --help

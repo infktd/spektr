@@ -507,6 +507,10 @@ pub struct AppState {
     pub verify_requested: Option<PathBuf>,
     /// Encoded image previews (TUI_SPEC §9).
     pub images: crate::images::Images,
+    /// Tutor progress, when this session is the tutor.
+    pub tutor: Option<crate::tutor::Tutor>,
+    /// Semantic events for the tutor, drained after each message.
+    pub tutor_events: Vec<crate::tutor::Event>,
 }
 
 pub enum Screen {
@@ -1019,6 +1023,9 @@ impl Dialog {
 impl AppState {
     pub fn new(settings: Settings, now: Timestamp) -> Self {
         let (keymap, warnings) = Keymap::with_overrides(&settings.keys);
+        let tutor = settings
+            .tutor
+            .map(|(lesson, step)| crate::tutor::Tutor { lesson, step });
         Self {
             screen: Screen::Launcher(Launcher::default()),
             overlay: None,
@@ -1042,6 +1049,8 @@ impl AppState {
             warnings,
             verify_requested: None,
             images: crate::images::Images::default(),
+            tutor,
+            tutor_events: Vec::new(),
         }
     }
 
@@ -1077,6 +1086,9 @@ impl AppState {
                 View::Findings => return Mode::Findings,
                 View::Main => {}
             }
+        }
+        if self.tutor.is_some() {
+            return Mode::Tutor;
         }
         Mode::Normal
     }

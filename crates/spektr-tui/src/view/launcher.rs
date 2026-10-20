@@ -270,6 +270,26 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &AppState, l: &Launcher, hits: &m
 
     // footer hints
     let fy = area.bottom().saturating_sub(1);
+    // first run (PRD J1): point at the tutor
+    let tip = "New to spektr?  spektr tutor  walks through a case in about 15 minutes, offline.";
+    let tw = text::width(tip) as u16;
+    if fy >= 3 && tw + 2 <= area.width {
+        let tx = area.x + (area.width - tw) / 2;
+        draw::put(
+            buf,
+            tx,
+            fy - 2,
+            tw,
+            &[
+                run("New to spektr?  ", t.muted()),
+                run("spektr tutor", t.accent()),
+                run(
+                    "  walks through a case in about 15 minutes, offline.",
+                    t.muted(),
+                ),
+            ],
+        );
+    }
     let mut hints = s.keymap.hints(&[Ctx::Launcher]);
     if let Some((k, h)) = s.keymap.hint_for(Action::Quit, Ctx::Global) {
         hints.push((k, h));

@@ -94,8 +94,8 @@ pub const COMMANDS: &[(&str, &str, bool)] = &[
     ),
     ("glyphs unicode", "Unicode glyphs", true),
     ("glyphs ascii", "ASCII glyphs", true),
-    ("tutor", "Start or resume the tutor", false),
-    ("tutor reset", "Restart the tutor", false),
+    ("tutor", "Start or resume the tutor", true),
+    ("tutor reset", "Restart the tutor", true),
     ("help", "Every key binding", true),
 ];
 
@@ -135,6 +135,8 @@ pub enum Cmd {
     Reload,
     Images(crate::images::Mode),
     FindingNew,
+    /// `tutor` (false) or `tutor reset` (true).
+    Tutor(bool),
 }
 
 pub fn parse(line: &str) -> Result<Cmd, String> {
@@ -201,6 +203,8 @@ pub fn parse(line: &str) -> Result<Cmd, String> {
         "playbook" => Cmd::Playbook(need("a playbook name")?),
         "checklist" => Cmd::Checklist,
         "finding" if rest == "new" => Cmd::FindingNew,
+        "tutor" if rest.is_empty() => Cmd::Tutor(false),
+        "tutor" if rest == "reset" => Cmd::Tutor(true),
         "reload" => Cmd::Reload,
         "images" => Cmd::Images(
             crate::images::Mode::parse(rest)
@@ -404,7 +408,8 @@ mod tests {
             parse("seed username:jmarlow.wav"),
             Ok(Cmd::Seed(_))
         ));
-        assert_eq!(parse("tutor"), Err("tutor: not available yet".into()));
+        assert_eq!(parse("tutor"), Ok(Cmd::Tutor(false)));
+        assert_eq!(parse("tutor reset"), Ok(Cmd::Tutor(true)));
         assert_eq!(parse("bogus"), Err("unknown command `bogus`".into()));
         assert_eq!(parse("region gb"), Ok(Cmd::Region("GB".into())));
     }

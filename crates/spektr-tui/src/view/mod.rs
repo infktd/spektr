@@ -59,11 +59,20 @@ pub fn render_buf(buf: &mut Buffer, area: Rect, s: &AppState) -> Hits {
                 draw::put(buf, r.x, r.y, r.width, &[run(msg, t.muted())]);
                 return hits;
             }
+            // The tutor's coach strip takes two rows above the status line.
+            let body = if s.tutor.is_some() {
+                Rect::new(area.x, area.y, area.width, area.height.saturating_sub(2))
+            } else {
+                area
+            };
             match w.view {
-                crate::state::View::Main => workspace::render(buf, area, s, w, &mut hits),
-                crate::state::View::Checklist => checklist::render(buf, area, s, w, &mut hits),
-                crate::state::View::Review => review::render(buf, area, s, w, &mut hits),
-                crate::state::View::Findings => findings::render(buf, area, s, w, &mut hits),
+                crate::state::View::Main => workspace::render(buf, body, s, w, &mut hits),
+                crate::state::View::Checklist => checklist::render(buf, body, s, w, &mut hits),
+                crate::state::View::Review => review::render(buf, body, s, w, &mut hits),
+                crate::state::View::Findings => findings::render(buf, body, s, w, &mut hits),
+            }
+            if let Some(t) = &s.tutor {
+                coach(buf, area, s, t);
             }
         }
     }
@@ -85,6 +94,71 @@ pub fn render_buf(buf: &mut Buffer, area: Rect, s: &AppState) -> Hits {
         status_line(buf, area, s, &mut hits);
     }
     hits
+}
+
+/// The tutor's coach strip (TUI_SPEC §10): the lesson and step, then the
+/// goal.
+fn coach(buf: &mut Buffer, area: Rect, s: &AppState, tut: &crate::tutor::Tutor) {
+    use ratatui::style::Modifier;
+    let t = &s.theme;
+    let y = area.bottom().saturating_sub(3);
+    let raised = |st: ratatui::style::Style| st.bg(t.color(crate::theme::Token::BgRaised));
+    draw::fill(buf, Rect::new(area.x, y, area.width, 2), t.raised());
+    let n = crate::tutor::LESSONS.len();
+    match tut.current() {
+        Some((lesson, step)) => {
+            draw::put(
+                buf,
+                area.x + 1,
+                y,
+                area.width.saturating_sub(2),
+                &[
+                    run(
+                        format!("Lesson {}/{n} ", tut.lesson + 1),
+                        raised(t.ok().add_modifier(Modifier::BOLD)),
+                    ),
+                    run(
+                        format!("{} ", s.glyphs.m(crate::glyph::Marker::Dot)),
+                        raised(t.muted()),
+                    ),
+                    run(lesson.title, raised(t.text().add_modifier(Modifier::BOLD))),
+                    run(
+                        format!("   step {}/{}", tut.step + 1, lesson.steps.len()),
+                        raised(t.muted()),
+                    ),
+                ],
+            );
+            draw::put(
+                buf,
+                area.x + 1,
+                y + 1,
+                area.width.saturating_sub(2),
+                &[run(step.goal, raised(t.text()))],
+            );
+        }
+        None => {
+            draw::put(
+                buf,
+                area.x + 1,
+                y,
+                area.width.saturating_sub(2),
+                &[run(
+                    "Tutor complete",
+                    raised(t.ok().add_modifier(Modifier::BOLD)),
+                )],
+            );
+            draw::put(
+                buf,
+                area.x + 1,
+                y + 1,
+                area.width.saturating_sub(2),
+                &[run(
+                    "You seeded, ran a playbook, pivoted, confirmed a match, captured, filed a finding and exported it. :tutor reset starts over.",
+                    raised(t.text()),
+                )],
+            );
+        }
+    }
 }
 
 /// Which contexts' hints the status line shows.

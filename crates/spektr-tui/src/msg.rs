@@ -69,6 +69,8 @@ pub enum Msg {
         what: String,
         result: Result<ActionOutcome, String>,
     },
+    /// The tutor's case opened with this progress.
+    TutorStarted(usize, usize),
     /// An export was written (or failed).
     Wrote(Result<PathBuf, String>),
     /// `$EDITOR` closed on a finding's text.
@@ -113,6 +115,10 @@ pub enum Effect {
         path: PathBuf,
         entity: Option<EntityId>,
     },
+    /// Save tutor progress.
+    SaveTutor(usize, usize),
+    /// Start (or restart) the tutor.
+    StartTutor(bool),
     /// Write text to a file (exports).
     WriteFile(PathBuf, String),
     /// Edit a finding's text in `$EDITOR`.

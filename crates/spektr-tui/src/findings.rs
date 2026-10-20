@@ -475,6 +475,15 @@ pub fn result(s: &mut AppState, tag: &Tag, r: QueryResult, fx: &mut Vec<Effect>)
             }
         }
         (Tag::Finding(id), QueryResult::Finding(d)) => {
+            let passes = d.as_ref().is_some_and(|d| {
+                d.passes() && !d.claim.trim().is_empty() && !d.relevance.trim().is_empty()
+            });
+            if passes {
+                s.tutor_events.push(crate::tutor::Event::FindingPasses);
+            }
+            let Some(w) = s.workspace_mut() else {
+                return true;
+            };
             if w.findings.selected_finding() == Some(*id) || w.findings.want == Some(*id) {
                 w.findings.detail = d.map(|b| *b);
                 let n = w.findings.detail.as_ref().map_or(0, detail_rows);
@@ -512,6 +521,7 @@ pub fn result(s: &mut AppState, tag: &Tag, r: QueryResult, fx: &mut Vec<Effect>)
         }
         (Tag::Export(path), QueryResult::Export(text)) => match path {
             None => {
+                s.tutor_events.push(crate::tutor::Event::Exported);
                 let n = text.matches("Category:").count();
                 fx.push(Effect::Copy(text));
                 toast(

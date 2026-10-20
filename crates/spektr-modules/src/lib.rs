@@ -6,6 +6,7 @@
 //! the engine or the TUI never recompiles it.
 
 pub mod builtins;
+pub mod bundled;
 pub mod capture;
 pub mod media;
 pub mod net;
