@@ -1,0 +1,16 @@
+// Fictional DNS answers (documentation ranges).
+{"kind": "dns", "name": "kestrel.example", "rtype": "A", "answers": ["203.0.113.24", "203.0.113.25"]}
+{"kind": "dns", "name": "kestrel.example", "rtype": "AAAA", "answers": ["2001:db8::24"]}
+{"kind": "dns", "name": "kestrel.example", "rtype": "MX", "answers": ["10 mx1.mailhost.example", "0 ."]}
+{"kind": "dns", "name": "vpn.kestrel.example", "rtype": "A", "answers": ["203.0.113.24"]}
+{"kind": "dns", "name": "vpn.kestrel.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "vpn.kestrel.example", "rtype": "MX", "answers": []}
+{"kind": "dns", "name": "gone.example", "rtype": "A", "answers": [], "rcode": "NXDOMAIN"}
+{"kind": "dns", "name": "gone.example", "rtype": "AAAA", "answers": [], "rcode": "NXDOMAIN"}
+{"kind": "dns", "name": "gone.example", "rtype": "MX", "answers": [], "rcode": "NXDOMAIN"}
+{"kind": "dns", "name": "mx1.mailhost.example", "rtype": "A", "answers": ["198.51.100.7"]}
+{"kind": "dns", "name": "mx1.mailhost.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "mx1.mailhost.example", "rtype": "MX", "answers": []}
+{"kind": "dns", "name": "mailhost.example", "rtype": "A", "answers": ["198.51.100.7"]}
+{"kind": "dns", "name": "mailhost.example", "rtype": "AAAA", "answers": []}
+{"kind": "dns", "name": "mailhost.example", "rtype": "MX", "answers": []}
