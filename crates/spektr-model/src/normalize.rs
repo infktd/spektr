@@ -556,6 +556,14 @@ fn ext_key(rule: ExtNormalize, input: &str) -> Result<String, String> {
     Ok(key)
 }
 
+/// Whether `host` ends in a suffix the Public Suffix List actually lists,
+/// not just the default `*` rule that matches any unknown TLD
+/// (`jmarlow.wav` → false, `kestrel.example` → false, `bsky.app` → true).
+pub fn has_known_suffix(host: &str) -> bool {
+    let h = host.trim_end_matches('.').to_ascii_lowercase();
+    h.contains('.') && psl::suffix(h.as_bytes()).is_some_and(|s| s.is_known())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
