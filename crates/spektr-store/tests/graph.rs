@@ -279,6 +279,35 @@ fn ego_groups_page_and_correlations_group_by_artifact() {
     assert_eq!(avatar.total, 2);
     assert_eq!(avatar.key.direction, Direction::Sym);
     assert!(avatar.rows.iter().all(|row| row.artifact_value.is_some()));
+
+    // The seed's ego shows its accounts' correlations as `≈` groups too
+    // (artboard 08), one row per account, acting on an account-account edge.
+    let ego = r.ego(seed, &EgoParams::default()).unwrap();
+    let avatar = ego
+        .groups
+        .iter()
+        .find(|g| g.key.artifact == Some(spektr_model::ArtifactKind::AvatarPhash))
+        .expect("the avatar cluster");
+    let mut ids: Vec<_> = avatar.rows.iter().map(|r| r.entity.id).collect();
+    ids.sort();
+    let mut want = vec![accounts[0], accounts[1], accounts[2]];
+    want.sort();
+    assert_eq!(ids, want);
+    let first = avatar
+        .rows
+        .iter()
+        .find(|r| r.entity.id == accounts[0])
+        .unwrap();
+    assert_eq!(first.edges.len(), 2, "both of account 0's avatar edges");
+    assert_eq!(first.strength, Some(Strength::Single));
+    let ip = ego
+        .groups
+        .iter()
+        .find(|g| g.key.artifact == Some(spektr_model::ArtifactKind::Ip))
+        .expect("the ip cluster");
+    assert_eq!(ip.total, 2);
+    // the seed's own degree doesn't count the clusters
+    assert_eq!(ego.degree.outbound, 12);
 }
 
 #[test]

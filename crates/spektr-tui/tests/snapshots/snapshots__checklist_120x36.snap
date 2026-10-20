@@ -9,13 +9,13 @@ expression: text(&s)
 │  ✓ image-triage           ▨ IMG_2214.… done 3… │ │  ○ ▨ avatar-bluesky.png                    lens · yandex · tineye │
 │                                                │ │                                                                   │
 │ Steps · person-from-username ───────────────── │ │ Review unsure sweep hits  person-from-username · step 6           │
-│ ✓ 1  run              on seed        1 job     │ │  ○ ~ jmarlow.wav                           opens Review           │
+│ ✓ 1  run              on seed          1 job   │ │  ○ ~ jmarlow.wav                           opens Review           │
 │        username-sweep                          │ │                                                                   │
-│ ✓ 2  run github       on seed        5 jobs    │ │ Selected ──────────────────────────────────────────────────────── │
+│ ✓ 2  run github       on seed          5 jobs  │ │ Selected ──────────────────────────────────────────────────────── │
 │        bluesky gitlab                          │ │ Reverse image search the GitHub avatar for jmarlow-wav. Look for  │
 │        mastodon                                │ │ the same photo on other profiles, shops, forums or news.          │
-│ ✓ 3  run avatar-hash  on 9 ◐ account 9 jobs    │ │                                                                   │
-│ ▸ 4  run              on 4 ↗ url     2/4 jobs  │ │ o open ▸   Google Lens   ·   Yandex Images   ·   TinEye           │
+│ ✓ 3  run avatar-hash  on 9 ◐ account   9 jobs  │ │                                                                   │
+│ ▸ 4  run              on 4 ↗ url       2/4 jo… │ │ o open ▸   Google Lens   ·   Yandex Images   ·   TinEye           │
 │        http-fingerprint                        │ │ Opening a launcher is recorded in the audit log.                  │
 │        wayback                                 │ │                                                                   │
 │ ○ 5  check reverse    on 3 ▨ image             │ │                                                                   │
