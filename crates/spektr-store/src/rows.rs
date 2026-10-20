@@ -115,6 +115,7 @@ impl EntityRow {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntitySummary {
     pub id: EntityId,
+    #[serde(rename = "type")]
     pub ty: EntityType,
     pub key: String,
     pub value: String,

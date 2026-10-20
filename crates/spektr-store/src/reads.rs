@@ -604,6 +604,62 @@ impl<'a> Reader<'a> {
             .collect())
     }
 
+    // ------------------------------------------------------------ whole-case dumps (export)
+
+    /// Every entity row, merged ones included, by id.
+    pub fn all_entities(&self) -> StoreResult<Vec<EntityRow>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached(&format!("SELECT {ENTITY_COLS} FROM entity ORDER BY id"))?;
+        Ok(stmt
+            .query_map([], EntityRow::from_row)?
+            .collect::<Result<_, _>>()?)
+    }
+
+    /// Every edge row, any state, by id.
+    pub fn all_edges(&self) -> StoreResult<Vec<EdgeRow>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached(&format!("SELECT {EDGE_COLS} FROM edge ORDER BY id"))?;
+        Ok(stmt
+            .query_map([], EdgeRow::from_row)?
+            .collect::<Result<_, _>>()?)
+    }
+
+    /// Every evidence row, by edge.
+    pub fn all_evidence(&self) -> StoreResult<Vec<EvidenceRow>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT edge_id, observation_id, source_key FROM edge_evidence ORDER BY edge_id, observation_id")?;
+        let rows = stmt.query_map([], |r| {
+            Ok(EvidenceRow {
+                edge: EdgeId(uuid_col(r, 0)?),
+                observation: ObservationId(uuid_col(r, 1)?),
+                source_key: r.get(2)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<_, _>>()?)
+    }
+
+    /// Every observation, oldest first.
+    pub fn all_observations(&self) -> StoreResult<Vec<ObservationRow>> {
+        let mut stmt = self.conn.prepare_cached(&format!(
+            "SELECT {OBSERVATION_COLS} FROM observation ORDER BY created_at, id"
+        ))?;
+        Ok(stmt
+            .query_map([], ObservationRow::from_row)?
+            .collect::<Result<_, _>>()?)
+    }
+
+    pub fn all_notes(&self) -> StoreResult<Vec<NoteRow>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, entity_id, finding_id, body, created_at FROM note ORDER BY created_at, id",
+        )?;
+        Ok(stmt
+            .query_map([], NoteRow::from_row)?
+            .collect::<Result<_, _>>()?)
+    }
+
     // ------------------------------------------------------------ audit
 
     pub fn audit_rows(&self, from_seq: i64, limit: u32) -> StoreResult<Vec<AuditRow>> {
